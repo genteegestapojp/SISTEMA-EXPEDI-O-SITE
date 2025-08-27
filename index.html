@@ -612,19 +612,30 @@
 
             <form id="expeditionForm">
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label for="lojaSelect">Loja:</label>
-                        <select id="lojaSelect" required>
-                            <option value="">Carregando lojas...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="pallets">Pallets:</label>
-                        <input type="number" id="pallets" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="rolltrainers">RollTrainers:</label>
-                        <input type="number" id="rolltrainers" min="0" required>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label style="font-size: 1.1rem; color: var(--dark); margin-bottom: 15px;">Lojas e Quantidades:</label>
+                        <div id="lojasContainer" style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3);">
+                            <!-- Primeira linha de loja (sempre presente) -->
+                            <div class="loja-line" data-index="0" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>Loja:</label>
+                                    <select class="loja-select" required>
+                                        <option value="">Carregando lojas...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>Pallets:</label>
+                                    <input type="number" class="pallets-input" min="0" required>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>RollTrainers:</label>
+                                    <input type="number" class="rolltrainers-input" min="0" required>
+                                </div>
+                                <div style="display: flex; align-items: center; height: 48px;">
+                                    <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="docaSelect">Doca:</label>
@@ -642,14 +653,14 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="observacoes">Observações:</label>
-                        <textarea id="observacoes" placeholder="Observações gerais..."></textarea>
+                        <textarea id="observacoes" placeholder="Observações gerais para todas as lojas..."></textarea>
                     </div>
                     <div class="form-group">
                         <label for="mensagemWP">Mensagem WhatsApp:</label>
                         <textarea id="mensagemWP" placeholder="Mensagem para envio via WhatsApp..."></textarea>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Lançar Expedição</button>
+                <button type="submit" class="btn btn-primary">Lançar Expedições</button>
             </form>
             <div id="operacaoAlert"></div>
         </div>
@@ -941,7 +952,64 @@
             }
         }
 
-        // Popular selects
+        // Contador global para linhas de lojas
+        let lojaLineCounter = 0;
+
+        // Adicionar nova linha de loja
+        function addLojaLine() {
+            lojaLineCounter++;
+            const container = document.getElementById('lojasContainer');
+            
+            const newLine = document.createElement('div');
+            newLine.className = 'loja-line';
+            newLine.setAttribute('data-index', lojaLineCounter);
+            newLine.style = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;';
+            
+            newLine.innerHTML = `
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Loja:</label>
+                    <select class="loja-select" required>
+                        <option value="">Selecione uma loja</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Pallets:</label>
+                    <input type="number" class="pallets-input" min="0" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>RollTrainers:</label>
+                    <input type="number" class="rolltrainers-input" min="0" required>
+                </div>
+                <div style="display: flex; align-items: center; height: 48px; gap: 8px;">
+                    <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
+                    <button type="button" class="btn btn-danger btn-small" onclick="removeLojaLine(${lojaLineCounter})" style="padding: 12px; border-radius: 8px;">-</button>
+                </div>
+            `;
+            
+            container.appendChild(newLine);
+            
+            // Popular o select da nova linha
+            populateLojaSelect(newLine.querySelector('.loja-select'));
+            
+            debugLog.add(`Nova linha de loja adicionada (índice: ${lojaLineCounter})`, 'info');
+        }
+
+        // Remover linha de loja
+        function removeLojaLine(index) {
+            const line = document.querySelector(`[data-index="${index}"]`);
+            if (line) {
+                line.remove();
+                debugLog.add(`Linha de loja removida (índice: ${index})`, 'info');
+            }
+        }
+
+        // Popular select de loja individual
+        function populateLojaSelect(selectElement) {
+            selectElement.innerHTML = '<option value="">Selecione uma loja</option>';
+            lojas.forEach(loja => {
+                selectElement.innerHTML += `<option value="${loja.id}">${loja.nome} ${loja.codigo ? '(' + loja.codigo + ')' : ''}</option>`;
+            });
+        }
         function populateSelects() {
             const lojaSelect = document.getElementById('lojaSelect');
             lojaSelect.innerHTML = '<option value="">Selecione uma loja</option>';
@@ -991,73 +1059,172 @@
             }, 5000);
         }
 
-        // Validar formulário (sem campo de data)
+        // Validar formulário com múltiplas lojas
         function validateForm() {
-            const requiredFields = [
-                { id: 'lojaSelect', name: 'Loja' },
-                { id: 'pallets', name: 'Pallets' },
-                { id: 'rolltrainers', name: 'RollTrainers' },
-                { id: 'docaSelect', name: 'Doca' },
-                { id: 'liderSelect', name: 'Líder' }
-            ];
+            const lojaLines = document.querySelectorAll('.loja-line');
+            const docaSelect = document.getElementById('docaSelect');
+            const liderSelect = document.getElementById('liderSelect');
 
-            for (let field of requiredFields) {
-                const element = document.getElementById(field.id);
-                if (!element.value.trim()) {
-                    showAlert('operacaoAlert', `Campo obrigatório: ${field.name}`, 'error');
-                    element.focus();
+            // Validar campos comuns
+            if (!docaSelect.value.trim()) {
+                showAlert('operacaoAlert', 'Campo obrigatório: Doca', 'error');
+                docaSelect.focus();
+                return false;
+            }
+
+            if (!liderSelect.value.trim()) {
+                showAlert('operacaoAlert', 'Campo obrigatório: Líder', 'error');
+                liderSelect.focus();
+                return false;
+            }
+
+            // Validar lojas
+            const lojasSelecionadas = [];
+            for (let i = 0; i < lojaLines.length; i++) {
+                const line = lojaLines[i];
+                const lojaSelect = line.querySelector('.loja-select');
+                const palletsInput = line.querySelector('.pallets-input');
+                const rolltrainersInput = line.querySelector('.rolltrainers-input');
+
+                // Verificar se loja foi selecionada
+                if (!lojaSelect.value.trim()) {
+                    showAlert('operacaoAlert', `Selecione uma loja na linha ${i + 1}`, 'error');
+                    lojaSelect.focus();
+                    return false;
+                }
+
+                // Verificar lojas duplicadas
+                if (lojasSelecionadas.includes(lojaSelect.value)) {
+                    showAlert('operacaoAlert', `Loja duplicada na linha ${i + 1}. Cada loja pode ser selecionada apenas uma vez.`, 'error');
+                    lojaSelect.focus();
+                    return false;
+                }
+                lojasSelecionadas.push(lojaSelect.value);
+
+                // Verificar quantidades
+                const pallets = parseInt(palletsInput.value);
+                const rolltrainers = parseInt(rolltrainersInput.value);
+
+                if (isNaN(pallets) || pallets < 0) {
+                    showAlert('operacaoAlert', `Quantidade de pallets inválida na linha ${i + 1}`, 'error');
+                    palletsInput.focus();
+                    return false;
+                }
+
+                if (isNaN(rolltrainers) || rolltrainers < 0) {
+                    showAlert('operacaoAlert', `Quantidade de RollTrainers inválida na linha ${i + 1}`, 'error');
+                    rolltrainersInput.focus();
                     return false;
                 }
             }
 
-            const pallets = parseInt(document.getElementById('pallets').value);
-            const rolltrainers = parseInt(document.getElementById('rolltrainers').value);
-
-            if (pallets < 0 || rolltrainers < 0) {
-                showAlert('operacaoAlert', 'Pallets e RollTrainers devem ser números positivos', 'error');
+            if (lojaLines.length === 0) {
+                showAlert('operacaoAlert', 'Adicione pelo menos uma loja', 'error');
                 return false;
             }
 
             return true;
         }
 
-        // Salvar expedição com timestamp automático
+        // Salvar expedições múltiplas com timestamp automático
         async function saveExpedition(formData) {
             if (!validateForm()) return;
 
             try {
-                // Data e hora são geradas automaticamente no momento do lançamento
                 const dataHoraLancamento = new Date().toISOString();
+                const lojaLines = document.querySelectorAll('.loja-line');
+                const expedicoesData = [];
+
+                // Coletar dados de cada loja
+                lojaLines.forEach((line, index) => {
+                    const lojaSelect = line.querySelector('.loja-select');
+                    const palletsInput = line.querySelector('.pallets-input');
+                    const rolltrainersInput = line.querySelector('.rolltrainers-input');
+
+                    const expeditionData = {
+                        data_hora: dataHoraLancamento,
+                        loja_id: lojaSelect.value,
+                        pallets: parseInt(palletsInput.value),
+                        rolltrainers: parseInt(rolltrainersInput.value),
+                        doca_id: formData.docaId,
+                        lider_id: formData.liderId,
+                        observacoes: formData.observacoes || null,
+                        mensagem_wp: formData.mensagemWP || null,
+                        status: 'pendente',
+                        created_at: dataHoraLancamento
+                    };
+
+                    expedicoesData.push(expeditionData);
+                });
+
+                debugLog.add(`Lançando ${expedicoesData.length} expedições em: ${new Date(dataHoraLancamento).toLocaleString('pt-BR')}`, 'info');
                 
-                debugLog.add(`Lançando expedição em: ${new Date(dataHoraLancamento).toLocaleString('pt-BR')}`, 'info');
+                // Salvar todas as expedições
+                const promises = expedicoesData.map(data => supabaseRequest('expeditions', 'POST', data));
+                await Promise.all(promises);
+
+                debugLog.add(`${expedicoesData.length} expedições criadas com sucesso`, 'success');
                 
-                let expeditionData = {
-                    data_hora: dataHoraLancamento, // Timestamp automático
-                    loja_id: formData.lojaId,
-                    pallets: parseInt(formData.pallets),
-                    rolltrainers: parseInt(formData.rolltrainers),
-                    doca_id: formData.docaId,
-                    lider_id: formData.liderId,
-                    observacoes: formData.observacoes || null,
-                    mensagem_wp: formData.mensagemWP || null,
-                    status: 'pendente',
-                    created_at: dataHoraLancamento // Para garantir controle preciso
-                };
+                // Buscar nomes das lojas para exibir no resumo
+                const lojasResumo = expedicoesData.map(exp => {
+                    const loja = lojas.find(l => l.id === exp.loja_id);
+                    return `${loja ? loja.nome : 'Loja desconhecida'} (${exp.pallets}P + ${exp.rolltrainers}R)`;
+                }).join(', ');
 
-                debugLog.add(`Dados da expedição: ${JSON.stringify(expeditionData)}`, 'info');
+                showAlert('operacaoAlert', 
+                    `${expedicoesData.length} expedições lançadas com sucesso em ${new Date(dataHoraLancamento).toLocaleString('pt-BR')}!<br>
+                    <strong>Lojas:</strong> ${lojasResumo}`, 'success');
+                
+                showNotification(`${expedicoesData.length} expedições criadas para múltiplas lojas!`, 'success');
+                
+                // Limpar formulário
+                resetMultiLojaForm();
 
-                const data = await supabaseRequest('expeditions', 'POST', expeditionData);
-
-                debugLog.add(`Expedição criada automaticamente em: ${new Date(dataHoraLancamento).toLocaleString('pt-BR')}`, 'success');
-                showAlert('operacaoAlert', `Expedição lançada com sucesso em ${new Date(dataHoraLancamento).toLocaleString('pt-BR')}!`, 'success');
-                showNotification('Nova expedição criada com timestamp automático!', 'success');
-                document.getElementById('expeditionForm').reset();
             } catch (error) {
-                console.error('Erro ao salvar expedição:', error);
-                debugLog.add(`Erro ao salvar expedição: ${error.message}`, 'error');
+                console.error('Erro ao salvar expedições:', error);
+                debugLog.add(`Erro ao salvar expedições: ${error.message}`, 'error');
                 showAlert('operacaoAlert', `Erro: ${error.message}`, 'error');
-                showNotification('Erro ao salvar expedição', 'error');
+                showNotification('Erro ao salvar expedições', 'error');
             }
+        }
+
+        // Resetar formulário de múltiplas lojas
+        function resetMultiLojaForm() {
+            // Limpar campos comuns
+            document.getElementById('docaSelect').value = '';
+            document.getElementById('liderSelect').value = '';
+            document.getElementById('observacoes').value = '';
+            document.getElementById('mensagemWP').value = '';
+
+            // Resetar container de lojas para uma linha apenas
+            const container = document.getElementById('lojasContainer');
+            container.innerHTML = `
+                <div class="loja-line" data-index="0" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Loja:</label>
+                        <select class="loja-select" required>
+                            <option value="">Selecione uma loja</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Pallets:</label>
+                        <input type="number" class="pallets-input" min="0" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>RollTrainers:</label>
+                        <input type="number" class="rolltrainers-input" min="0" required>
+                    </div>
+                    <div style="display: flex; align-items: center; height: 48px;">
+                        <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
+                    </div>
+                </div>
+            `;
+
+            // Resetar contador
+            lojaLineCounter = 0;
+
+            // Popular select da primeira linha
+            populateLojaSelect(container.querySelector('.loja-select'));
         }
 
         // Carregar acompanhamento com dados de tempo detalhados
@@ -1775,14 +1942,11 @@ Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
             }
         }
 
-        // Event listener para o formulário (sem campo de data)
+        // Event listener para o formulário de múltiplas lojas
         document.getElementById('expeditionForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const formData = {
-                lojaId: document.getElementById('lojaSelect').value,
-                pallets: document.getElementById('pallets').value,
-                rolltrainers: document.getElementById('rolltrainers').value,
                 docaId: document.getElementById('docaSelect').value,
                 liderId: document.getElementById('liderSelect').value,
                 observacoes: document.getElementById('observacoes').value,
