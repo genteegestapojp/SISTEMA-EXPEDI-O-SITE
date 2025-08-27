@@ -2037,6 +2037,43 @@ Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
             }
         }
 
+        // Salvar novo motorista
+        async function saveMotorista() {
+            const nome = document.getElementById('add_nome').value.trim();
+            const produtivo = document.getElementById('add_produtivo').value.trim();
+
+            if (!nome || !produtivo) {
+                showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            try {
+                debugLog.add(`Salvando novo motorista: ${nome} (${produtivo})`, 'info');
+
+                const motoristaData = {
+                    nome: nome,
+                    produtivo: produtivo
+                };
+
+                await supabaseRequest('motoristas', 'POST', motoristaData);
+
+                debugLog.add(`Motorista "${nome}" criado com sucesso`, 'success');
+                showAlert('addFormAlert', `Motorista "${nome}" criado com sucesso!`, 'success');
+                showNotification(`Novo motorista "${nome}" adicionado!`, 'success');
+                
+                // Recarregar dados e fechar modal após 2 segundos
+                setTimeout(async () => {
+                    await loadSelectData();
+                    hideAddForm();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro ao salvar motorista:', error);
+                debugLog.add(`Erro ao salvar motorista: ${error.message}`, 'error');
+                showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
+            }
+        }
+
         // Event listener para o formulário de múltiplas lojas
         document.getElementById('expeditionForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -2206,6 +2243,18 @@ VERSÃO: 3.0 - Time Tracking Edition
                         <input type="text" id="add_codigo_funcionario" required placeholder="Ex: LID001, 79105100">
                     </div>
                 `;
+            } else if (type === 'motorista') {
+                title.textContent = 'Adicionar Novo Motorista';
+                fieldsContainer.innerHTML = `
+                    <div class="form-group">
+                        <label for="add_nome">Nome do Motorista:</label>
+                        <input type="text" id="add_nome" required placeholder="Ex: João Silva Pereira">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_produtivo">Produtivo (Matrícula):</label>
+                        <input type="text" id="add_produtivo" required placeholder="Ex: 45676912345">
+                    </div>
+                `;
             } else {
                 // Para outros tipos, manter placeholder
                 title.textContent = `Adicionar ${type}`;
@@ -2238,6 +2287,8 @@ VERSÃO: 3.0 - Time Tracking Edition
                         await saveDoca();
                     } else if (title.includes('Líder')) {
                         await saveLider();
+                    } else if (title.includes('Motorista')) {
+                        await saveMotorista();
                     } else {
                         showAlert('addFormAlert', 'Funcionalidade em desenvolvimento', 'warning');
                     }
