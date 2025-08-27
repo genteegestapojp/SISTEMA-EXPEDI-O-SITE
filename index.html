@@ -662,7 +662,26 @@
                 </div>
                 <button type="submit" class="btn btn-primary">Lançar Expedição</button>
             </form>
-        
+            
+            <!-- Aviso sobre estrutura do banco -->
+            <div style="background: rgba(247, 127, 0, 0.1); border: 1px solid #F77F00; border-radius: 12px; padding: 15px; margin-top: 20px;">
+                <h4 style="color: #F77F00; margin-bottom: 10px;">⚠️Teste de banco</h4>
+                <p style="color: #F77F00; font-size: 0.9rem; margin-bottom: 10px;">
+                    Teste <strong>expedition_items</strong> no banco:
+                </p>
+                <code style="background: rgba(0,0,0,0.1); padding: 8px; border-radius: 6px; display: block; font-size: 0.8rem; color: #333;">
+CREATE TABLE expedition_items (<br>
+&nbsp;&nbsp;id UUID DEFAULT gen_random_uuid() PRIMARY KEY,<br>
+&nbsp;&nbsp;expedition_id UUID REFERENCES expeditions(id) ON DELETE CASCADE,<br>
+&nbsp;&nbsp;loja_id UUID REFERENCES lojas(id),<br>
+&nbsp;&nbsp;pallets INTEGER DEFAULT 0,<br>
+&nbsp;&nbsp;rolltrainers INTEGER DEFAULT 0,<br>
+&nbsp;&nbsp;created_at TIMESTAMPTZ DEFAULT NOW()<br>
+);
+                </code>
+            </div>
+            </form>
+            <div id="operacaoAlert"></div>
         </div>
 
         <div id="transporte" class="tab-content">
