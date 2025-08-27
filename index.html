@@ -40,8 +40,7 @@
                     placa: placa,
                     modelo: modelo,
                     capacidade_pallets: capacidadePallets,
-                    tipo: tipo,
-                    status: 'disponivel'
+                    tipo: tipo
                 };
 
                 await supabaseRequest('veiculos', 'POST', veiculoData);
@@ -2658,7 +2657,8 @@ Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
 
                 const motoristaData = {
                     nome: nome,
-                    produtivo: produtivo
+                    cnh: produtivo, // Usando 'cnh' ao invés de 'produtivo'
+                    status: 'disponivel'
                 };
 
                 await supabaseRequest('motoristas', 'POST', motoristaData);
