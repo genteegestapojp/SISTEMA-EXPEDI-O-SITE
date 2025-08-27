@@ -2657,8 +2657,7 @@ Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
 
                 const motoristaData = {
                     nome: nome,
-                    cnh: produtivo, // Usando 'cnh' ao invés de 'produtivo'
-                    status: 'disponivel'
+                    PRODUTIVO: produtivo // Campo em maiúscula conforme tabela
                 };
 
                 await supabaseRequest('motoristas', 'POST', motoristaData);
