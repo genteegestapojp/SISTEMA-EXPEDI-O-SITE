@@ -1162,6 +1162,9 @@
         <div class="header">
             <h1>Sistema de Controle de Expedição</h1>
             <p>Gerencie todas as operações de transporte e logística com rastreamento completo de tempo</p>
+            <div style="margin-top: 12px; font-size: 0.8rem; opacity: 0.7;">
+                Desenvolvido por <strong>Juliano Patrick</strong> - JP Tech Solutions
+            </div>
         </div>
 
         <div class="tabs">
@@ -1466,6 +1469,21 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Rodapé com Informações do Desenvolvedor -->
+    <div style="background: var(--dark); color: white; text-align: center; padding: 16px; margin-top: 20px; border-radius: 8px;">
+        <div style="font-size: 0.9rem; margin-bottom: 8px;">
+            <strong>Sistema de Controle de Expedição v3.5</strong>
+        </div>
+        <div style="font-size: 0.8rem; opacity: 0.8; line-height: 1.4;">
+            Desenvolvido por <strong>Juliano Patrick</strong><br>
+            <strong>JP Tech Solutions</strong><br>
+            📧 julianocorrea@bateforte.com.br
+        </div>
+        <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 8px;">
+            Controle de Tempos • Validação QR Code • Interface Responsiva
         </div>
     </div>
 
@@ -2601,10 +2619,44 @@
             document.getElementById(`reallocate_${expeditionId}`).style.display = 'none';
         }
 
-        // Alocar transporte com timestamp automático (corrigido para evitar erro 400)
+        // Variável para controlar alocações em andamento
+        let allocatingTransports = new Set();
+
+        // Função melhorada para requisições com timeout
+        async function supabaseRequestWithTimeout(endpoint, method = 'GET', data = null, timeoutMs = 30000) {
+            return new Promise(async (resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Timeout: Operação demorou mais que 30 segundos'));
+                }, timeoutMs);
+
+                try {
+                    const result = await supabaseRequest(endpoint, method, data);
+                    clearTimeout(timeoutId);
+                    resolve(result);
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            });
+        }
+
+        // Alocar transporte com proteção contra travamentos
         async function allocateTransport(expeditionId) {
+            // Verificar se já está sendo processada uma alocação para esta expedição
+            if (allocatingTransports.has(expeditionId)) {
+                showNotification('Aguarde! Alocação já está sendo processada...', 'warning');
+                return;
+            }
+
             const veiculoSelect = document.getElementById(`veiculo_${expeditionId}`);
             const motoristaSelect = document.getElementById(`motorista_${expeditionId}`);
+            const allocateButton = document.querySelector(`button[onclick="allocateTransport('${expeditionId}')"]`);
+
+            // Validações iniciais
+            if (!veiculoSelect || !motoristaSelect) {
+                showNotification('Erro: Elementos do formulário não encontrados', 'error');
+                return;
+            }
 
             const veiculoId = veiculoSelect.value;
             const motoristaId = motoristaSelect.value;
@@ -2613,25 +2665,43 @@
                 showNotification('Por favor, selecione um veículo e um motorista!', 'error');
                 return;
             }
-            const allocateButton = document.querySelector(`button[onclick="allocateTransport('${expeditionId}')"]`);
-            if (allocateButton) allocateButton.disabled = true;
+
+            // Marcar como processando e desabilitar interface
+            allocatingTransports.add(expeditionId);
             
-            // Validação de capacidade antes de enviar
-            const selectedVehicle = veiculos.find(v => v.id === veiculoId);
-            const expedition = allExpeditions.find(e => e.id === expeditionId);
-            const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
-            
-            if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
-                showNotification(`Veículo selecionado não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade do veículo: ${selectedVehicle.capacidade_pallets}`, 'error');
-                if (allocateButton) allocateButton.disabled = false;
-                return;
+            if (allocateButton) {
+                allocateButton.disabled = true;
+                allocateButton.textContent = 'Alocando...';
+                allocateButton.style.opacity = '0.6';
             }
+
+            // Desabilitar selects para evitar mudanças durante processamento
+            veiculoSelect.disabled = true;
+            motoristaSelect.disabled = true;
+
             try {
+                // Validação de capacidade
+                const selectedVehicle = veiculos.find(v => v.id === veiculoId);
+                const expedition = allExpeditions.find(e => e.id === expeditionId);
+                
+                if (!selectedVehicle) {
+                    throw new Error('Veículo selecionado não encontrado');
+                }
+                
+                if (!expedition) {
+                    throw new Error('Expedição não encontrada');
+                }
+
+                const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
+                
+                if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
+                    throw new Error(`Veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`);
+                }
+
                 const dataAlocacao = new Date().toISOString();
+                debugLog.add(`Iniciando alocação de transporte para expedição ${expeditionId}`, 'info');
 
-                debugLog.add(`Alocando transporte em ${new Date(dataAlocacao).toLocaleString('pt-BR')} para expedição ${expeditionId}`, 'info');
-
-                // 1. Primeiro, atualizar a expedição
+                // Atualizar a expedição principal (operação crítica)
                 const expeditionUpdateData = {
                     veiculo_id: veiculoId,
                     motorista_id: motoristaId,
@@ -2639,54 +2709,92 @@
                     data_alocacao_veiculo: dataAlocacao
                 };
 
-                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdateData);
+                await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdateData);
+                debugLog.add('Expedição atualizada com sucesso', 'success');
 
-                // 2. Depois, atualizar o status do veículo (se existir na tabela)
-                try {
-                    await supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', {
-                        status: 'em_uso'
-                    });
-                    debugLog.add(`Status do veículo atualizado`, 'success');
-                } catch (veiculoError) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status do veículo: ${veiculoError.message}`, 'warning');
-                    // Continua mesmo se não conseguir atualizar o veículo
-                }
+                // Operações secundárias (não críticas) - continua mesmo se falharem
+                const secondaryOperations = [];
 
-                // 3. Por último, atualizar o status do motorista (se existir campo status)
-                try {
-                    await supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', {
-                        status: 'em_viagem'
-                    });
-                    debugLog.add(`Status do motorista atualizado`, 'success');
-                } catch (motoristaError) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status do motorista: ${motoristaError.message}`, 'warning');
-                    // Continua mesmo se não conseguir atualizar o motorista
-                }
+                // Atualizar status do veículo
+                secondaryOperations.push(
+                    supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' })
+                        .then(() => debugLog.add('Status do veículo atualizado', 'success'))
+                        .catch(error => debugLog.add(`Aviso: Erro ao atualizar veículo: ${error.message}`, 'warning'))
+                );
+
+                // Atualizar status do motorista
+                secondaryOperations.push(
+                    supabaseRequestWithTimeout(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' })
+                        .then(() => debugLog.add('Status do motorista atualizado', 'success'))
+                        .catch(error => debugLog.add(`Aviso: Erro ao atualizar motorista: ${error.message}`, 'warning'))
+                );
+
+                // Aguardar operações secundárias (com timeout menor)
+                await Promise.allSettled(secondaryOperations.map(op => 
+                    Promise.race([op, new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout secundário')), 10000)
+                    )])
+                ));
 
                 debugLog.add(`Transporte alocado com sucesso às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}`, 'success');
                 showNotification(`Transporte alocado às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}!`, 'success');
 
-                // Recarregar dados
-                await loadSelectData();
-                loadTransportList();
+                // Recarregar dados com retry
+                try {
+                    await Promise.all([
+                        loadSelectData(),
+                        loadTransportList()
+                    ]);
+                } catch (reloadError) {
+                    debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
+                    // Tentar recarregar apenas a lista de transporte
+                    setTimeout(loadTransportList, 2000);
+                }
 
             } catch (error) {
                 console.error('Erro ao alocar transporte:', error);
                 debugLog.add(`Erro ao alocar transporte: ${error.message}`, 'error');
-                showNotification('Erro: ' + error.message, 'error');
-                if (allocateButton) allocateButton.disabled = false;
+                showNotification(`Erro: ${error.message}`, 'error');
 
-                // Se der erro, recarregar a lista para ver o estado atual
+                // Tentar recarregar a lista para ver estado atual
                 setTimeout(() => {
                     loadTransportList();
-                }, 1000);
+                }, 2000);
+
+            } finally {
+                // SEMPRE executar limpeza, mesmo em caso de erro
+                allocatingTransports.delete(expeditionId);
+                
+                // Reabilitar interface
+                if (allocateButton) {
+                    allocateButton.disabled = false;
+                    allocateButton.textContent = 'Alocar Agora';
+                    allocateButton.style.opacity = '1';
+                }
+                
+                // Reabilitar selects
+                if (veiculoSelect) veiculoSelect.disabled = false;
+                if (motoristaSelect) motoristaSelect.disabled = false;
             }
         }
 
-        // Realocar transporte (corrigido para evitar erro 400)
+        // Realocar transporte com proteção contra travamentos
         async function reallocateTransport(expeditionId) {
+            // Verificar se já está sendo processada uma realocação para esta expedição
+            if (allocatingTransports.has(expeditionId)) {
+                showNotification('Aguarde! Realocação já está sendo processada...', 'warning');
+                return;
+            }
+
             const newVeiculoSelect = document.getElementById(`new_veiculo_${expeditionId}`);
             const newMotoristaSelect = document.getElementById(`new_motorista_${expeditionId}`);
+            const reallocateButton = document.querySelector(`button[onclick="reallocateTransport('${expeditionId}')"]`);
+
+            // Validações iniciais
+            if (!newVeiculoSelect || !newMotoristaSelect) {
+                showNotification('Erro: Elementos do formulário não encontrados', 'error');
+                return;
+            }
 
             const newVeiculoId = newVeiculoSelect.value;
             const newMotoristaId = newMotoristaSelect.value;
@@ -2696,25 +2804,45 @@
                 return;
             }
             
-            // Validação de capacidade antes de enviar
+            // Validação de capacidade
             const selectedVehicle = veiculos.find(v => v.id === newVeiculoId);
             const expedition = allExpeditions.find(e => e.id === expeditionId);
+            
+            if (!selectedVehicle || !expedition) {
+                showNotification('Erro: Dados não encontrados para validação', 'error');
+                return;
+            }
+            
             const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
             
             if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
-                showNotification(`Novo veículo selecionado não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade do veículo: ${selectedVehicle.capacidade_pallets}`, 'error');
+                showNotification(`Novo veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`, 'error');
                 return;
             }
 
+            // Confirmação do usuário
             if (!await showConfirmationModal('Confirma a alteração do transporte? O veículo e motorista atuais serão liberados.')) {
                 return;
             }
+
+            // Marcar como processando e desabilitar interface
+            allocatingTransports.add(expeditionId);
+            
+            if (reallocateButton) {
+                reallocateButton.disabled = true;
+                reallocateButton.textContent = 'Realocando...';
+                reallocateButton.style.opacity = '0.6';
+            }
+
+            // Desabilitar selects
+            newVeiculoSelect.disabled = true;
+            newMotoristaSelect.disabled = true;
 
             try {
                 debugLog.add(`Iniciando realocação de transporte para expedição ${expeditionId}`, 'info');
 
                 // 1. Buscar dados da expedição atual
-                const expeditionData = await supabaseRequest(`expeditions?id=eq.${expeditionId}&select=veiculo_id,motorista_id`);
+                const expeditionData = await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}&select=veiculo_id,motorista_id`);
 
                 if (!expeditionData || expeditionData.length === 0) {
                     throw new Error(`Expedição ${expeditionId} não encontrada`);
@@ -2723,8 +2851,8 @@
                 const expedition = expeditionData[0];
                 const dataRealocacao = new Date().toISOString();
 
-                // 2. Atualizar a expedição com novos dados (OPERAÇÃO PRINCIPAL)
-                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                // 2. Atualizar a expedição com novos dados (OPERAÇÃO CRÍTICA)
+                await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
                     veiculo_id: newVeiculoId,
                     motorista_id: newMotoristaId,
                     status: 'aguardando_veiculo',
@@ -2733,64 +2861,82 @@
 
                 debugLog.add('Expedição realocada com sucesso', 'success');
 
-                // 3. Liberar recursos anteriores (OPERAÇÕES OPCIONAIS)
+                // 3. Operações secundárias (não críticas)
+                const secondaryOperations = [];
+
+                // Liberar recursos anteriores
                 if (expedition.veiculo_id) {
-                    try {
-                        await supabaseRequest(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', {
-                            status: 'disponivel'
-                        });
-                        debugLog.add(`Veículo anterior liberado: ${expedition.veiculo_id}`, 'success');
-                    } catch (error) {
-                        debugLog.add(`Aviso: Não foi possível liberar veículo anterior: ${error.message}`, 'warning');
-                    }
+                    secondaryOperations.push(
+                        supabaseRequestWithTimeout(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', { status: 'disponivel' })
+                            .then(() => debugLog.add(`Veículo anterior liberado: ${expedition.veiculo_id}`, 'success'))
+                            .catch(error => debugLog.add(`Aviso: Erro ao liberar veículo anterior: ${error.message}`, 'warning'))
+                    );
                 }
 
                 if (expedition.motorista_id) {
-                    try {
-                        await supabaseRequest(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', {
-                            status: 'disponivel'
-                        });
-                        debugLog.add(`Motorista anterior liberado: ${expedition.motorista_id}`, 'success');
-                    } catch (error) {
-                        debugLog.add(`Aviso: Não foi possível atualizar status do motorista: ${error.message}`, 'warning');
-                    }
+                    secondaryOperations.push(
+                        supabaseRequestWithTimeout(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', { status: 'disponivel' })
+                            .then(() => debugLog.add(`Motorista anterior liberado: ${expedition.motorista_id}`, 'success'))
+                            .catch(error => debugLog.add(`Aviso: Erro ao liberar motorista anterior: ${error.message}`, 'warning'))
+                    );
                 }
 
-                // 4. Alocar novos recursos (OPERAÇÕES OPCIONAIS)
-                try {
-                    await supabaseRequest(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', {
-                        status: 'em_uso'
-                    });
-                    debugLog.add('Novo veículo alocado', 'success');
-                } catch (error) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status do novo veículo: ${error.message}`, 'warning');
-                }
+                // Alocar novos recursos
+                secondaryOperations.push(
+                    supabaseRequestWithTimeout(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', { status: 'em_uso' })
+                        .then(() => debugLog.add('Novo veículo alocado', 'success'))
+                        .catch(error => debugLog.add(`Aviso: Erro ao alocar novo veículo: ${error.message}`, 'warning'))
+                );
 
-                try {
-                    await supabaseRequest(`motoristas?id=eq.${newMotoristaId}`, 'PATCH', {
-                        status: 'em_viagem'
-                    });
-                    debugLog.add('Novo motorista alocado', 'success');
-                } catch (error) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${error.message}`, 'warning');
-                }
+                secondaryOperations.push(
+                    supabaseRequestWithTimeout(`motoristas?id=eq.${newMotoristaId}`, 'PATCH', { status: 'em_viagem' })
+                        .then(() => debugLog.add('Novo motorista alocado', 'success'))
+                        .catch(error => debugLog.add(`Aviso: Erro ao alocar novo motorista: ${error.message}`, 'warning'))
+                );
+
+                // Aguardar operações secundárias (com timeout menor)
+                await Promise.allSettled(secondaryOperations.map(op => 
+                    Promise.race([op, new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout secundário')), 10000)
+                    )])
+                ));
 
                 debugLog.add(`Transporte realocado com sucesso às ${new Date(dataRealocacao).toLocaleTimeString('pt-BR')}`, 'success');
                 showNotification('Transporte alterado com sucesso!', 'success');
 
-                // Recarregar dados
-                await loadSelectData();
-                loadTransportList();
+                // Recarregar dados com retry
+                try {
+                    await Promise.all([
+                        loadSelectData(),
+                        loadTransportList()
+                    ]);
+                } catch (reloadError) {
+                    debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
+                    setTimeout(loadTransportList, 2000);
+                }
 
             } catch (error) {
                 console.error('Erro ao realocar transporte:', error);
                 debugLog.add(`Erro ao realocar transporte: ${error.message}`, 'error');
                 showNotification(`Erro ao realocar: ${error.message}`, 'error');
 
-                // Se der erro, recarregar a lista para ver o estado atual
-                setTimeout(() => {
-                    loadTransportList();
-                }, 1000);
+                // Tentar recarregar a lista para ver estado atual
+                setTimeout(loadTransportList, 2000);
+
+            } finally {
+                // SEMPRE executar limpeza
+                allocatingTransports.delete(expeditionId);
+                
+                // Reabilitar interface
+                if (reallocateButton) {
+                    reallocateButton.disabled = false;
+                    reallocateButton.textContent = 'Confirmar Alteração';
+                    reallocateButton.style.opacity = '1';
+                }
+                
+                // Reabilitar selects
+                if (newVeiculoSelect) newVeiculoSelect.disabled = false;
+                if (newMotoristaSelect) newMotoristaSelect.disabled = false;
             }
         }
 
@@ -3290,6 +3436,9 @@ Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
             if (!status) return;
 
             const systemInfo = `
+DESENVOLVEDOR: Juliano Patrick - JP Tech Solutions
+CONTATO: julianocorrea@bateforte.com.br
+
 URL do Supabase: ${SUPABASE_URL}
 Data/Hora: ${new Date().toLocaleString('pt-BR')}
 
@@ -3300,6 +3449,8 @@ SISTEMA DE CONTROLE DE TEMPOS ATIVO:
 ✓ Cálculos automáticos de tempo
 ✓ Filtros por data e status
 ✓ Análise de tempos médios
+✓ Validação QR Code com coddoca
+✓ Interface responsiva para mobile
 
 CACHE LOCAL:
 • Lojas: ${lojas.length} carregadas
@@ -3309,7 +3460,8 @@ CACHE LOCAL:
 • Motoristas: ${motoristas.length} carregados
 
 STATUS: Sistema de tempos funcionando normalmente
-VERSÃO: 3.5 - Validação de QR Code com coddoca
+VERSÃO: 3.5 - Validação QR Code com coddoca + Proteção contra travamentos
+DESENVOLVIDO POR: JP Tech Solutions
 ÚLTIMA ATUALIZAÇÃO: ${new Date().toLocaleTimeString()}
             `;
 
