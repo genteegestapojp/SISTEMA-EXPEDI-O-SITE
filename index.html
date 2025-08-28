@@ -877,8 +877,8 @@
         <div class="tabs">
             <button class="tab active" onclick="showTab('operacao')">Operação</button>
             <button class="tab" onclick="showTab('transporte')">Transporte</button>
-            <button class="tab" onclick="showTab('acompanhamento')">Acompanhamento</button>
             <button class="tab" onclick="showTab('motoristas')">Motoristas</button>
+            <button class="tab" onclick="showTab('acompanhamento')">Acompanhamento</button>
             <button class="tab" onclick="showTab('configuracoes')">Configurações</button>
         </div>
 
@@ -963,6 +963,41 @@ CREATE TABLE expedition_items (<br>
             <div id="transporteList" class="loading">
                 <div class="spinner"></div>
                 Carregando expedições pendentes...
+            </div>
+        </div>
+
+        <div id="motoristas" class="tab-content">
+            <h2>Área do Motorista</h2>
+
+            <div style="background: rgba(144, 224, 239, 0.1); padding: 30px; border-radius: 16px; margin-bottom: 30px; border: 1px solid rgba(0, 212, 170, 0.3); text-align: center;">
+                <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
+                <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar as expedições aguardando ou em carregamento</p>
+
+                <div style="display: flex; gap: 15px; justify-content: center; align-items: end; flex-wrap: wrap;">
+                    <div class="form-group" style="min-width: 200px; margin-bottom: 0;">
+                        <label for="placaMotorista" style="text-align: left;">Selecione a Placa do Veículo:</label>
+                        <select id="placaMotorista">
+                            <option value="">Carregando veículos...</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="consultarExpedicoesPorPlaca()" style="height: 54px;">
+                        Consultar Expedições
+                    </button>
+                </div>
+            </div>
+
+            <div id="resultadosMotorista" style="display: none;">
+                <h3 style="color: var(--dark); margin-bottom: 20px;">Suas Expedições</h3>
+                <div id="listaExpedicoesMotorista"></div>
+            </div>
+
+            <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
+                <div style="background: rgba(247, 127, 0, 0.1); border: 1px solid #F77F00; border-radius: 12px; padding: 25px;">
+                    <h4 style="color: #F77F00; margin-bottom: 15px;">📋 Nenhuma Expedição Encontrada</h4>
+                    <p style="color: #F77F00; margin: 0;">
+                        Não foram encontradas expedições aguardando veículo ou em carregamento para a placa informada.
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -1069,41 +1104,6 @@ CREATE TABLE expedition_items (<br>
                         </tr>
                     </tbody>
                 </table>
-            </div>
-        </div>
-
-        <div id="motoristas" class="tab-content">
-            <h2>Área do Motorista</h2>
-
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 30px; border-radius: 16px; margin-bottom: 30px; border: 1px solid rgba(0, 212, 170, 0.3); text-align: center;">
-                <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
-                <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar as expedições aguardando ou em carregamento</p>
-
-                <div style="display: flex; gap: 15px; justify-content: center; align-items: end; flex-wrap: wrap;">
-                    <div class="form-group" style="min-width: 200px; margin-bottom: 0;">
-                        <label for="placaMotorista" style="text-align: left;">Selecione a Placa do Veículo:</label>
-                        <select id="placaMotorista">
-                            <option value="">Carregando veículos...</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="consultarExpedicoesPorPlaca()" style="height: 54px;">
-                        Consultar Expedições
-                    </button>
-                </div>
-            </div>
-
-            <div id="resultadosMotorista" style="display: none;">
-                <h3 style="color: var(--dark); margin-bottom: 20px;">Suas Expedições</h3>
-                <div id="listaExpedicoesMotorista"></div>
-            </div>
-
-            <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
-                <div style="background: rgba(247, 127, 0, 0.1); border: 1px solid #F77F00; border-radius: 12px; padding: 25px;">
-                    <h4 style="color: #F77F00; margin-bottom: 15px;">📋 Nenhuma Expedição Encontrada</h4>
-                    <p style="color: #F77F00; margin: 0;">
-                        Não foram encontradas expedições aguardando veículo ou em carregamento para a placa informada.
-                    </p>
-                </div>
             </div>
         </div>
 
@@ -1807,8 +1807,8 @@ CREATE TABLE expedition_items (<br>
                 }
 
                 if (chegadaEm) {
-                    const minutosChegada = Math.round((chegadaEm - criadoEm) / 60000);
-                    temposChegada.push(minutosChegada);
+                    const minutosAteChegada = Math.round((chegadaEm - criadoEm) / 60000);
+                    temposChegada.push(minutosAteChegada);
                 }
 
                 if (chegadaEm && saidaEm) {
@@ -2022,14 +2022,8 @@ CREATE TABLE expedition_items (<br>
 
                     // Buscar dados da doca
                     const doca = docas.find(d => d.id === exp.doca_id);
-
-                    // Buscar dados do líder
                     const lider = lideres.find(l => l.id === exp.lider_id);
-
-                    // Buscar dados do veículo (se alocado)
                     const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
-
-                    // Buscar dados do motorista (se alocado)
                     const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
 
                     return {
@@ -2092,6 +2086,9 @@ CREATE TABLE expedition_items (<br>
                 const totalRolltrainers = exp.total_rolltrainers || 0;
                 const quantidadeLojas = exp.lojas_count || 0;
 
+                // Carga total em pallets (pallets + rolltainers/2)
+                const cargaTotalNecessaria = totalPallets + (totalRolltrainers / 2);
+
                 html += `
                     <div class="transport-card">
                         <h3>Expedição - ${quantidadeLojas} loja${quantidadeLojas > 1 ? 's' : ''}</h3>
@@ -2104,6 +2101,7 @@ CREATE TABLE expedition_items (<br>
                         <div class="transport-grid">
                             <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.2rem;">${totalPallets}</span></div>
                             <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.2rem;">${totalRolltrainers}</span></div>
+                            <div><strong>Carga (Pallets):</strong> ${Math.ceil(cargaTotalNecessaria)}</div>
                             <div><strong>Doca:</strong> ${exp.doca_nome || 'N/A'}</div>
                             <div><strong>Líder:</strong> ${exp.lider_nome || 'N/A'}</div>
                             <div><strong>Status:</strong> <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></div>
@@ -2135,7 +2133,13 @@ CREATE TABLE expedition_items (<br>
                                     <label>Veículo:</label>
                                     <select id="veiculo_${exp.id}">
                                         <option value="">Selecione um veículo</option>
-                                        ${veiculosList.map(v => `<option value="${v.id}">${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)</option>`).join('')}
+                                        ${veiculosList.map(v => {
+                                            const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
+                                            const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
+                                            return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
+                                                        ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                    </option>`;
+                                        }).join('')}
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -2156,7 +2160,13 @@ CREATE TABLE expedition_items (<br>
                                     <label>Novo Veículo:</label>
                                     <select id="new_veiculo_${exp.id}">
                                         <option value="">Selecione um veículo</option>
-                                        ${veiculosList.map(v => `<option value="${v.id}">${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)</option>`).join('')}
+                                        ${veiculosList.map(v => {
+                                            const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
+                                            const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
+                                            return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
+                                                        ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                    </option>`;
+                                        }).join('')}
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -2200,6 +2210,16 @@ CREATE TABLE expedition_items (<br>
 
             if (!veiculoId || !motoristaId) {
                 showNotification('Por favor, selecione um veículo e um motorista!', 'error');
+                return;
+            }
+            
+            // Validação de capacidade antes de enviar
+            const selectedVehicle = veiculos.find(v => v.id === veiculoId);
+            const expedition = allExpeditions.find(e => e.id === expeditionId);
+            const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
+            
+            if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
+                showNotification(`Veículo selecionado não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade do veículo: ${selectedVehicle.capacidade_pallets}`, 'error');
                 return;
             }
 
@@ -2269,6 +2289,16 @@ CREATE TABLE expedition_items (<br>
 
             if (!newVeiculoId || !newMotoristaId) {
                 showNotification('Por favor, selecione um novo veículo e motorista!', 'error');
+                return;
+            }
+            
+            // Validação de capacidade antes de enviar
+            const selectedVehicle = veiculos.find(v => v.id === newVeiculoId);
+            const expedition = allExpeditions.find(e => e.id === expeditionId);
+            const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
+            
+            if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
+                showNotification(`Novo veículo selecionado não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade do veículo: ${selectedVehicle.capacidade_pallets}`, 'error');
                 return;
             }
 
@@ -2411,8 +2441,8 @@ CREATE TABLE expedition_items (<br>
                 // Análise de tempo completa
                 const criadoEm = new Date(expedition.created_at || expedition.data_hora);
                 const alocadoEm = expedition.data_alocacao_veiculo ? new Date(expedition.data_alocacao_veiculo) : null;
-                const chegadaEm = expedition.data_chegada_veiculo ? new Date(expedition.data_chegada_veiculo) : null;
-                const saidaEm = expedition.data_saida_veiculo ? new Date(expedition.data_saida_veiculo) : null;
+                const chegadaEm = expedition.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
+                const saidaEm = expedition.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
 
                 let analiseCompleta = `
 ANÁLISE COMPLETA DE TEMPOS - EXPEDIÇÃO
@@ -3267,7 +3297,7 @@ VERSÃO: 3.2 - Correções e Melhorias
 
         // --- Funções para o Modal de QR Code (Novo) ---
 
-        // Variáveis para o modal de QR Code (Declaradas uma única vez)
+        // Variáveis para o modal de QR Code
         let modalState = {
             expeditionId: null,
             expectedDocaName: null,
@@ -3331,7 +3361,13 @@ VERSÃO: 3.2 - Correções e Melhorias
                 });
 
                 // Atualizar o status da doca para 'em_uso'
-                await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'em_uso' });
+                try {
+                    await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'em_uso' });
+                    debugLog.add(`Status da doca atualizado`, 'success');
+                } catch (docaError) {
+                    debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
+                }
+                
 
                 debugLog.add(`Carregamento iniciado para expedição ${expeditionId}. Doca: ${modalState.expectedDocaName}`, 'success');
                 showNotification(`Carregamento iniciado na Doca ${modalState.expectedDocaName}!`, 'success');
@@ -3356,7 +3392,12 @@ VERSÃO: 3.2 - Correções e Melhorias
                 });
 
                 // Atualizar o status da doca para 'disponivel'
-                await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'disponivel' });
+                try {
+                    await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'disponivel' });
+                    debugLog.add(`Status da doca atualizado`, 'success');
+                } catch (docaError) {
+                    debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
+                }
                 
                 debugLog.add(`Carregamento finalizado para expedição ${expeditionId}.`, 'success');
                 showNotification(`Carregamento finalizado! Expedição pronta para a rua.`, 'success');
