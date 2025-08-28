@@ -12,6 +12,50 @@
             box-sizing: border-box;
         }
 
+        /* Ícones Profissionais */
+        .feature-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            font-style: normal;
+            font-weight: 700;
+            color: var(--primary);
+            vertical-align: middle;
+            text-align: center;
+            line-height: 16px;
+        }
+
+        .feature-icon.truck::before { content: "⬛"; color: var(--accent); }
+        .feature-icon.store::before { content: "▪"; color: var(--primary); }
+        .feature-icon.package::before { content: "■"; color: var(--primary); }
+        .feature-icon.rolltrainer::before { content: "▣"; color: var(--secondary); }
+        .feature-icon.dock::before { content: "▬"; color: var(--accent); }
+        .feature-icon.user::before { content: "●"; color: var(--dark); }
+        .feature-icon.clock::before { content: "◉"; color: #F77F00; }
+        .feature-icon.calendar::before { content: "▢"; color: #F77F00; }
+        .feature-icon.note::before { content: "▤"; color: var(--primary); }
+        .feature-icon.clipboard::before { content: "▦"; color: #F77F00; }
+        .feature-icon.email::before { content: "▣"; color: white; }
+        .feature-icon.info::before { content: "▲"; color: var(--primary); }
+        .feature-icon.check::before { content: "✔"; color: var(--primary); }
+        .feature-icon.cross::before { content: "✖"; color: #D62828; }
+
+        /* Variações de cor para diferentes contextos */
+        .feature-icon.primary { color: var(--primary); }
+        .feature-icon.secondary { color: var(--secondary); }
+        .feature-icon.dark { color: var(--dark); }
+        .feature-icon.warning { color: #F77F00; }
+        .feature-icon.danger { color: #D62828; }
+        .feature-icon.white { color: white; }
+        .feature-icon.accent { color: var(--accent); }
+
+        /* Hover effects para ícones interativos */
+        .feature-icon:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+
         /* Variáveis CSS */
         :root {
             --primary: #00D4AA;
@@ -1269,7 +1313,7 @@
 
             <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
                 <div class="alert alert-warning">
-                    <h4 style="color: #F77F00; margin-bottom: 15px;">📋 Nenhuma Expedição Encontrada</h4>
+                    <h4 style="color: #F77F00; margin-bottom: 15px;"><span class="feature-icon clipboard warning"></span>Nenhuma Expedição Encontrada</h4>
                     <p style="color: #F77F00; margin: 0;">
                         Não foram encontradas expedições aguardando veículo ou em carregamento para a placa informada.
                     </p>
@@ -1480,7 +1524,7 @@
         <div style="font-size: 0.8rem; opacity: 0.8; line-height: 1.4;">
             Desenvolvido por <strong>Juliano Patrick</strong><br>
             <strong>JP Tech Solutions</strong><br>
-            📧 julianocorrea@bateforte.com.br
+            <span class="feature-icon email white"></span>julianocorrea@bateforte.com.br
         </div>
         <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 8px;">
             Controle de Tempos • Validação QR Code • Interface Responsiva
@@ -1660,7 +1704,7 @@
                         notification.parentNode.removeChild(notification);
                     }
                 }, 300);
-            }, 3000);
+            }, 5000); // Aumentado para 5 segundos para textos mais longos
         }
 
         // Verificar conexão
@@ -2299,7 +2343,7 @@
 
                     veiculoInfoHtml = `
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 1.2rem; color: #495057;">🚚</span>
+                            <span class="feature-icon truck accent"></span>
                             <div style="font-size: 0.8rem; font-weight: 600; color: #495057;">
                                 ${exp.veiculo_placa || 'N/A'}
                             </div>
@@ -2556,8 +2600,8 @@
                                         const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
                                         const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
                                         return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                            ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                                        </option>`;
+                                                    ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                </option>`;
                                     }).join('')}
                                 </select>
                             </div>
@@ -2583,8 +2627,8 @@
                                             const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
                                             const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
                                             return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                            ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                                        </option>`;
+                                                        ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                    </option>`;
                                         }).join('')}
                                     </select>
                                 </div>
@@ -3017,11 +3061,11 @@ TIMELINE COMPLETA:
                     const minutosAlocar = Math.round((alocadoEm - criadoEm) / 60000);
                     analiseCompleta += `
 • Alocação: ${alocadoEm.toLocaleString('pt-BR')}
-  ⏱️ Tempo para alocar: ${minutesToHHMM(minutosAlocar)}`;
+  <span class="feature-icon clock warning"></span> Tempo para alocar: ${minutesToHHMM(minutosAlocar)}`;
 
-                    if (minutosAlocar <= 30) analiseCompleta += ' ✅ (Excelente)';
-                    else if (minutosAlocar <= 60) analiseCompleta += ' ⚠️ (Atenção)';
-                    else analiseCompleta += ' ❌ (Demorado)';
+                    if (minutosAlocar <= 30) analiseCompleta += ' <span class="feature-icon check"></span> (Excelente)';
+                    else if (minutosAlocar <= 60) analiseCompleta += ' <span class="feature-icon warning"></span> (Atenção)';
+                    else analiseCompleta += ' <span class="feature-icon cross"></span> (Demorado)';
                 }
 
                 if (chegadaEm) {
@@ -3031,11 +3075,11 @@ TIMELINE COMPLETA:
                     analiseCompleta += `
 
 • Chegada na Doca: ${chegadaEm.toLocaleString('pt-BR')}
-  ⏱️ Tempo total (criação → chegada): ${minutesToHHMM(minutosAteChegada)}`;
+  <span class="feature-icon clock warning"></span> Tempo total (criação → chegada): ${minutesToHHMM(minutosAteChegada)}`;
 
                     if (alocadoEm) {
                         analiseCompleta += `
-  ⏱️ Tempo (alocação → chegada): ${minutesToHHMM(minutosAlocacaoChegada)}`;
+  <span class="feature-icon clock warning"></span> Tempo (alocação → chegada): ${minutesToHHMM(minutosAlocacaoChegada)}`;
                     }
                 }
 
@@ -3044,21 +3088,21 @@ TIMELINE COMPLETA:
                     analiseCompleta += `
 
 • Saída da Doca: ${saidaEm.toLocaleString('pt-BR')}
-  ⏱️ Tempo de carregamento: ${minutesToHHMM(minutosCarregamento)}`;
+  <span class="feature-icon clock warning"></span> Tempo de carregamento: ${minutesToHHMM(minutosCarregamento)}`;
 
-                    if (minutosCarregamento <= 45) analiseCompleta += ' ✅ (Rápido)';
-                    else if (minutosCarregamento <= 90) analiseCompleta += ' ⚠️ (Normal)';
-                    else analiseCompleta += ' ❌ (Lento)';
+                    if (minutosCarregamento <= 45) analiseCompleta += ' <span class="feature-icon check"></span> (Rápido)';
+                    else if (minutosCarregamento <= 90) analiseCompleta += ' <span class="feature-icon warning"></span> (Normal)';
+                    else analiseCompleta += ' <span class="feature-icon cross"></span> (Lento)';
                 }
 
                 if (!alocadoEm) {
                     const minutosAguardando = Math.round((new Date() - criadoEm) / 60000);
                     analiseCompleta += `
 
-⏳ AGUARDANDO ALOCAÇÃO HÁ: ${minutesToHHMM(minutosAguardando)}`;
+<span class="feature-icon clock danger"></span> AGUARDANDO ALOCAÇÃO HÁ: ${minutesToHHMM(minutosAguardando)}`;
 
-                    if (minutosAguardando > 60) analiseCompleta += ' ⚠️ (Urgente!)';
-                    if (minutosAguardando > 120) analiseCompleta += ' ❌ (Crítico!)';
+                    if (minutosAguardando > 60) analiseCompleta += ' <span class="feature-icon warning"></span> (Urgente!)';
+                    if (minutosAguardando > 120) analiseCompleta += ' <span class="feature-icon cross"></span> (Crítico!)';
                 }
 
                 analiseCompleta += `
@@ -3105,10 +3149,10 @@ Observações: ${expedition.observacoes || 'Nenhuma'}
                     data = await supabaseRequest('v_expeditions_full');
                     
                     data = data.map(exp => {
-                         const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
-                         const totalCarga = (exp.total_pallets || 0) + ((exp.total_rolltrainers || 0) / 2);
-                         const ocupacao = veiculo && veiculo.capacidade_pallets > 0 ? (totalCarga / veiculo.capacidade_pallets) * 100 : 0;
-                         return {...exp, ocupacao: ocupacao};
+                        const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
+                        const totalCarga = (exp.total_pallets || 0) + ((exp.total_rolltrainers || 0) / 2);
+                        const ocupacao = veiculo && veiculo.capacidade_pallets > 0 ? (totalCarga / veiculo.capacidade_pallets) * 100 : 0;
+                        return {...exp, ocupacao: ocupacao};
                     })
                 } catch (viewError) {
                     data = await supabaseRequest('expeditions');
@@ -3825,7 +3869,7 @@ DESENVOLVIDO POR: JP Tech Solutions
 
             let html = `
                 <div class="transport-card" style="margin-bottom: 25px;">
-                    <h4 style="color: var(--primary); margin-bottom: 10px;">🚛 Veículo: ${placa}</h4>
+                    <h4 style="color: var(--primary); margin-bottom: 10px;"><span class="feature-icon truck"></span>Veículo: ${placa}</h4>
                     <p style="color: var(--dark); margin: 0;">${expeditions.length} expedição${expeditions.length > 1 ? 'ões' : ''} encontrada${expeditions.length > 1 ? 's' : ''}</p>
                 </div>
             `;
@@ -3870,21 +3914,21 @@ DESENVOLVIDO POR: JP Tech Solutions
                         </div>
 
                         <div class="transport-grid" style="margin-bottom: 15px;">
-                            <div><strong>🏪 Lojas:</strong> ${exp.lojas_count} (${exp.lojas_nomes})</div>
-                            <div><strong>📦 Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
-                            <div><strong>🔄 RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
-                            <div><strong>🚪 Doca:</strong> ${exp.doca_nome} (${coddocaValue})</div>
-                            <div><strong>👨‍💼 Líder:</strong> ${exp.lider_nome}</div>
-                            <div><strong>⏰ Aguardando há:</strong> ${tempoEsperaTexto}</div>
+                            <div><span class="feature-icon store"></span><strong>Lojas:</strong> ${exp.lojas_count} (${exp.lojas_nomes})</div>
+                            <div><span class="feature-icon package"></span><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
+                            <div><span class="feature-icon rolltrainer"></span><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
+                            <div><span class="feature-icon dock"></span><strong>Doca:</strong> ${exp.doca_nome} (${coddocaValue})</div>
+                            <div><span class="feature-icon user"></span><strong>Líder:</strong> ${exp.lider_nome}</div>
+                            <div><span class="feature-icon clock"></span><strong>Aguardando há:</strong> ${tempoEsperaTexto}</div>
                         </div>
 
                         <div style="background: rgba(247, 127, 0, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #F77F00;">
-                            <strong style="color: #F77F00;">📅 Criada em:</strong> ${criadaEm.toLocaleString('pt-BR')}
+                            <span class="feature-icon calendar warning"></span><strong style="color: #F77F00;">Criada em:</strong> ${criadaEm.toLocaleString('pt-BR')}
                         </div>
 
                         ${exp.observacoes ? `
                             <div style="background: rgba(144, 224, 239, 0.1); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--primary);">
-                                <strong style="color: var(--primary);">📝 Observações:</strong><br>
+                                <span class="feature-icon note"></span><strong style="color: var(--primary);">Observações:</strong><br>
                                 <span style="color: var(--dark);">${exp.observacoes}</span>
                             </div>
                         ` : ''}
@@ -4284,7 +4328,7 @@ DESENVOLVIDO POR: JP Tech Solutions
                 debugLog.add('Sistema totalmente carregado e operacional com validação QR Code', 'success');
             } else {
                 showNotification('Erro na conexão com o banco', 'error');
-                debugLog.add('Sistema iniciado com erro de conexão', 'error');
+                debugLog.add('Sistema iniciado com erro de erro de conexão', 'error');
             }
         });
     </script>
