@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Controle de Expedição</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         * {
             margin: 0;
@@ -141,6 +142,12 @@
             gap: 24px;
             margin-bottom: 32px;
         }
+        
+        /* Ajuste do layout para o modal de edição */
+        #editExpeditionModal .form-grid {
+            grid-template-columns: 1fr;
+        }
+
 
         .form-group {
             display: flex;
@@ -177,6 +184,14 @@
         .form-group textarea {
             resize: vertical;
             min-height: 100px;
+        }
+        
+        .loja-line, .edit-loja-line {
+            display: grid; 
+            grid-template-columns: 2fr 1fr 1fr auto; 
+            gap: 15px; 
+            margin-bottom: 15px; 
+            align-items: end;
         }
 
         .btn {
@@ -492,6 +507,11 @@
             margin-top: 24px;
             align-items: end;
         }
+        
+        /* Ajuste do layout para a área do motorista */
+        #listaExpedicoesMotorista .transport-actions {
+            grid-template-columns: 1fr auto;
+        }
 
         .action-buttons {
             display: flex;
@@ -659,78 +679,6 @@
             margin-top: 10px;
         }
 
-        #addFormModal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 32px 80px rgba(0, 119, 182, 0.2);
-            margin-bottom: 20px;
-            border: 1px solid rgba(0, 212, 170, 0.3);
-            z-index: 1002;
-        }
-
-        #editExpeditionModal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 32px 80px rgba(0, 119, 182, 0.2);
-            z-index: 1002;
-            max-width: 800px;
-            width: 90%;
-        }
-
-        #systemStatus {
-            background: rgba(144, 224, 239, 0.1);
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 10px;
-            font-family: monospace;
-            color: var(--dark);
-            border: 1px solid rgba(0, 212, 170, 0.3);
-        }
-
-        #debugLog {
-            max-height: 300px;
-            overflow-y: auto;
-            background: var(--darker);
-            color: var(--light);
-            padding: 15px;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 0.9rem;
-            margin-top: 10px;
-        }
-
-        .carga-details {
-            font-size: 0.75rem;
-            color: #666;
-            line-height: 1.3;
-            max-width: 190px;
-            overflow: hidden;
-        }
-
-        .carga-item {
-            margin-bottom: 2px;
-            padding: 1px 0;
-            border-bottom: 1px dotted #ddd;
-            white-space: normal;
-        }
-
-        .carga-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-
         .modal-overlay {
             display: none;
             position: fixed;
@@ -744,6 +692,23 @@
             z-index: 1001;
             animation: fadeIn 0.3s;
         }
+        
+        #addFormModal, #editExpeditionModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 32px 80px rgba(0, 119, 182, 0.2);
+            z-index: 1002;
+            max-width: 800px;
+            width: 90%;
+            animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            display: none;
+        }
+
 
         .modal-content {
             background: white;
@@ -755,6 +720,13 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
             animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
         }
+        
+        #editExpeditionModal .modal-content {
+            max-width: 800px;
+            width: 90%;
+            text-align: left;
+        }
+
 
         @keyframes popIn {
             from {
@@ -893,7 +865,7 @@
                         <label style="font-size: 1.1rem; color: var(--dark); margin-bottom: 15px;">Lojas e Quantidades:</label>
                         <div id="lojasContainer" style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3);">
                             <!-- Primeira linha de loja (sempre presente) -->
-                            <div class="loja-line" data-index="0" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;">
+                            <div class="loja-line" data-index="0">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label>Loja:</label>
                                     <select class="loja-select" required>
@@ -1184,10 +1156,17 @@ CREATE TABLE expedition_items (<br>
             <h3 class="modal-title" id="qrModalTitle"></h3>
             <div class="modal-body">
                 <p id="qrModalMessage"></p>
-                <input type="text" id="qrCodeInput" placeholder="Simular leitura de QR Code..." style="width: 100%; padding: 10px; margin-top: 15px; border-radius: 8px; border: 1px solid #ddd;">
+                <div id="qr-reader" style="width: 100%;"></div>
+                <div id="qr-result-display" style="display: none; padding: 10px; background-color: #e9f5ff; border-radius: 8px; margin-top: 15px;">
+                    <strong>QR Code escaneado:</strong> <span id="scannedValue"></span>
+                </div>
+                <div id="manualInputContainer" style="display: none; margin-top: 20px;">
+                    <p style="margin-bottom: 10px; color: #666;">Ou, se a câmera não estiver disponível, insira manualmente:</p>
+                    <input type="text" id="qrCodeInput" placeholder="Simular leitura de QR Code..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" onclick="handleQrScan()">Confirmar</button>
+                <button class="btn btn-primary" id="confirmQrBtn" onclick="handleQrScan()">Confirmar</button>
                 <button class="btn btn-danger" onclick="closeQrModal()">Cancelar</button>
             </div>
         </div>
@@ -1195,22 +1174,24 @@ CREATE TABLE expedition_items (<br>
     
     <!-- Modal de Edição de Expedição (Novo) -->
     <div id="editExpeditionModal" class="modal-overlay">
-        <div id="editExpeditionContent" class="modal-content">
+        <div class="modal-content">
             <h3 class="modal-title">Editar Expedição</h3>
             <form id="editExpeditionForm">
                 <input type="hidden" id="editExpeditionId">
                 
-                <div class="form-group">
-                    <label for="editStatus">Status:</label>
-                    <select id="editStatus">
-                        <option value="pendente">Pendente</option>
-                        <option value="aguardando_veiculo">Aguardando Veículo</option>
-                        <option value="em_carregamento">Em Carregamento</option>
-                        <option value="carregado">Carregado</option>
-                        <option value="saiu_para_entrega">Saiu para Entrega</option>
-                        <option value="entregue">Entregue</option>
-                        <option value="cancelado">Cancelado</option>
-                    </select>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editStatus">Status:</label>
+                        <select id="editStatus">
+                            <option value="pendente">Pendente</option>
+                            <option value="aguardando_veiculo">Aguardando Veículo</option>
+                            <option value="em_carregamento">Em Carregamento</option>
+                            <option value="carregado">Carregado</option>
+                            <option value="saiu_para_entrega">Saiu para Entrega</option>
+                            <option value="entregue">Entregue</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div id="editLojasContainer" style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3); margin: 20px 0;">
@@ -1220,10 +1201,12 @@ CREATE TABLE expedition_items (<br>
                 <div style="text-align: right; margin-bottom: 20px;">
                     <button type="button" class="btn btn-success btn-small" onclick="addEditLojaLine()">+ Adicionar Loja</button>
                 </div>
-
-                <div class="form-group">
-                    <label for="editObservacoes">Observações:</label>
-                    <textarea id="editObservacoes" placeholder="Observações..."></textarea>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editObservacoes">Observações:</label>
+                        <textarea id="editObservacoes" placeholder="Observações..."></textarea>
+                    </div>
                 </div>
 
                 <div class="modal-footer" style="margin-top: 20px;">
@@ -1258,6 +1241,9 @@ CREATE TABLE expedition_items (<br>
         // Variáveis para filtros
         let allExpeditions = [];
         let filteredExpeditions = [];
+
+        // Instância do leitor de QR Code
+        let html5QrCodeScanner = null;
 
         // Sistema de debug melhorado
         const debugLog = {
@@ -1399,7 +1385,6 @@ CREATE TABLE expedition_items (<br>
             const newLine = document.createElement('div');
             newLine.className = 'loja-line';
             newLine.setAttribute('data-index', lojaLineCounter);
-            newLine.style = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;';
 
             newLine.innerHTML = `
                 <div class="form-group" style="margin-bottom: 0;">
@@ -1416,7 +1401,7 @@ CREATE TABLE expedition_items (<br>
                     <label>RollTrainers:</label>
                     <input type="number" class="rolltrainers-input" min="0" required>
                 </div>
-                <div style="display: flex; align-items: center; height: 48px; gap: 8px;">
+                <div style="display: flex; align-items: center; height: 48px;">
                     <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
                     <button type="button" class="btn btn-danger btn-small" onclick="removeLojaLine(${lojaLineCounter})" style="padding: 12px; border-radius: 8px;">-</button>
                 </div>
@@ -1739,7 +1724,7 @@ CREATE TABLE expedition_items (<br>
             // Resetar container de lojas para uma linha apenas
             const container = document.getElementById('lojasContainer');
             container.innerHTML = `
-                <div class="loja-line" data-index="0" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;">
+                <div class="loja-line" data-index="0">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Loja:</label>
                         <select class="loja-select" required>
@@ -1800,6 +1785,10 @@ CREATE TABLE expedition_items (<br>
                         total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
                         lojas_count: expItems.length,
                         // Dados relacionados
+                        lojas_nomes: expItems.map(item => {
+                            const loja = lojas.find(l => l.id === item.loja_id);
+                            return loja ? loja.nome : 'Loja N/A';
+                        }).join(', '),
                         doca_nome: doca ? doca.nome : 'N/A',
                         lider_nome: lider ? lider.nome : 'N/A',
                         veiculo_placa: veiculo ? veiculo.placa : null,
@@ -1826,7 +1815,7 @@ CREATE TABLE expedition_items (<br>
 
         // Função para converter minutos para formato HH:mm
         function minutesToHHMM(minutes) {
-            if (!minutes || minutes <= 0) return '-';
+            if (minutes === null || minutes === undefined || isNaN(minutes) || minutes < 0) return '-';
             const hours = Math.floor(minutes / 60);
             const mins = minutes % 60;
             return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
@@ -2015,20 +2004,26 @@ CREATE TABLE expedition_items (<br>
                 const modal = document.getElementById('qrModal');
                 const title = document.getElementById('qrModalTitle');
                 const messageEl = document.getElementById('qrModalMessage');
-                const qrInput = document.getElementById('qrCodeInput');
-                const confirmBtn = modal.querySelector('.btn-primary');
-                const cancelBtn = modal.querySelector('.btn-danger');
+                const qrReader = document.getElementById('qr-reader');
+                const confirmBtn = document.getElementById('confirmQrBtn');
+                const scannedValueEl = document.getElementById('scannedValue');
+                const qrResultDisplay = document.getElementById('qr-result-display');
+                const manualInputContainer = document.getElementById('manualInputContainer');
+                const qrCodeInput = document.getElementById('qrCodeInput');
 
                 title.textContent = "Confirmação";
                 messageEl.innerHTML = message;
-                qrInput.style.display = 'none'; // Oculta o campo de QR Code
-                
-                // Remove listeners antigos para evitar duplicação
+
+                qrReader.style.display = 'none';
+                qrResultDisplay.style.display = 'none';
+                manualInputContainer.style.display = 'none';
+                confirmBtn.style.display = 'block';
+
                 const newConfirmBtn = confirmBtn.cloneNode(true);
                 confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
                 
-                const newCancelBtn = cancelBtn.cloneNode(true);
-                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+                const newCancelBtn = modal.querySelector('.btn-danger').cloneNode(true);
+                modal.querySelector('.btn-danger').parentNode.replaceChild(newCancelBtn, modal.querySelector('.btn-danger'));
 
                 newConfirmBtn.onclick = () => {
                     closeQrModal();
@@ -2156,7 +2151,7 @@ CREATE TABLE expedition_items (<br>
                 const criadaEm = new Date(exp.data_hora || exp.created_at);
                 const agora = new Date();
                 const tempoEspera = Math.round((agora - criadaEm) / 60000);
-                const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.round(tempoEspera/60)}h ${tempoEspera%60}min`;
+                const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
 
                 // Informações das lojas com totais
                 const lojasInfo = exp.lojas_nomes || 'N/A';
@@ -2186,49 +2181,49 @@ CREATE TABLE expedition_items (<br>
                         </div>
 
                         ${temVeiculo && temMotorista ? `
-                            <div style="background: rgba(0, 212, 170, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid rgba(0, 212, 170, 0.3);">
-                                <h4 style="color: var(--dark); margin-bottom: 15px;">Transporte Alocado:</h4>
-                                <div class="transport-grid">
-                                    <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
-                                    <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
-                                    <div><strong>Alocado em:</strong> ${exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo).toLocaleString('pt-BR') : 'N/A'}</div>
-                                </div>
+                        <div style="background: rgba(0, 212, 170, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid rgba(0, 212, 170, 0.3);">
+                            <h4 style="color: var(--dark); margin-bottom: 15px;">Transporte Alocado:</h4>
+                            <div class="transport-grid">
+                                <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
+                                <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
+                                <div><strong>Alocado em:</strong> ${exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo).toLocaleString('pt-BR') : 'N/A'}</div>
                             </div>
-                            ${podeAlterarTransporte ? `
-                                <div style="text-align: center;">
-                                    <button class="btn btn-primary" onclick="showReallocateForm('${exp.id}')">Alterar Transporte</button>
-                                </div>
-                            ` : `
-                                <div style="text-align: center; padding: 12px; background: rgba(247, 127, 0, 0.1); border-radius: 8px; border: 1px solid #F77F00;">
-                                    <span style="color: #F77F00; font-weight: 600; font-size: 0.9rem;">
-                                        🔒 Transporte não pode ser alterado - Carga em ${getStatusLabel(exp.status)}
-                                    </span>
-                                </div>
-                            `}
+                        </div>
+                        ${podeAlterarTransporte ? `
+                            <div style="text-align: center;">
+                                <button class="btn btn-primary" onclick="showReallocateForm('${exp.id}')">Alterar Transporte</button>
+                            </div>
                         ` : `
-                            <div class="transport-actions">
-                                <div class="form-group">
-                                    <label>Veículo:</label>
-                                    <select id="veiculo_${exp.id}">
-                                        <option value="">Selecione um veículo</option>
-                                        ${veiculosList.map(v => {
-                                            const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
-                                            const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
-                                            return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                        ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                                    </option>`;
-                                        }).join('')}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Motorista:</label>
-                                    <select id="motorista_${exp.id}">
-                                        <option value="">Selecione um motorista</option>
-                                        ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - CNH: ${m.cnh}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar Agora</button>
+                            <div style="text-align: center; padding: 12px; background: rgba(247, 127, 0, 0.1); border-radius: 8px; border: 1px solid #F77F00;">
+                                <span style="color: #F77F00; font-weight: 600; font-size: 0.9rem;">
+                                    🔒 Transporte não pode ser alterado - Carga em ${getStatusLabel(exp.status)}
+                                </span>
                             </div>
+                        `}
+                        ` : `
+                        <div class="transport-actions">
+                            <div class="form-group">
+                                <label>Veículo:</label>
+                                <select id="veiculo_${exp.id}">
+                                    <option value="">Selecione um veículo</option>
+                                    ${veiculosList.map(v => {
+                                        const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
+                                        const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
+                                        return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
+                                                            ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                        </option>`;
+                                    }).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Motorista:</label>
+                                <select id="motorista_${exp.id}">
+                                    <option value="">Selecione um motorista</option>
+                                    ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - CNH: ${m.cnh || 'N/A'}</option>`).join('')}
+                                </select>
+                            </div>
+                            <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar Agora</button>
+                        </div>
                         `}
 
                         <div id="reallocate_${exp.id}" style="display: none; background: rgba(247, 127, 0, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #F77F00;">
@@ -2242,8 +2237,8 @@ CREATE TABLE expedition_items (<br>
                                             const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
                                             const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
                                             return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                        ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                                    </option>`;
+                                                            ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                        </option>`;
                                         }).join('')}
                                     </select>
                                 </div>
@@ -2251,7 +2246,7 @@ CREATE TABLE expedition_items (<br>
                                     <label>Novo Motorista:</label>
                                     <select id="new_motorista_${exp.id}">
                                         <option value="">Selecione um motorista</option>
-                                        ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - CNH: ${m.cnh}</option>`).join('')}
+                                        ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - CNH: ${m.cnh || 'N/A'}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div>
@@ -2291,7 +2286,7 @@ CREATE TABLE expedition_items (<br>
                 return;
             }
             const allocateButton = document.querySelector(`button[onclick="allocateTransport('${expeditionId}')"]`);
-if (allocateButton) allocateButton.disabled = true;
+            if (allocateButton) allocateButton.disabled = true;
             
             // Validação de capacidade antes de enviar
             const selectedVehicle = veiculos.find(v => v.id === veiculoId);
@@ -2299,10 +2294,10 @@ if (allocateButton) allocateButton.disabled = true;
             const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
             
             if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
-    showNotification(`Veículo selecionado não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade do veículo: ${selectedVehicle.capacidade_pallets}`, 'error');
-    if (allocateButton) allocateButton.disabled = false;
-    return;
-}
+                showNotification(`Veículo selecionado não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade do veículo: ${selectedVehicle.capacidade_pallets}`, 'error');
+                if (allocateButton) allocateButton.disabled = false;
+                return;
+            }
             try {
                 const dataAlocacao = new Date().toISOString();
 
@@ -2351,6 +2346,7 @@ if (allocateButton) allocateButton.disabled = true;
                 console.error('Erro ao alocar transporte:', error);
                 debugLog.add(`Erro ao alocar transporte: ${error.message}`, 'error');
                 showNotification('Erro: ' + error.message, 'error');
+                if (allocateButton) allocateButton.disabled = false;
 
                 // Se der erro, recarregar a lista para ver o estado atual
                 setTimeout(() => {
@@ -3367,7 +3363,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                             <div><strong>🏪 Lojas:</strong> ${exp.lojas_count} (${exp.lojas_nomes})</div>
                             <div><strong>📦 Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
                             <div><strong>🔄 RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
-                            <div><strong>🚪 Doca:</strong> ${exp.doca_nome}</div>
+                            <div><strong>� Doca:</strong> ${exp.doca_nome}</div>
                             <div><strong>👨‍💼 Líder:</strong> ${exp.lider_nome}</div>
                             <div><strong>⏰ Aguardando há:</strong> ${tempoEsperaTexto}</div>
                         </div>
@@ -3398,18 +3394,29 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
         let modalState = {
             expeditionId: null,
             expectedDocaName: null,
-            action: null
+            action: null,
+            scannedValue: null
         };
 
 
-        function openQrModal(action, expeditionId, docaName) {
+        async function openQrModal(action, expeditionId, docaName) {
             modalState.expeditionId = expeditionId;
             modalState.expectedDocaName = docaName;
             modalState.action = action;
+            modalState.scannedValue = null;
 
             const modalTitle = document.getElementById('qrModalTitle');
             const modalMessage = document.getElementById('qrModalMessage');
-            const qrCodeInput = document.getElementById('qrCodeInput');
+            const qrReader = document.getElementById('qr-reader');
+            const qrResultDisplay = document.getElementById('qr-result-display');
+            const scannedValueEl = document.getElementById('scannedValue');
+            const confirmBtn = document.getElementById('confirmQrBtn');
+            const manualInputContainer = document.getElementById('manualInputContainer');
+
+            // Resetar UI
+            qrResultDisplay.style.display = 'none';
+            confirmBtn.disabled = true;
+            qrReader.style.display = 'block';
 
             if (action === 'iniciar') {
                 modalTitle.textContent = 'Iniciar Carregamento';
@@ -3419,18 +3426,77 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                 modalMessage.textContent = `Por favor, escaneie o QR Code da Doca ${docaName} para finalizar o carregamento.`;
             }
 
-            qrCodeInput.value = '';
             document.getElementById('qrModal').style.display = 'flex';
+
+            // Iniciar o scanner
+            if (html5QrCodeScanner) {
+                html5QrCodeScanner.clear();
+                html5QrCodeScanner = null;
+            }
+
+            html5QrCodeScanner = new Html5Qrcode("qr-reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            try {
+                await html5QrCodeScanner.start({ facingMode: "environment" }, config, onScanSuccess, onScanError);
+                debugLog.add('Scanner de QR Code iniciado com sucesso.', 'info');
+            } catch (error) {
+                debugLog.add(`Erro ao iniciar scanner: ${error}`, 'error');
+                qrReader.innerHTML = '<div style="color: red; padding: 20px;">Não foi possível acessar a câmera. Verifique as permissões.</div>';
+                manualInputContainer.style.display = 'block'; // Mostra o input manual como fallback
+            }
+        }
+        
+        function onScanSuccess(decodedText, decodedResult) {
+            // Ação quando o QR code é escaneado com sucesso
+            if (modalState.scannedValue !== decodedText) {
+                modalState.scannedValue = decodedText;
+                
+                const scannedValueEl = document.getElementById('scannedValue');
+                scannedValueEl.textContent = decodedText;
+                document.getElementById('qr-reader').style.display = 'none';
+                document.getElementById('qr-result-display').style.display = 'block';
+                document.getElementById('confirmQrBtn').disabled = false;
+                
+                debugLog.add(`QR Code escaneado: ${decodedText}`, 'success');
+
+                // Parar o scanner para evitar múltiplos scans
+                if (html5QrCodeScanner) {
+                    html5QrCodeScanner.stop().catch(err => debugLog.add(`Erro ao parar o scanner: ${err}`, 'error'));
+                }
+            }
+        }
+
+        function onScanError(errorMessage) {
+            // Exibe erros de escaneamento, mas não para a operação
+            // debugLog.add(`Erro no scan: ${errorMessage}`, 'warning');
         }
 
         function closeQrModal() {
             document.getElementById('qrModal').style.display = 'none';
+            if (html5QrCodeScanner) {
+                html5QrCodeScanner.stop().catch(err => debugLog.add(`Erro ao parar o scanner: ${err}`, 'error'));
+            }
+            modalState.expeditionId = null;
+            modalState.expectedDocaName = null;
+            modalState.action = null;
+            modalState.scannedValue = null;
         }
 
         async function handleQrScan() {
-            const scannedQrCode = document.getElementById('qrCodeInput').value.trim();
+            let valueToProcess = modalState.scannedValue;
 
-            if (scannedQrCode.toLowerCase() !== modalState.expectedDocaName.toLowerCase()) {
+            // Se o valor foi preenchido manualmente
+            if (!valueToProcess) {
+                valueToProcess = document.getElementById('qrCodeInput').value.trim();
+            }
+
+            if (!valueToProcess) {
+                showNotification('Nenhum QR Code escaneado ou valor inserido.', 'error');
+                return;
+            }
+
+            if (valueToProcess.toLowerCase() !== modalState.expectedDocaName.toLowerCase()) {
                 showNotification('QR Code incorreto! Por favor, escaneie a doca correta.', 'error');
                 return;
             }
@@ -3513,179 +3579,179 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             document.getElementById('resultadosMotorista').style.display = 'none';
             document.getElementById('semResultados').style.display = 'block';
         }
-// Funções do Modal de Edição de Expedição
-async function openEditModal(expeditionId) {
-    try {
-        debugLog.add(`Abrindo modal de edição para expedição ${expeditionId}`, 'info');
         
-        // Buscar dados da expedição
-        const expeditionData = await supabaseRequest(`expeditions?id=eq.${expeditionId}`);
-        if (!expeditionData || expeditionData.length === 0) {
-            showNotification('Expedição não encontrada!', 'error');
-            return;
-        }
-        
-        const expedition = expeditionData[0];
-        
-        // Buscar itens da expedição
-        const items = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
-        
-        // Preencher o formulário
-        document.getElementById('editExpeditionId').value = expeditionId;
-        document.getElementById('editStatus').value = expedition.status;
-        document.getElementById('editObservacoes').value = expedition.observacoes || '';
-        
-        // Limpar e recriar as linhas de lojas
-        const lojasContainer = document.getElementById('editLojasContainer');
-        lojasContainer.innerHTML = '<h4 style="color: var(--dark); margin-bottom: 10px;">Lojas e Quantidades</h4>';
-        
-        editLojaLineCounter = 0;
-        
-        if (items && items.length > 0) {
-            items.forEach((item, index) => {
-                addEditLojaLine();
-                const lastLine = document.querySelector(`#editLojasContainer .edit-loja-line:last-child`);
-                if (lastLine) {
-                    const select = lastLine.querySelector('.edit-loja-select');
-                    const palletsInput = lastLine.querySelector('.edit-pallets-input');
-                    const rolltrainersInput = lastLine.querySelector('.edit-rolltrainers-input');
-                    
-                    if (select) select.value = item.loja_id;
-                    if (palletsInput) palletsInput.value = item.pallets || 0;
-                    if (rolltrainersInput) rolltrainersInput.value = item.rolltrainers || 0;
+        // Funções do Modal de Edição de Expedição
+        async function openEditModal(expeditionId) {
+            try {
+                debugLog.add(`Abrindo modal de edição para expedição ${expeditionId}`, 'info');
+                
+                // Buscar dados da expedição
+                const expeditionData = await supabaseRequest(`expeditions?id=eq.${expeditionId}`);
+                if (!expeditionData || expeditionData.length === 0) {
+                    showNotification('Expedição não encontrada!', 'error');
+                    return;
                 }
-            });
-        } else {
-            // Se não há itens, adicionar uma linha vazia
-            addEditLojaLine();
+                
+                const expedition = expeditionData[0];
+                
+                // Buscar itens da expedição
+                const items = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
+                
+                // Preencher o formulário
+                document.getElementById('editExpeditionId').value = expeditionId;
+                document.getElementById('editStatus').value = expedition.status;
+                document.getElementById('editObservacoes').value = expedition.observacoes || '';
+                
+                // Limpar e recriar as linhas de lojas
+                const lojasContainer = document.getElementById('editLojasContainer');
+                lojasContainer.innerHTML = '<h4 style="color: var(--dark); margin-bottom: 10px;">Lojas e Quantidades</h4>';
+                
+                editLojaLineCounter = 0;
+                
+                if (items && items.length > 0) {
+                    items.forEach((item, index) => {
+                        addEditLojaLine();
+                        const lastLine = document.querySelector(`#editLojasContainer .edit-loja-line:last-child`);
+                        if (lastLine) {
+                            const select = lastLine.querySelector('.edit-loja-select');
+                            const palletsInput = lastLine.querySelector('.edit-pallets-input');
+                            const rolltrainersInput = lastLine.querySelector('.edit-rolltrainers-input');
+                            
+                            if (select) select.value = item.loja_id;
+                            if (palletsInput) palletsInput.value = item.pallets || 0;
+                            if (rolltrainersInput) rolltrainersInput.value = item.rolltrainers || 0;
+                        }
+                    });
+                } else {
+                    // Se não há itens, adicionar uma linha vazia
+                    addEditLojaLine();
+                }
+                
+                // Mostrar modal
+                document.getElementById('editExpeditionModal').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Erro ao abrir modal de edição:', error);
+                debugLog.add(`Erro ao abrir modal de edição: ${error.message}`, 'error');
+                showNotification('Erro ao carregar dados para edição: ' + error.message, 'error');
+            }
         }
-        
-        // Mostrar modal
-        document.getElementById('editExpeditionModal').style.display = 'flex';
-        
-    } catch (error) {
-        console.error('Erro ao abrir modal de edição:', error);
-        debugLog.add(`Erro ao abrir modal de edição: ${error.message}`, 'error');
-        showNotification('Erro ao carregar dados para edição: ' + error.message, 'error');
-    }
-}
 
-function closeEditModal() {
-    document.getElementById('editExpeditionModal').style.display = 'none';
-    document.getElementById('editFormAlert').innerHTML = '';
-}
+        function closeEditModal() {
+            document.getElementById('editExpeditionModal').style.display = 'none';
+            document.getElementById('editFormAlert').innerHTML = '';
+        }
 
-function addEditLojaLine() {
-    editLojaLineCounter++;
-    const container = document.getElementById('editLojasContainer');
-    
-    const newLine = document.createElement('div');
-    newLine.className = 'edit-loja-line';
-    newLine.setAttribute('data-edit-index', editLojaLineCounter);
-    newLine.style = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;';
-    
-    newLine.innerHTML = `
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>Loja:</label>
-            <select class="edit-loja-select" required>
-                <option value="">Selecione uma loja</option>
-                ${lojas.map(loja => 
-                    `<option value="${loja.id}">${loja.nome} ${loja.codigo ? '(' + loja.codigo + ')' : ''}</option>`
-                ).join('')}
-            </select>
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>Pallets:</label>
-            <input type="number" class="edit-pallets-input" min="0" required>
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>RollTrainers:</label>
-            <input type="number" class="edit-rolltrainers-input" min="0" required>
-        </div>
-        <div style="display: flex; align-items: center; height: 48px; gap: 8px;">
-            <button type="button" class="btn btn-success btn-small" onclick="addEditLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
-            <button type="button" class="btn btn-danger btn-small" onclick="removeEditLojaLine(${editLojaLineCounter})" style="padding: 12px; border-radius: 8px;">-</button>
-        </div>
-    `;
-    
-    container.appendChild(newLine);
-    debugLog.add(`Nova linha de edição adicionada (índice: ${editLojaLineCounter})`, 'info');
-}
-
-function removeEditLojaLine(index) {
-    const line = document.querySelector(`[data-edit-index="${index}"]`);
-    if (line) {
-        line.remove();
-        debugLog.add(`Linha de edição removida (índice: ${index})`, 'info');
-    }
-}
-
-// Event listener para o formulário de edição
-document.addEventListener('DOMContentLoaded', function() {
-    const editForm = document.getElementById('editExpeditionForm');
-    if (editForm) {
-        editForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            await saveEditedExpedition();
-        });
-    }
-});
-
-async function saveEditedExpedition() {
-    const expeditionId = document.getElementById('editExpeditionId').value;
-    const newStatus = document.getElementById('editStatus').value;
-    const observacoes = document.getElementById('editObservacoes').value;
-    
-    try {
-        debugLog.add(`Salvando edições da expedição ${expeditionId}`, 'info');
-        
-        // 1. Atualizar a expedição principal
-        await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-            status: newStatus,
-            observacoes: observacoes || null
-        });
-        
-        // 2. Deletar itens antigos
-        await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'DELETE');
-        
-        // 3. Criar novos itens
-        const editLines = document.querySelectorAll('.edit-loja-line');
-        const itemsData = [];
-        
-        editLines.forEach(line => {
-            const lojaSelect = line.querySelector('.edit-loja-select');
-            const palletsInput = line.querySelector('.edit-pallets-input');
-            const rolltrainersInput = line.querySelector('.edit-rolltrainers-input');
+        function addEditLojaLine() {
+            editLojaLineCounter++;
+            const container = document.getElementById('editLojasContainer');
             
-            if (lojaSelect && lojaSelect.value) {
-                itemsData.push({
-                    expedition_id: expeditionId,
-                    loja_id: lojaSelect.value,
-                    pallets: parseInt(palletsInput.value) || 0,
-                    rolltrainers: parseInt(rolltrainersInput.value) || 0
+            const newLine = document.createElement('div');
+            newLine.className = 'edit-loja-line';
+            newLine.setAttribute('data-edit-index', editLojaLineCounter);
+            
+            newLine.innerHTML = `
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Loja:</label>
+                    <select class="edit-loja-select" required>
+                        <option value="">Selecione uma loja</option>
+                        ${lojas.map(loja => 
+                            `<option value="${loja.id}">${loja.nome} ${loja.codigo ? '(' + loja.codigo + ')' : ''}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Pallets:</label>
+                    <input type="number" class="edit-pallets-input" min="0" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>RollTrainers:</label>
+                    <input type="number" class="edit-rolltrainers-input" min="0" required>
+                </div>
+                <div style="display: flex; align-items: center; height: 48px; gap: 8px;">
+                    <button type="button" class="btn btn-success btn-small" onclick="addEditLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
+                    <button type="button" class="btn btn-danger btn-small" onclick="removeEditLojaLine(${editLojaLineCounter})" style="padding: 12px; border-radius: 8px;">-</button>
+                </div>
+            `;
+            
+            container.appendChild(newLine);
+            debugLog.add(`Nova linha de edição adicionada (índice: ${editLojaLineCounter})`, 'info');
+        }
+
+        function removeEditLojaLine(index) {
+            const line = document.querySelector(`[data-edit-index="${index}"]`);
+            if (line) {
+                line.remove();
+                debugLog.add(`Linha de edição removida (índice: ${index})`, 'info');
+            }
+        }
+
+        // Event listener para o formulário de edição
+        document.addEventListener('DOMContentLoaded', function() {
+            const editForm = document.getElementById('editExpeditionForm');
+            if (editForm) {
+                editForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await saveEditedExpedition();
                 });
             }
         });
-        
-        // Salvar novos itens
-        if (itemsData.length > 0) {
-            const itemsPromises = itemsData.map(item => supabaseRequest('expedition_items', 'POST', item));
-            await Promise.all(itemsPromises);
+
+        async function saveEditedExpedition() {
+            const expeditionId = document.getElementById('editExpeditionId').value;
+            const newStatus = document.getElementById('editStatus').value;
+            const observacoes = document.getElementById('editObservacoes').value;
+            
+            try {
+                debugLog.add(`Salvando edições da expedição ${expeditionId}`, 'info');
+                
+                // 1. Atualizar a expedição principal
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    status: newStatus,
+                    observacoes: observacoes || null
+                });
+                
+                // 2. Deletar itens antigos
+                await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'DELETE');
+                
+                // 3. Criar novos itens
+                const editLines = document.querySelectorAll('.edit-loja-line');
+                const itemsData = [];
+                
+                editLines.forEach(line => {
+                    const lojaSelect = line.querySelector('.edit-loja-select');
+                    const palletsInput = line.querySelector('.edit-pallets-input');
+                    const rolltrainersInput = line.querySelector('.edit-rolltrainers-input');
+                    
+                    if (lojaSelect && lojaSelect.value) {
+                        itemsData.push({
+                            expedition_id: expeditionId,
+                            loja_id: lojaSelect.value,
+                            pallets: parseInt(palletsInput.value) || 0,
+                            rolltrainers: parseInt(rolltrainersInput.value) || 0
+                        });
+                    }
+                });
+                
+                // Salvar novos itens
+                if (itemsData.length > 0) {
+                    const itemsPromises = itemsData.map(item => supabaseRequest('expedition_items', 'POST', item));
+                    await Promise.all(itemsPromises);
+                }
+                
+                debugLog.add('Expedição editada com sucesso', 'success');
+                showNotification('Expedição atualizada com sucesso!', 'success');
+                
+                closeEditModal();
+                loadAcompanhamento(); // Recarregar a tabela
+                
+            } catch (error) {
+                console.error('Erro ao salvar edições:', error);
+                debugLog.add(`Erro ao salvar edições: ${error.message}`, 'error');
+                document.getElementById('editFormAlert').innerHTML = 
+                    `<div class="alert alert-error">Erro ao salvar: ${error.message}</div>`;
+            }
         }
-        
-        debugLog.add('Expedição editada com sucesso', 'success');
-        showNotification('Expedição atualizada com sucesso!', 'success');
-        
-        closeEditModal();
-        loadAcompanhamento(); // Recarregar a tabela
-        
-    } catch (error) {
-        console.error('Erro ao salvar edições:', error);
-        debugLog.add(`Erro ao salvar edições: ${error.message}`, 'error');
-        document.getElementById('editFormAlert').innerHTML = 
-            `<div class="alert alert-error">Erro ao salvar: ${error.message}</div>`;
-    }
-}
         // Inicializar aplicação
         document.addEventListener('DOMContentLoaded', async function() {
             debugLog.add('Sistema de Controle de Expedição com Timestamps e Filtros iniciado', 'info');
@@ -3707,3 +3773,4 @@ async function saveEditedExpedition() {
     </script>
 </body>
 </html>
+�
