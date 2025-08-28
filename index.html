@@ -2473,7 +2473,7 @@
                         });
                         debugLog.add(`Motorista anterior liberado: ${expedition.motorista_id}`, 'success');
                     } catch (error) {
-                        debugLog.add(`Aviso: Não foi possível atualizar status do motorista: ${motoristaError.message}`, 'warning');
+                        debugLog.add(`Aviso: Não foi possível atualizar status do motorista: ${error.message}`, 'warning');
                     }
                 }
 
@@ -2493,7 +2493,7 @@
                     });
                     debugLog.add('Novo motorista alocado', 'success');
                 } catch (error) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${motoristaError.message}`, 'warning');
+                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${error.message}`, 'warning');
                 }
 
                 debugLog.add(`Transporte realocado com sucesso às ${new Date(dataRealocacao).toLocaleTimeString('pt-BR')}`, 'success');
@@ -2566,8 +2566,8 @@
                 // Análise de tempo completa
                 const criadoEm = new Date(expedition.created_at || expedition.data_hora);
                 const alocadoEm = expedition.data_alocacao_veiculo ? new Date(expedition.data_alocacao_veiculo) : null;
-                const chegadaEm = expedition.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
-                const saidaEm = expedition.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
+                const chegadaEm = expedition.data_chegada_veiculo ? new Date(expedition.data_chegada_veiculo) : null;
+                const saidaEm = expedition.data_saida_veiculo ? new Date(expedition.data_saida_veiculo) : null;
 
                 let analiseCompleta = `
 ANÁLISE COMPLETA DE TEMPOS - EXPEDIÇÃO
@@ -3030,7 +3030,7 @@ CACHE LOCAL:
 • Motoristas: ${motoristas.length} carregados
 
 STATUS: Sistema de tempos funcionando normalmente
-VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
+VERSÃO: 3.5 - Validação de QR Code com coddoca
 ÚLTIMA ATUALIZAÇÃO: ${new Date().toLocaleTimeString()}
             `;
 
@@ -3073,6 +3073,10 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                     <div class="form-group">
                         <label for="add_capacidade_pallets">Capacidade (Pallets):</label>
                         <input type="number" id="add_capacidade_pallets" min="0" required placeholder="Ex: 30">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_coddoca">Código da Doca (QR Code):</label>
+                        <input type="text" id="add_coddoca" required placeholder="Ex: DOCA1, DOCA_A">
                     </div>
                 `;
             } else if (type === 'lider') {
@@ -3206,22 +3210,24 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             }
         }
 
-        // Salvar nova doca
+        // Salvar nova doca (ATUALIZADA COM CODDOCA)
         async function saveDoca() {
             const nome = document.getElementById('add_nome').value.trim();
             const capacidadePallets = parseInt(document.getElementById('add_capacidade_pallets').value);
+            const coddoca = document.getElementById('add_coddoca').value.trim();
 
-            if (!nome || !capacidadePallets || capacidadePallets < 0) {
+            if (!nome || !capacidadePallets || capacidadePallets < 0 || !coddoca) {
                 showAlert('addFormAlert', 'Por favor, preencha todos os campos corretamente', 'error');
                 return;
             }
 
             try {
-                debugLog.add(`Salvando nova doca: ${nome} (${capacidadePallets} pallets)`, 'info');
+                debugLog.add(`Salvando nova doca: ${nome} (${capacidadePallets} pallets) - Código: ${coddoca}`, 'info');
 
                 const docaData = {
                     nome: nome,
                     capacidade_pallets: capacidadePallets,
+                    coddoca: coddoca,
                     ativo: true
                 };
 
@@ -3379,7 +3385,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             }
         }
 
-        // Renderizar expedições para o motorista
+        // Renderizar expedições para o motorista (ATUALIZADA COM CODDOCA)
         function renderExpedicoesMotorista(expeditions, placa) {
             document.getElementById('semResultados').style.display = 'none';
             document.getElementById('resultadosMotorista').style.display = 'block';
@@ -3394,6 +3400,10 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             `;
 
             expeditions.forEach((exp, index) => {
+                // Buscar dados completos da doca para obter o coddoca
+                const docaCompleta = docas.find(d => d.id === exp.doca_id);
+                const coddocaValue = docaCompleta ? docaCompleta.coddoca : exp.doca_nome;
+
                 // Calcular tempo de espera
                 const criadaEm = new Date(exp.data_hora || exp.created_at);
                 const agora = new Date();
@@ -3408,11 +3418,13 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                 if (exp.status === 'aguardando_veiculo') {
                     proximaAcao = '👉 Dirija-se à doca para iniciar o carregamento';
                     corStatus = 'var(--primary)';
-                    actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar', '${exp.id}', '${exp.doca_nome}')">Iniciar Carregamento</button>`;
+                    // ALTERADO: Usar coddocaValue em vez de exp.doca_nome
+                    actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar', '${exp.id}', '${coddocaValue}')">Iniciar Carregamento</button>`;
                 } else if (exp.status === 'em_carregamento') {
                     proximaAcao = '⏳ Aguarde a finalização do carregamento';
                     corStatus = '#F77F00';
-                    actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar', '${exp.id}', '${exp.doca_nome}')">Finalizar Carregamento</button>`;
+                    // ALTERADO: Usar coddocaValue em vez de exp.doca_nome
+                    actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar', '${exp.id}', '${coddocaValue}')">Finalizar Carregamento</button>`;
                 }
 
                 html += `
@@ -3430,7 +3442,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                             <div><strong>🏪 Lojas:</strong> ${exp.lojas_count} (${exp.lojas_nomes})</div>
                             <div><strong>📦 Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
                             <div><strong>🔄 RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
-                            <div><strong>🚪 Doca:</strong> ${exp.doca_nome}</div>
+                            <div><strong>🚪 Doca:</strong> ${exp.doca_nome} (${coddocaValue})</div>
                             <div><strong>👨‍💼 Líder:</strong> ${exp.lider_nome}</div>
                             <div><strong>⏰ Aguardando há:</strong> ${tempoEsperaTexto}</div>
                         </div>
@@ -3455,20 +3467,20 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             container.innerHTML = html;
         }
 
-        // --- Funções para o Modal de QR Code (Novo) ---
+        // --- Funções para o Modal de QR Code (ATUALIZADAS COM VALIDAÇÃO CODDOCA) ---
 
         // Variáveis para o modal de QR Code
         let modalState = {
             expeditionId: null,
-            expectedDocaName: null,
+            expectedDocaCode: null, // ALTERADO: armazenar o código da doca em vez do nome
             action: null,
             scannedValue: null
         };
 
 
-        async function openQrModal(action, expeditionId, docaName) {
+        async function openQrModal(action, expeditionId, docaCode) { // ALTERADO: receber docaCode
             modalState.expeditionId = expeditionId;
-            modalState.expectedDocaName = docaName;
+            modalState.expectedDocaCode = docaCode; // ALTERADO: armazenar código da doca
             modalState.action = action;
             modalState.scannedValue = null;
 
@@ -3488,10 +3500,10 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
 
             if (action === 'iniciar') {
                 modalTitle.textContent = 'Iniciar Carregamento';
-                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca ${docaName} para iniciar o carregamento.`;
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca (código: ${docaCode}) para iniciar o carregamento.`;
             } else if (action === 'finalizar') {
                 modalTitle.textContent = 'Finalizar Carregamento';
-                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca ${docaName} para finalizar o carregamento.`;
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca (código: ${docaCode}) para finalizar o carregamento.`;
             }
 
             document.getElementById('qrModal').style.display = 'flex';
@@ -3546,7 +3558,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                 html5QrCodeScanner.stop().catch(err => debugLog.add(`Erro ao parar o scanner: ${err}`, 'error'));
             }
             modalState.expeditionId = null;
-            modalState.expectedDocaName = null;
+            modalState.expectedDocaCode = null; // ALTERADO: limpar código da doca
             modalState.action = null;
             modalState.scannedValue = null;
         }
@@ -3564,10 +3576,14 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                 return;
             }
 
-            if (valueToProcess.toLowerCase() !== modalState.expectedDocaName.toLowerCase()) {
-                showNotification('QR Code incorreto! Por favor, escaneie a doca correta.', 'error');
+            // VALIDAÇÃO ATUALIZADA: Comparar com o código da doca (coddoca) em vez do nome
+            if (valueToProcess.toLowerCase() !== modalState.expectedDocaCode.toLowerCase()) {
+                showNotification(`QR Code incorreto! Esperado: "${modalState.expectedDocaCode}", Recebido: "${valueToProcess}". Por favor, escaneie a doca correta.`, 'error');
+                debugLog.add(`Validação falhou - Esperado: ${modalState.expectedDocaCode}, Recebido: ${valueToProcess}`, 'error');
                 return;
             }
+
+            debugLog.add(`QR Code validado com sucesso: ${valueToProcess}`, 'success');
 
             if (modalState.action === 'iniciar') {
                 await startLoading(modalState.expeditionId);
@@ -3580,9 +3596,10 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
 
         async function startLoading(expeditionId) {
             try {
-                const doca = docas.find(d => d.nome === modalState.expectedDocaName);
+                // BUSCAR DOCA PELO CODDOCA
+                const doca = docas.find(d => d.coddoca === modalState.expectedDocaCode);
                 if (!doca) {
-                    throw new Error("Doca não encontrada no cache local.");
+                    throw new Error(`Doca com código "${modalState.expectedDocaCode}" não encontrada no cache local.`);
                 }
                 const dataChegada = new Date().toISOString();
 
@@ -3594,14 +3611,14 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                 // Atualizar o status da doca para 'em_uso'
                 try {
                     await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'em_uso' });
-                    debugLog.add(`Status da doca atualizado`, 'success');
+                    debugLog.add(`Status da doca atualizado para em_uso`, 'success');
                 } catch (docaError) {
                     debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
                 }
                 
 
-                debugLog.add(`Carregamento iniciado para expedição ${expeditionId}. Doca: ${modalState.expectedDocaName}`, 'success');
-                showNotification(`Carregamento iniciado na Doca ${modalState.expectedDocaName}!`, 'success');
+                debugLog.add(`Carregamento iniciado para expedição ${expeditionId}. Doca: ${doca.nome} (${modalState.expectedDocaCode})`, 'success');
+                showNotification(`Carregamento iniciado na Doca ${doca.nome}!`, 'success');
                 consultarExpedicoesPorPlaca(); // Atualiza a lista para o motorista
             } catch (error) {
                 debugLog.add(`Erro ao iniciar carregamento: ${error.message}`, 'error');
@@ -3611,9 +3628,10 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
 
         async function finishLoading(expeditionId) {
             try {
-                const doca = docas.find(d => d.nome === modalState.expectedDocaName);
+                // BUSCAR DOCA PELO CODDOCA
+                const doca = docas.find(d => d.coddoca === modalState.expectedDocaCode);
                 if (!doca) {
-                    throw new Error("Doca não encontrada no cache local.");
+                    throw new Error(`Doca com código "${modalState.expectedDocaCode}" não encontrada no cache local.`);
                 }
                 const dataSaida = new Date().toISOString();
 
@@ -3625,7 +3643,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                 // Atualizar o status da doca para 'disponivel'
                 try {
                     await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'disponivel' });
-                    debugLog.add(`Status da doca atualizado`, 'success');
+                    debugLog.add(`Status da doca atualizado para disponivel`, 'success');
                 } catch (docaError) {
                     debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
                 }
@@ -3824,15 +3842,15 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
         document.addEventListener('DOMContentLoaded', async function() {
             debugLog.add('Sistema de Controle de Expedição com Timestamps e Filtros iniciado', 'info');
             debugLog.add(`URL: ${SUPABASE_URL}`, 'info');
-            debugLog.add('Funcionalidades ativas: Timestamps automáticos, Controle de doca, Análise de tempos, Filtros por data', 'info');
+            debugLog.add('Funcionalidades ativas: Timestamps automáticos, Controle de doca, Análise de tempos, Filtros por data, Validação QR Code com coddoca', 'info');
 
             const connected = await checkConnection();
             if (connected) {
                 await loadSelectData();
                 showTab('operacao'); // Define a primeira tela ao entrar
                 updateSystemStatus();
-                showNotification('Sistema com controle de tempos e filtros ativo!', 'success');
-                debugLog.add('Sistema totalmente carregado e operacional com controle de tempos e filtros', 'success');
+                showNotification('Sistema com controle de tempos, filtros e validação QR ativo!', 'success');
+                debugLog.add('Sistema totalmente carregado e operacional com validação QR Code', 'success');
             } else {
                 showNotification('Erro na conexão com o banco', 'error');
                 debugLog.add('Sistema iniciado com erro de conexão', 'error');
