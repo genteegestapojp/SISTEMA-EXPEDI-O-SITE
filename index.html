@@ -250,13 +250,15 @@
             padding: 12px 20px;
             font-size: 0.9rem;
         }
-
+        
+        /* Ajuste do grid para 3 colunas */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 24px;
             margin-bottom: 40px;
         }
+
 
         .stat-card {
             background: var(--primary-gradient);
@@ -361,8 +363,13 @@
             border-radius: 16px;
             box-shadow: 0 12px 40px rgba(0, 119, 182, 0.15);
             background: rgba(255, 255, 255, 0.9);
-            min-width: 1400px;
+            width: 100%; /* Garante que o container ocupe a largura total */
         }
+        
+        .table-wrapper {
+            overflow-x: auto; /* Permite a rolagem horizontal interna */
+        }
+
 
         table {
             width: 100%;
@@ -693,7 +700,7 @@
             animation: fadeIn 0.3s;
         }
         
-        #addFormModal, #editExpeditionModal {
+        #addFormModal, #editExpeditionModal, #passwordModal {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -725,6 +732,11 @@
             max-width: 800px;
             width: 90%;
             text-align: left;
+        }
+
+        #passwordModal .modal-content {
+            max-width: 400px;
+            text-align: center;
         }
 
 
@@ -819,6 +831,30 @@
             .tab-content {
                 padding: 24px 20px;
             }
+            
+            table {
+                min-width: 100%; /* Permite que a tabela se comprima */
+                table-layout: auto;
+            }
+
+            .table-wrapper {
+                overflow-x: auto; /* Adiciona rolagem lateral se necessário */
+            }
+
+            /* Ajuste as larguras das colunas para celular */
+            th:nth-child(1), td:nth-child(1) { width: 80px; }
+            th:nth-child(2), td:nth-child(2) { width: 150px; }
+            th:nth-child(3), td:nth-child(3) { width: 60px; }
+            th:nth-child(4), td:nth-child(4) { width: 60px; }
+            th:nth-child(5), td:nth-child(5) { width: 80px; }
+            th:nth-child(6), td:nth-child(6) { width: 100px; }
+            th:nth-child(7), td:nth-child(7) { width: 100px; }
+            th:nth-child(8), td:nth-child(8) { width: 100px; }
+            th:nth-child(9), td:nth-child(9) { width: 90px; }
+            th:nth-child(10), td:nth-child(10) { width: 100px; }
+            th:nth-child(11), td:nth-child(11) { width: 120px; }
+            th:nth-child(12), td:nth-child(12) { width: 80px; }
+
         }
 
         @media (max-width: 480px) {
@@ -829,6 +865,11 @@
 
             .header h1 {
                 font-size: 2rem;
+            }
+
+            .stats-grid .stat-card,
+            .time-stats-grid .time-stat-card {
+                padding: 20px;
             }
         }
     </style>
@@ -845,14 +886,14 @@
         </div>
 
         <div class="tabs">
-            <button class="tab" onclick="showTab('operacao')">Operação</button>
+            <button class="tab active" onclick="showTab('operacao')">Operação</button>
             <button class="tab" onclick="showTab('transporte')">Transporte</button>
-            <button class="tab active" onclick="showTab('motoristas')">Motoristas</button>
+            <button class="tab" onclick="showTab('motoristas')">Motoristas</button>
             <button class="tab" onclick="showTab('acompanhamento')">Acompanhamento</button>
             <button class="tab" onclick="showTab('configuracoes')">Configurações</button>
         </div>
 
-        <div id="operacao" class="tab-content">
+        <div id="operacao" class="tab-content active">
             <h2 style="text-align: center;">Lançamento de Expedição</h2>
 
             <div class="auto-timestamp">
@@ -908,23 +949,6 @@
                 <button type="submit" class="btn btn-primary">Lançar Expedição</button>
             </form>
 
-            <!-- Aviso sobre estrutura do banco -->
-            <div style="background: rgba(247, 127, 0, 0.1); border: 1px solid #F77F00; border-radius: 12px; padding: 15px; margin-top: 20px;">
-                <h4 style="color: #F77F00; margin-bottom: 10px;">⚠️ Estrutura do Banco Requerida</h4>
-                <p style="color: #F77F00; font-size: 0.9rem; margin-bottom: 10px;">
-                    Para o sistema funcionar corretamente, você precisa criar a tabela <strong>expedition_items</strong> no banco:
-                </p>
-                <code style="background: rgba(0,0,0,0.1); padding: 8px; border-radius: 6px; display: block; font-size: 0.8rem; color: #333;">
-CREATE TABLE expedition_items (<br>
-&nbsp;&nbsp;id UUID DEFAULT gen_random_uuid() PRIMARY KEY,<br>
-&nbsp;&nbsp;expedition_id UUID REFERENCES expeditions(id) ON DELETE CASCADE,<br>
-&nbsp;&nbsp;loja_id UUID REFERENCES lojas(id),<br>
-&nbsp;&nbsp;pallets INTEGER DEFAULT 0,<br>
-&nbsp;&nbsp;rolltrainers INTEGER DEFAULT 0,<br>
-&nbsp;&nbsp;created_at TIMESTAMPTZ DEFAULT NOW()<br>
-);
-                </code>
-            </div>
             <div id="operacaoAlert"></div>
         </div>
 
@@ -936,10 +960,10 @@ CREATE TABLE expedition_items (<br>
             </div>
         </div>
 
-        <div id="motoristas" class="tab-content active">
+        <div id="motoristas" class="tab-content">
             <h2 style="text-align: center;">Área do Motorista</h2>
 
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 30px; border-radius: 16px; margin-bottom: 30px; border: 1px solid rgba(0, 212, 170, 0.3); text-align: center;">
+            <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
                 <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
                 <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar as expedições aguardando ou em carregamento</p>
 
@@ -962,7 +986,7 @@ CREATE TABLE expedition_items (<br>
             </div>
 
             <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
-                <div style="background: rgba(247, 127, 0, 0.1); border: 1px solid #F77F00; border-radius: 12px; padding: 25px;">
+                <div class="alert alert-warning">
                     <h4 style="color: #F77F00; margin-bottom: 15px;">📋 Nenhuma Expedição Encontrada</h4>
                     <p style="color: #F77F00; margin: 0;">
                         Não foram encontradas expedições aguardando veículo ou em carregamento para a placa informada.
@@ -983,10 +1007,7 @@ CREATE TABLE expedition_items (<br>
                     <div class="stat-number" id="pendentesCount">0</div>
                     <div class="stat-label">Pendentes</div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #00D4AA, #00B4D8);">
-                    <div class="stat-number" id="entreguesCount">0</div>
-                    <div class="stat-label">Entregues</div>
-                </div>
+                <!-- Removido o card de Entregues -->
                 <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
                     <div class="stat-number" id="emAndamentoCount">0</div>
                     <div class="stat-label">Em Andamento</div>
@@ -1034,7 +1055,7 @@ CREATE TABLE expedition_items (<br>
                             <option value="em_carregamento">Em Carregamento</option>
                             <option value="carregado">Carregado</option>
                             <option value="saiu_para_entrega">Saiu para Entrega</option>
-                            <option value="entregue">Entregue</option>
+                            <!-- Removido: Opção de filtro para "Entregue" -->
                             <option value="cancelado">Cancelado</option>
                         </select>
                     </div>
@@ -1049,102 +1070,121 @@ CREATE TABLE expedition_items (<br>
             </div>
 
             <div class="table-container">
-                <table id="acompanhamentoTable">
-                    <thead>
-                        <tr>
-                            <th>Data/Hora</th>
-                            <th>Lojas e Cargas</th>
-                            <th>Pallets</th>
-                            <th>RollTrainers</th>
-                            <th>Doca</th>
-                            <th>Líder</th>
-                            <th>Status</th>
-                            <th>Veículo</th>
-                            <th>Ocupação</th>
-                            <th>Motorista</th>
-                            <th>Análise Tempos</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="acompanhamentoBody">
-                        <tr>
-                            <td colspan="12" class="loading">
-                                <div class="spinner"></div>
-                                Carregando dados...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table id="acompanhamentoTable">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Lojas e Cargas</th>
+                                <th>Pallets</th>
+                                <th>RollTrainers</th>
+                                <th>Doca</th>
+                                <th>Líder</th>
+                                <th>Status</th>
+                                <th>Veículo</th>
+                                <th>Ocupação</th>
+                                <th>Motorista</th>
+                                <th>Análise Tempos</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="acompanhamentoBody">
+                            <tr>
+                                <td colspan="12" class="loading">
+                                    <div class="spinner"></div>
+                                    Carregando dados...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <div id="configuracoes" class="tab-content">
-            <h2 style="text-align: center;">Configurações do Sistema</h2>
-
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
-                <h3 style="text-align: center;">Sincronização e Diagnóstico</h3>
-                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
-                    <button class="btn btn-primary btn-small" onclick="forceSyncData()">Forçar Sincronização</button>
-                    <button class="btn btn-success btn-small" onclick="testConnection()">Testar Conexão</button>
-                    <button class="btn btn-primary btn-small" onclick="clearCache()">Limpar Cache</button>
-                    <button class="btn btn-danger btn-small" onclick="clearDebugLog()">Limpar Log</button>
-                </div>
-            </div>
-
-            <div class="stats-grid" style="text-align: center;">
-                <div class="stat-card">
-                    <div class="stat-number" id="debugLojas">0</div>
-                    <div class="stat-label">Lojas Carregadas</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
-                    <div class="stat-number" id="debugDocas">0</div>
-                    <div class="stat-label">Docas Carregadas</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
-                    <div class="stat-number" id="debugLideres">0</div>
-                    <div class="stat-label">Líderes Carregados</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #023047);">
-                    <div class="stat-number" id="debugVeiculos">0</div>
-                    <div class="stat-label">Veículos Disponíveis</div>
-                </div>
-            </div>
-
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
-                <h3 style="text-align: center;">Gerenciar Cadastros</h3>
-                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
-                    <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
-                    <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
-                    <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
-                    <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
-                    <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
-                </div>
-            </div>
-
-            <div id="addFormModal">
-                <h3 id="addFormTitle">Adicionar Item</h3>
-                <form id="addForm">
-                    <div id="addFormFields" class="form-grid">
+            <h2 style="text-align: center;">Acesso Restrito</h2>
+            <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
+                <p style="text-align: center; color: var(--dark); margin-bottom: 20px;">Por favor, insira a senha para acessar as configurações.</p>
+                <form id="passwordForm">
+                    <div class="form-group">
+                        <label for="passwordInput">Senha:</label>
+                        <input type="password" id="passwordInput" required placeholder="Digite a senha...">
                     </div>
                     <div style="margin-top: 20px;">
-                        <button type="submit" class="btn btn-success">Salvar</button>
-                        <button type="button" class="btn btn-danger" onclick="hideAddForm()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary btn-small">Acessar</button>
                     </div>
                 </form>
-                <div id="addFormAlert"></div>
+                <div id="passwordAlert" style="text-align: center; margin-top: 15px;"></div>
             </div>
 
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
-                <h3 style="text-align: center;">Status do Sistema</h3>
-                <div id="systemStatus">
-                    Carregando informações do sistema...
+            <div id="configuracoesContent" style="display: none;">
+                <h2 style="text-align: center;">Configurações do Sistema</h2>
+
+                <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                    <h3 style="text-align: center;">Sincronização e Diagnóstico</h3>
+                    <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
+                        <button class="btn btn-primary btn-small" onclick="forceSyncData()">Forçar Sincronização</button>
+                        <button class="btn btn-success btn-small" onclick="testConnection()">Testar Conexão</button>
+                        <button class="btn btn-primary btn-small" onclick="clearCache()">Limpar Cache</button>
+                        <button class="btn btn-danger btn-small" onclick="clearDebugLog()">Limpar Log</button>
+                    </div>
                 </div>
-            </div>
 
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; text-align: left;">
-                <h3 style="text-align: center;">Log do Sistema</h3>
-                <div id="debugLog">
-                    Sistema iniciado...<br>
+                <div class="stats-grid" style="text-align: center;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="debugLojas">0</div>
+                        <div class="stat-label">Lojas Carregadas</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+                        <div class="stat-number" id="debugDocas">0</div>
+                        <div class="stat-label">Docas Carregadas</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
+                        <div class="stat-number" id="debugLideres">0</div>
+                        <div class="stat-label">Líderes Carregados</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #023047);">
+                        <div class="stat-number" id="debugVeiculos">0</div>
+                        <div class="stat-label">Veículos Disponíveis</div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                    <h3 style="text-align: center;">Gerenciar Cadastros</h3>
+                    <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
+                        <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
+                        <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
+                        <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
+                        <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
+                        <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
+                    </div>
+                </div>
+
+                <div id="addFormModal">
+                    <h3 id="addFormTitle">Adicionar Item</h3>
+                    <form id="addForm">
+                        <div id="addFormFields" class="form-grid">
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <button type="submit" class="btn btn-success">Salvar</button>
+                            <button type="button" class="btn btn-danger" onclick="hideAddForm()">Cancelar</button>
+                        </div>
+                    </form>
+                    <div id="addFormAlert"></div>
+                </div>
+
+                <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                    <h3 style="text-align: center;">Status do Sistema</h3>
+                    <div id="systemStatus">
+                        Carregando informações do sistema...
+                    </div>
+                </div>
+
+                <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; text-align: left;">
+                    <h3 style="text-align: center;">Log do Sistema</h3>
+                    <div id="debugLog">
+                        Sistema iniciado...<br>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1241,6 +1281,7 @@ CREATE TABLE expedition_items (<br>
         // Variáveis para filtros
         let allExpeditions = [];
         let filteredExpeditions = [];
+        let passwordAuthenticated = false;
 
         // Instância do leitor de QR Code
         let html5QrCodeScanner = null;
@@ -1401,7 +1442,7 @@ CREATE TABLE expedition_items (<br>
                     <label>RollTrainers:</label>
                     <input type="number" class="rolltrainers-input" min="0" required>
                 </div>
-                <div style="display: flex; align-items: center; height: 48px;">
+                <div style="display: flex; align-items: center; height: 48px; gap: 8px;">
                     <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
                     <button type="button" class="btn btn-danger btn-small" onclick="removeLojaLine(${lojaLineCounter})" style="padding: 12px; border-radius: 8px;">-</button>
                 </div>
@@ -1480,8 +1521,16 @@ CREATE TABLE expedition_items (<br>
             } else if (tabName === 'motoristas') {
                 loadMotoristaTab();
             } else if (tabName === 'configuracoes') {
-                updateSystemStatus();
-                updateDebugStats();
+                // Lógica de autenticação para a aba de configurações
+                if (passwordAuthenticated) {
+                    document.getElementById('passwordFormContainer').style.display = 'none';
+                    document.getElementById('configuracoesContent').style.display = 'block';
+                    updateSystemStatus();
+                    updateDebugStats();
+                } else {
+                    document.getElementById('passwordFormContainer').style.display = 'block';
+                    document.getElementById('configuracoesContent').style.display = 'none';
+                }
             }
         }
 
@@ -1757,8 +1806,8 @@ CREATE TABLE expedition_items (<br>
             try {
                 debugLog.add('Carregando expedições com dados relacionados completos...', 'info');
 
-                // Carregar expedições principais
-                const expeditions = await supabaseRequest('expeditions?order=data_hora.desc');
+                // Carregar expedições principais, excluindo as que já foram entregues
+                const expeditions = await supabaseRequest('expeditions?status=not.eq.entregue&order=data_hora.desc');
 
                 // Carregar itens de todas as expedições
                 const items = await supabaseRequest('expedition_items');
@@ -2172,8 +2221,8 @@ CREATE TABLE expedition_items (<br>
                         </div>
 
                         <div class="transport-grid">
-                            <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.2rem;">${totalPallets}</span></div>
-                            <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.2rem;">${totalRolltrainers}</span></div>
+                            <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${totalPallets}</span></div>
+                            <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${totalRolltrainers}</span></div>
                             <div><strong>Carga (Pallets):</strong> ${Math.ceil(cargaTotalNecessaria)}</div>
                             <div><strong>Doca:</strong> ${exp.doca_nome || 'N/A'}</div>
                             <div><strong>Líder:</strong> ${exp.lider_nome || 'N/A'}</div>
@@ -2424,7 +2473,7 @@ CREATE TABLE expedition_items (<br>
                         });
                         debugLog.add(`Motorista anterior liberado: ${expedition.motorista_id}`, 'success');
                     } catch (error) {
-                        debugLog.add(`Aviso: Não foi possível liberar motorista anterior: ${error.message}`, 'warning');
+                        debugLog.add(`Aviso: Não foi possível atualizar status do motorista: ${motoristaError.message}`, 'warning');
                     }
                 }
 
@@ -2444,7 +2493,7 @@ CREATE TABLE expedition_items (<br>
                     });
                     debugLog.add('Novo motorista alocado', 'success');
                 } catch (error) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${error.message}`, 'warning');
+                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${motoristaError.message}`, 'warning');
                 }
 
                 debugLog.add(`Transporte realocado com sucesso às ${new Date(dataRealocacao).toLocaleTimeString('pt-BR')}`, 'success');
@@ -2471,13 +2520,13 @@ CREATE TABLE expedition_items (<br>
             const stats = {
                 total: data.length,
                 pendentes: data.filter(d => d.status === 'pendente').length,
-                entregues: data.filter(d => d.status === 'entregue').length,
+                // Removido: contagem de 'entregues'
                 emAndamento: data.filter(d => ['aguardando_veiculo', 'em_carregamento', 'carregado', 'saiu_para_entrega'].includes(d.status)).length
             };
 
             document.getElementById('totalExpedicoes').textContent = stats.total;
             document.getElementById('pendentesCount').textContent = stats.pendentes;
-            document.getElementById('entreguesCount').textContent = stats.entregues;
+            // Removido: Atualização da contagem de 'entregues'
             document.getElementById('emAndamentoCount').textContent = stats.emAndamento;
         }
 
@@ -2699,7 +2748,7 @@ PERFORMANCE:
 
 VOLUME:
 • Total de Pallets: ${monthlyData.reduce((sum, exp) => sum + (exp.total_pallets || 0), 0)}
-• Total de RollTrainers: ${monthlyData.reduce((sum, exp) => sum + (exp.total_rolltrainers || 0), 0)}
+• Total de RollTrainers: ${monthlyData.reduce((sum, exp) => sum + (exp.rolltrainers || 0), 0)}
 • Ocupação Média do Veículo: ${data.length > 0 ? (data.reduce((sum, exp) => sum + exp.ocupacao, 0) / data.length).toFixed(1) : 0}%
 
 Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
@@ -2861,6 +2910,24 @@ Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
             };
 
             saveExpedition(formData);
+        });
+        
+        // Lógica de autenticação
+        const correctPasswords = ['JPMASTER', 'ELIELSONR'];
+        document.getElementById('passwordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const password = document.getElementById('passwordInput').value;
+            if (correctPasswords.includes(password.toUpperCase())) {
+                passwordAuthenticated = true;
+                showNotification('Acesso concedido!', 'success');
+                document.getElementById('passwordFormContainer').style.display = 'none';
+                document.getElementById('configuracoesContent').style.display = 'block';
+                updateSystemStatus();
+                updateDebugStats();
+            } else {
+                showAlert('passwordAlert', 'Senha incorreta.', 'error');
+                document.getElementById('passwordInput').value = '';
+            }
         });
 
         // Funções de configuração
@@ -3320,7 +3387,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             const container = document.getElementById('listaExpedicoesMotorista');
 
             let html = `
-                <div style="background: rgba(0, 212, 170, 0.1); padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 1px solid rgba(0, 212, 170, 0.3);">
+                <div class="transport-card" style="margin-bottom: 25px;">
                     <h4 style="color: var(--primary); margin-bottom: 10px;">🚛 Veículo: ${placa}</h4>
                     <p style="color: var(--dark); margin: 0;">${expeditions.length} expedição${expeditions.length > 1 ? 'ões' : ''} encontrada${expeditions.length > 1 ? 's' : ''}</p>
                 </div>
@@ -3363,7 +3430,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
                             <div><strong>🏪 Lojas:</strong> ${exp.lojas_count} (${exp.lojas_nomes})</div>
                             <div><strong>📦 Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
                             <div><strong>🔄 RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
-                            <div><strong>� Doca:</strong> ${exp.doca_nome}</div>
+                            <div><strong>🚪 Doca:</strong> ${exp.doca_nome}</div>
                             <div><strong>👨‍💼 Líder:</strong> ${exp.lider_nome}</div>
                             <div><strong>⏰ Aguardando há:</strong> ${tempoEsperaTexto}</div>
                         </div>
@@ -3416,6 +3483,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             // Resetar UI
             qrResultDisplay.style.display = 'none';
             confirmBtn.disabled = true;
+            qrReader.innerHTML = ''; // Limpar o leitor anterior
             qrReader.style.display = 'block';
 
             if (action === 'iniciar') {
@@ -3761,7 +3829,7 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             const connected = await checkConnection();
             if (connected) {
                 await loadSelectData();
-                loadAcompanhamento();
+                showTab('operacao'); // Define a primeira tela ao entrar
                 updateSystemStatus();
                 showNotification('Sistema com controle de tempos e filtros ativo!', 'success');
                 debugLog.add('Sistema totalmente carregado e operacional com controle de tempos e filtros', 'success');
@@ -3773,4 +3841,3 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
     </script>
 </body>
 </html>
-�
