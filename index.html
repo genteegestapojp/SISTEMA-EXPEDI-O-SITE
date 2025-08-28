@@ -1624,27 +1624,6 @@
         // Instância do leitor de QR Code
         let html5QrCodeScanner = null;
 
-        // Variável para controlar alocações em andamento
-        let allocatingTransports = new Set();
-
-        // Função melhorada para requisições com timeout
-        async function supabaseRequestWithTimeout(endpoint, method = 'GET', data = null, timeoutMs = 30000) {
-            return new Promise(async (resolve, reject) => {
-                const timeoutId = setTimeout(() => {
-                    reject(new Error('Timeout: Operação demorou mais que 30 segundos'));
-                }, timeoutMs);
-
-                try {
-                    const result = await supabaseRequest(endpoint, method, data);
-                    clearTimeout(timeoutId);
-                    resolve(result);
-                } catch (error) {
-                    clearTimeout(timeoutId);
-                    reject(error);
-                }
-            });
-        }
-
         // Sistema de debug melhorado
         const debugLog = {
             entries: [],
