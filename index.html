@@ -12,6 +12,47 @@
             box-sizing: border-box;
         }
 
+        /* Ícones Profissionais */
+        .feature-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            font-style: normal;
+            font-weight: 700;
+            color: var(--primary);
+            vertical-align: middle;
+            text-align: center;
+            line-height: 16px;
+        }
+
+        .feature-icon.truck::before { content: "⬛"; color: var(--accent); }
+        .feature-icon.store::before { content: "▪"; color: var(--primary); }
+        .feature-icon.package::before { content: "■"; color: var(--primary); }
+        .feature-icon.rolltrainer::before { content: "▣"; color: var(--secondary); }
+        .feature-icon.dock::before { content: "▬"; color: var(--accent); }
+        .feature-icon.user::before { content: "●"; color: var(--dark); }
+        .feature-icon.clock::before { content: "◉"; color: #F77F00; }
+        .feature-icon.calendar::before { content: "▢"; color: #F77F00; }
+        .feature-icon.note::before { content: "▤"; color: var(--primary); }
+        .feature-icon.clipboard::before { content: "▦"; color: #F77F00; }
+        .feature-icon.email::before { content: "▣"; color: white; }
+        .feature-icon.info::before { content: "▲"; color: var(--primary); }
+
+        /* Variações de cor para diferentes contextos */
+        .feature-icon.primary { color: var(--primary); }
+        .feature-icon.secondary { color: var(--secondary); }
+        .feature-icon.dark { color: var(--dark); }
+        .feature-icon.warning { color: #F77F00; }
+        .feature-icon.white { color: white; }
+        .feature-icon.accent { color: var(--accent); }
+
+        /* Hover effects para ícones interativos */
+        .feature-icon:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+
         /* Variáveis CSS */
         :root {
             --primary: #00D4AA;
@@ -1269,7 +1310,7 @@
 
             <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
                 <div class="alert alert-warning">
-                    <h4 style="color: #F77F00; margin-bottom: 15px;">📋 Nenhuma Expedição Encontrada</h4>
+                    <h4 style="color: #F77F00; margin-bottom: 15px;"><span class="feature-icon clipboard warning"></span>Nenhuma Expedição Encontrada</h4>
                     <p style="color: #F77F00; margin: 0;">
                         Não foram encontradas expedições aguardando veículo ou em carregamento para a placa informada.
                     </p>
@@ -1480,7 +1521,7 @@
         <div style="font-size: 0.8rem; opacity: 0.8; line-height: 1.4;">
             Desenvolvido por <strong>Juliano Patrick</strong><br>
             <strong>JP Tech Solutions</strong><br>
-            📧 julianocorrea@bateforte.com.br
+            <span class="feature-icon email white"></span>julianocorrea@bateforte.com.br
         </div>
         <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 8px;">
             Controle de Tempos • Validação QR Code • Interface Responsiva
@@ -1582,6 +1623,27 @@
 
         // Instância do leitor de QR Code
         let html5QrCodeScanner = null;
+
+        // Variável para controlar alocações em andamento
+        let allocatingTransports = new Set();
+
+        // Função melhorada para requisições com timeout
+        async function supabaseRequestWithTimeout(endpoint, method = 'GET', data = null, timeoutMs = 30000) {
+            return new Promise(async (resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Timeout: Operação demorou mais que 30 segundos'));
+                }, timeoutMs);
+
+                try {
+                    const result = await supabaseRequest(endpoint, method, data);
+                    clearTimeout(timeoutId);
+                    resolve(result);
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            });
+        }
 
         // Sistema de debug melhorado
         const debugLog = {
@@ -3825,7 +3887,7 @@ DESENVOLVIDO POR: JP Tech Solutions
 
             let html = `
                 <div class="transport-card" style="margin-bottom: 25px;">
-                    <h4 style="color: var(--primary); margin-bottom: 10px;">🚛 Veículo: ${placa}</h4>
+                    <h4 style="color: var(--primary); margin-bottom: 10px;"><span class="feature-icon truck"></span>Veículo: ${placa}</h4>
                     <p style="color: var(--dark); margin: 0;">${expeditions.length} expedição${expeditions.length > 1 ? 'ões' : ''} encontrada${expeditions.length > 1 ? 's' : ''}</p>
                 </div>
             `;
@@ -3870,21 +3932,21 @@ DESENVOLVIDO POR: JP Tech Solutions
                         </div>
 
                         <div class="transport-grid" style="margin-bottom: 15px;">
-                            <div><strong>🏪 Lojas:</strong> ${exp.lojas_count} (${exp.lojas_nomes})</div>
-                            <div><strong>📦 Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
-                            <div><strong>🔄 RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
-                            <div><strong>🚪 Doca:</strong> ${exp.doca_nome} (${coddocaValue})</div>
-                            <div><strong>👨‍💼 Líder:</strong> ${exp.lider_nome}</div>
-                            <div><strong>⏰ Aguardando há:</strong> ${tempoEsperaTexto}</div>
+                            <div><span class="feature-icon store"></span><strong>Lojas:</strong> ${exp.lojas_count} (${exp.lojas_nomes})</div>
+                            <div><span class="feature-icon package"></span><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
+                            <div><span class="feature-icon rolltrainer"></span><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
+                            <div><span class="feature-icon dock"></span><strong>Doca:</strong> ${exp.doca_nome} (${coddocaValue})</div>
+                            <div><span class="feature-icon user"></span><strong>Líder:</strong> ${exp.lider_nome}</div>
+                            <div><span class="feature-icon clock"></span><strong>Aguardando há:</strong> ${tempoEsperaTexto}</div>
                         </div>
 
                         <div style="background: rgba(247, 127, 0, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #F77F00;">
-                            <strong style="color: #F77F00;">📅 Criada em:</strong> ${criadaEm.toLocaleString('pt-BR')}
+                            <span class="feature-icon calendar warning"></span><strong style="color: #F77F00;">Criada em:</strong> ${criadaEm.toLocaleString('pt-BR')}
                         </div>
 
                         ${exp.observacoes ? `
                             <div style="background: rgba(144, 224, 239, 0.1); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--primary);">
-                                <strong style="color: var(--primary);">📝 Observações:</strong><br>
+                                <span class="feature-icon note"></span><strong style="color: var(--primary);">Observações:</strong><br>
                                 <span style="color: var(--dark);">${exp.observacoes}</span>
                             </div>
                         ` : ''}
