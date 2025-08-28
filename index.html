@@ -344,7 +344,7 @@
             border-radius: 16px;
             box-shadow: 0 12px 40px rgba(0, 119, 182, 0.15);
             background: rgba(255, 255, 255, 0.9);
-            min-width: 1400px;
+            min-width: 1300px; /* Largura ajustada após remover uma coluna */
         }
 
         table {
@@ -352,7 +352,7 @@
             border-collapse: collapse;
             background: transparent;
             table-layout: fixed;
-            min-width: 1400px;
+            min-width: 1300px; /* Largura ajustada após remover uma coluna */
         }
 
         th,
@@ -431,12 +431,6 @@
         /* Análise Tempos */
         th:nth-child(11),
         td:nth-child(11) {
-            width: 150px;
-        }
-
-        /* Controle Doca */
-        th:nth-child(12),
-        td:nth-child(12) {
             width: 80px;
         }
 
@@ -770,6 +764,60 @@
             margin-bottom: 0;
         }
 
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            color: var(--dark);
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+
         @media (max-width: 768px) {
             .tabs {
                 flex-direction: column;
@@ -846,6 +894,7 @@
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label style="font-size: 1.1rem; color: var(--dark); margin-bottom: 15px;">Lojas e Quantidades:</label>
                         <div id="lojasContainer" style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3);">
+                            <!-- Primeira linha de loja (sempre presente) -->
                             <div class="loja-line" data-index="0" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label>Loja:</label>
@@ -889,6 +938,7 @@
                 <button type="submit" class="btn btn-primary">Lançar Expedição</button>
             </form>
 
+            <!-- Aviso sobre estrutura do banco -->
             <div style="background: rgba(247, 127, 0, 0.1); border: 1px solid #F77F00; border-radius: 12px; padding: 15px; margin-top: 20px;">
                 <h4 style="color: #F77F00; margin-bottom: 10px;">⚠️ Estrutura do Banco Requerida</h4>
                 <p style="color: #F77F00; font-size: 0.9rem; margin-bottom: 10px;">
@@ -938,6 +988,7 @@ CREATE TABLE expedition_items (<br>
                 </div>
             </div>
 
+            <!-- Quadros de Análise de Tempos -->
             <div class="time-stats-grid">
                 <div class="time-stat-card">
                     <div class="stat-number" id="tempoMedioAlocar">-</div>
@@ -957,6 +1008,7 @@ CREATE TABLE expedition_items (<br>
                 </div>
             </div>
 
+            <!-- Filtros -->
             <div class="filters-section">
                 <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
                 <div class="filters-grid">
@@ -1005,13 +1057,12 @@ CREATE TABLE expedition_items (<br>
                             <th>Veículo</th>
                             <th>Motorista</th>
                             <th>Análise Tempos</th>
-                            <th>Controle Doca</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="acompanhamentoBody">
                         <tr>
-                            <td colspan="12" class="loading">
+                            <td colspan="11" class="loading">
                                 <div class="spinner"></div>
                                 Carregando dados...
                             </td>
@@ -1128,6 +1179,21 @@ CREATE TABLE expedition_items (<br>
         </div>
     </div>
 
+    <!-- Modal de QR Code (Novo) -->
+    <div id="qrModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title" id="qrModalTitle"></h3>
+            <div class="modal-body">
+                <p id="qrModalMessage"></p>
+                <input type="text" id="qrCodeInput" placeholder="Simular leitura de QR Code..." style="width: 100%; padding: 10px; margin-top: 15px; border-radius: 8px; border: 1px solid #ddd;">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="handleQrScan()">Confirmar</button>
+                <button class="btn btn-danger" onclick="closeQrModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // API REST do Supabase
         const SUPABASE_URL = 'https://owsoweqqttcmuuaohxke.supabase.co';
@@ -1146,7 +1212,7 @@ CREATE TABLE expedition_items (<br>
         let lideres = [];
         let veiculos = [];
         let motoristas = [];
-
+        
         // Variáveis para filtros
         let allExpeditions = [];
         let filteredExpeditions = [];
@@ -1186,7 +1252,8 @@ CREATE TABLE expedition_items (<br>
 
             const options = {
                 method,
-                headers: { ...headers }
+                headers: { ...headers
+                }
             };
 
             if (data) {
@@ -1383,8 +1450,6 @@ CREATE TABLE expedition_items (<br>
                 loadAcompanhamento();
                 setDefaultDateFilters();
             } else if (tabName === 'motoristas') {
-                // A função loadMotoristaTab agora apenas chama a função de popular
-                // A populacao já ocorre em loadSelectData()
                 loadMotoristaTab();
             } else if (tabName === 'configuracoes') {
                 updateSystemStatus();
@@ -1711,7 +1776,7 @@ CREATE TABLE expedition_items (<br>
                 console.error('Erro ao carregar acompanhamento:', error);
                 debugLog.add(`Erro ao carregar acompanhamento: ${error.message}`, 'error');
                 document.getElementById('acompanhamentoBody').innerHTML =
-                    `<tr><td colspan="12" class="alert alert-error">Erro: ${error.message}<br><small>Verifique se a tabela expedition_items foi criada no banco</small></td></tr>`;
+                    `<tr><td colspan="11" class="alert alert-error">Erro: ${error.message}<br><small>Verifique se a tabela expedition_items foi criada no banco</small></td></tr>`;
             }
         }
 
@@ -1771,7 +1836,7 @@ CREATE TABLE expedition_items (<br>
             const tbody = document.getElementById('acompanhamentoBody');
 
             if (expeditions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="12" class="loading">Nenhuma expedição encontrada</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="loading">Nenhuma expedição encontrada</td></tr>';
                 return;
             }
 
@@ -1811,42 +1876,6 @@ CREATE TABLE expedition_items (<br>
                         <div><strong>Carreg:</strong> ${tempoCarregamento}</div>
                     </div>
                 `;
-
-                // Controles de doca
-                let controlesDocaHTML = '';
-                if (temVeiculo && !exp.data_chegada_veiculo) {
-                    controlesDocaHTML = `
-                        <button class="btn btn-warning btn-small" style="padding: 4px 8px; font-size: 0.7rem; width: 100%;" onclick="registrarChegada('${exp.id}')">
-                            CHEGOU
-                        </button>
-                    `;
-                } else if (exp.data_chegada_veiculo && !exp.data_saida_veiculo) {
-                    controlesDocaHTML = `
-                        <button class="btn btn-success btn-small" style="padding: 4px 8px; font-size: 0.7rem; width: 100%;" onclick="registrarSaida('${exp.id}')">
-                            SAIU
-                        </button>
-                    `;
-                } else if (exp.data_chegada_veiculo && exp.data_saida_veiculo) {
-                    controlesDocaHTML = `
-                        <div style="text-align: center; font-size: 0.65rem; color: var(--primary); font-weight: 600;">
-                            CONCLUÍDO<br>
-                            ${new Date(exp.data_chegada_veiculo).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })} →
-                            ${new Date(exp.data_saida_veiculo).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })}
-                        </div>
-                    `;
-                } else {
-                    controlesDocaHTML = `
-                        <div style="text-align: center; font-size: 0.65rem; color: #999; font-style: italic;">
-                            Aguardando<br>veículo
-                        </div>
-                    `;
-                }
 
                 // Informações detalhadas das lojas com quantidades CORRIGIDAS
                 let lojasECargasHTML = '';
@@ -1893,7 +1922,6 @@ CREATE TABLE expedition_items (<br>
                         </td>
                         <td style="font-size: 0.85rem; font-weight: 600;">${exp.motorista_nome || '-'}</td>
                         <td style="font-size: 0.75rem; padding: 8px 6px;">${analiseTempos}</td>
-                        <td style="padding: 8px 6px;">${controlesDocaHTML}</td>
                         <td style="padding: 8px 6px; text-align: center;">
                             <button class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteExpedition('${exp.id}')">DEL</button>
                         </td>
@@ -1903,6 +1931,41 @@ CREATE TABLE expedition_items (<br>
 
             tbody.innerHTML = html;
         }
+
+        // Função para mostrar modal de confirmação (substituindo `confirm()`)
+        function showConfirmationModal(message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('qrModal');
+                const title = document.getElementById('qrModalTitle');
+                const messageEl = document.getElementById('qrModalMessage');
+                const qrInput = document.getElementById('qrCodeInput');
+                const confirmBtn = modal.querySelector('.btn-primary');
+                const cancelBtn = modal.querySelector('.btn-danger');
+
+                title.textContent = "Confirmação";
+                messageEl.innerHTML = message;
+                qrInput.style.display = 'none'; // Oculta o campo de QR Code
+                
+                // Remove listeners antigos para evitar duplicação
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                
+                const newCancelBtn = cancelBtn.cloneNode(true);
+                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+                newConfirmBtn.onclick = () => {
+                    closeQrModal();
+                    resolve(true);
+                };
+                newCancelBtn.onclick = () => {
+                    closeQrModal();
+                    resolve(false);
+                };
+
+                modal.style.display = 'flex';
+            });
+        }
+
 
         // Registrar chegada do veículo na doca com timestamp
         async function registrarChegada(expeditionId) {
@@ -2136,7 +2199,7 @@ CREATE TABLE expedition_items (<br>
             const motoristaId = motoristaSelect.value;
 
             if (!veiculoId || !motoristaId) {
-                alert('Por favor, selecione um veículo e um motorista!');
+                showNotification('Por favor, selecione um veículo e um motorista!', 'error');
                 return;
             }
 
@@ -2205,11 +2268,11 @@ CREATE TABLE expedition_items (<br>
             const newMotoristaId = newMotoristaSelect.value;
 
             if (!newVeiculoId || !newMotoristaId) {
-                alert('Por favor, selecione um novo veículo e motorista!');
+                showNotification('Por favor, selecione um novo veículo e motorista!', 'error');
                 return;
             }
 
-            if (!confirm('Confirma a alteração do transporte? O veículo e motorista atuais serão liberados.')) {
+            if (!await showConfirmationModal('Confirma a alteração do transporte? O veículo e motorista atuais serão liberados.')) {
                 return;
             }
 
@@ -2275,7 +2338,7 @@ CREATE TABLE expedition_items (<br>
                     });
                     debugLog.add('Novo motorista alocado', 'success');
                 } catch (error) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${error.message}`, 'warning');
+                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${motoristaError.message}`, 'warning');
                 }
 
                 debugLog.add(`Transporte realocado com sucesso às ${new Date(dataRealocacao).toLocaleTimeString('pt-BR')}`, 'success');
@@ -2333,15 +2396,15 @@ CREATE TABLE expedition_items (<br>
 
                 let expedition;
                 try {
-                    const data = await supabaseRequest(`v_expeditions_tempos?id=eq.${expeditionId}`);
-                    expedition = data[0];
+                    const data = await supabaseRequest('v_expeditions_full');
+                    expedition = data.find(exp => exp.id === expeditionId);
                 } catch (viewError) {
                     const data = await supabaseRequest(`expeditions?id=eq.${expeditionId}`);
                     expedition = data[0];
                 }
 
                 if (!expedition) {
-                    alert('Expedição não encontrada!');
+                    showNotification('Expedição não encontrada!', 'error');
                     return;
                 }
 
@@ -2357,8 +2420,8 @@ ANÁLISE COMPLETA DE TEMPOS - EXPEDIÇÃO
 INFORMAÇÕES BÁSICAS:
 Criada em: ${criadoEm.toLocaleString('pt-BR')}
 Loja: ${expedition.loja_nome || 'N/A'} ${expedition.loja_codigo ? '(' + expedition.loja_codigo + ')' : ''}
-Pallets: ${expedition.pallets || 0}
-RollTrainers: ${expedition.rolltrainers || expedition.rolos_de_treinamento || 0}
+Pallets: ${expedition.total_pallets || 0}
+RollTrainers: ${expedition.total_rolltrainers || 0}
 Doca: ${expedition.doca_nome || 'N/A'}
 Líder: ${expedition.lider_nome || 'N/A'}
 Status: ${getStatusLabel(expedition.status)}
@@ -2424,20 +2487,21 @@ OBSERVAÇÕES:
 Observações: ${expedition.observacoes || 'Nenhuma'}
                 `;
 
-                alert(analiseCompleta);
+                showNotification(analiseCompleta, 'info'); // Usando showNotification
             } catch (error) {
                 console.error('Erro ao carregar detalhes:', error);
                 debugLog.add(`Erro ao carregar detalhes: ${error.message}`, 'error');
-                alert('Erro: ' + error.message);
+                showNotification('Erro: ' + error.message, 'error');
             }
         }
 
         // Deletar expedição
         async function deleteExpedition(expeditionId) {
-            if (!confirm('Tem certeza que deseja excluir esta expedição?')) {
+            // Utilizando modal de confirmação customizado para substituir alert/confirm
+            if (!await showConfirmationModal('Tem certeza que deseja excluir esta expedição?')) {
                 return;
             }
-
+            
             try {
                 debugLog.add(`Deletando expedição ${expeditionId}`, 'info');
                 await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE');
@@ -2521,14 +2585,14 @@ PERFORMANCE:
 • Taxa de carregamento: ${temposAlocacao.length > 0 ? ((temposCarregamento.length/temposAlocacao.length)*100).toFixed(1) : 0}%
 
 VOLUME:
-• Total de Pallets: ${monthlyData.reduce((sum, exp) => sum + (exp.pallets || 0), 0)}
-• Total de RollTrainers: ${monthlyData.reduce((sum, exp) => sum + (exp.rolltrainers || exp.rolos_de_treinamento || 0), 0)}
+• Total de Pallets: ${monthlyData.reduce((sum, exp) => sum + (exp.total_pallets || 0), 0)}
+• Total de RollTrainers: ${monthlyData.reduce((sum, exp) => sum + (exp.total_rolltrainers || 0), 0)}
 
 Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
                 `;
 
                 debugLog.add('Relatório de tempos gerado com sucesso', 'success');
-                alert(reportText);
+                showNotification(reportText, 'info'); // Usando showNotification
             } catch (error) {
                 console.error('Erro ao gerar relatório:', error);
                 debugLog.add(`Erro ao gerar relatório: ${error.message}`, 'error');
@@ -2608,6 +2672,57 @@ Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
             } catch (error) {
                 console.error('Erro ao salvar motorista:', error);
                 debugLog.add(`Erro ao salvar motorista: ${error.message}`, 'error');
+                showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        // Salvar novo veículo
+        async function saveVeiculo() {
+            const placa = document.getElementById('add_placa').value.trim().toUpperCase();
+            const modelo = document.getElementById('add_modelo').value.trim();
+            const capacidadePallets = parseInt(document.getElementById('add_capacidade_pallets').value);
+            const tipo = document.getElementById('add_tipo').value.trim();
+
+            if (!placa || !modelo || !capacidadePallets || !tipo) {
+                showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            if (capacidadePallets < 1) {
+                showAlert('addFormAlert', 'A capacidade deve ser maior que zero', 'error');
+                return;
+            }
+
+            if (tipo !== 'JJS' && tipo !== 'PERLOG') {
+                showAlert('addFormAlert', 'Tipo deve ser JJS ou PERLOG', 'error');
+                return;
+            }
+
+            try {
+                debugLog.add(`Salvando novo veículo: ${placa} - ${modelo} (${capacidadePallets} pallets) - Tipo: ${tipo}`, 'info');
+
+                const veiculoData = {
+                    placa: placa,
+                    modelo: modelo,
+                    capacidade_pallets: capacidadePallets,
+                    tipo: tipo
+                };
+
+                await supabaseRequest('veiculos', 'POST', veiculoData);
+
+                debugLog.add(`Veículo "${placa}" criado com sucesso`, 'success');
+                showAlert('addFormAlert', `Veículo "${placa}" criado com sucesso!`, 'success');
+                showNotification(`Novo veículo "${placa}" adicionado!`, 'success');
+
+                // Recarregar dados e fechar modal após 2 segundos
+                setTimeout(async () => {
+                    await loadSelectData();
+                    hideAddForm();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro ao salvar veículo:', error);
+                debugLog.add(`Erro ao salvar veículo: ${error.message}`, 'error');
                 showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
             }
         }
@@ -2725,7 +2840,7 @@ CACHE LOCAL:
 • Motoristas: ${motoristas.length} carregados
 
 STATUS: Sistema de tempos funcionando normalmente
-VERSÃO: 3.1 - Time Tracking com Filtros
+VERSÃO: 3.2 - Correções e Melhorias
 ÚLTIMA ATUALIZAÇÃO: ${new Date().toLocaleTimeString()}
             `;
 
@@ -2978,19 +3093,12 @@ VERSÃO: 3.1 - Time Tracking com Filtros
         }
 
         // AQUI ESTÃO OS AJUSTES NECESSÁRIOS PARA A ABA DO MOTORISTA
-        // A função de carregamento agora apenas limpa a tela,
-        // pois a populacao do select já acontece no loadSelectData()
         async function loadMotoristaTab() {
             debugLog.add('Preparando a aba do motorista', 'info');
-            // Limpar resultados anteriores
             document.getElementById('resultadosMotorista').style.display = 'none';
             document.getElementById('semResultados').style.display = 'none';
-            // A chamada para `populatePlacasSelect` já está em `loadSelectData`,
-            // garantindo que os dados já estarão no cache.
         }
 
-        // Nova função para popular o select de placas.
-        // É chamada dentro de `loadSelectData` e `loadMotoristaTab`.
         function populatePlacasSelect() {
             const placaSelect = document.getElementById('placaMotorista');
 
@@ -3001,7 +3109,6 @@ VERSÃO: 3.1 - Time Tracking com Filtros
 
             debugLog.add(`Populando select de placas com ${veiculos ? veiculos.length : 0} veículos`, 'info');
 
-            // Limpa o select para evitar duplicidade
             placaSelect.innerHTML = '<option value="">Selecione uma placa</option>';
 
             if (veiculos && veiculos.length > 0) {
@@ -3058,6 +3165,7 @@ VERSÃO: 3.1 - Time Tracking com Filtros
                                 return loja ? loja.nome : 'Loja N/A';
                             }).join(', '),
                             doca_nome: doca ? doca.nome : 'N/A',
+                            doca_id: doca ? doca.id : null,
                             lider_nome: lider ? lider.nome : 'N/A',
                             veiculo_placa: veiculo ? veiculo.placa : null,
                             veiculo_modelo: veiculo ? veiculo.modelo : null,
@@ -3102,16 +3210,19 @@ VERSÃO: 3.1 - Time Tracking com Filtros
                 const tempoEspera = Math.round((agora - criadaEm) / 60000);
                 const tempoEsperaTexto = minutesToHHMM(tempoEspera);
 
-                // Determinar próxima ação baseada no status
+                // Determinar próxima ação e botão baseado no status
                 let proximaAcao = '';
                 let corStatus = '';
+                let actionButton = '';
 
                 if (exp.status === 'aguardando_veiculo') {
                     proximaAcao = '👉 Dirija-se à doca para iniciar o carregamento';
                     corStatus = 'var(--primary)';
+                    actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar', '${exp.id}', '${exp.doca_nome}')">Iniciar Carregamento</button>`;
                 } else if (exp.status === 'em_carregamento') {
                     proximaAcao = '⏳ Aguarde a finalização do carregamento';
                     corStatus = '#F77F00';
+                    actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar', '${exp.id}', '${exp.doca_nome}')">Finalizar Carregamento</button>`;
                 }
 
                 html += `
@@ -3144,12 +3255,120 @@ VERSÃO: 3.1 - Time Tracking com Filtros
                                 <span style="color: var(--dark);">${exp.observacoes}</span>
                             </div>
                         ` : ''}
+                        <div style="text-align: center; margin-top: 20px;">
+                            ${actionButton}
+                        </div>
                     </div>
                 `;
             });
 
             container.innerHTML = html;
         }
+
+        // --- Funções para o Modal de QR Code (Novo) ---
+
+        // Variáveis para o modal de QR Code (Declaradas uma única vez)
+        let modalState = {
+            expeditionId: null,
+            expectedDocaName: null,
+            action: null
+        };
+
+
+        function openQrModal(action, expeditionId, docaName) {
+            modalState.expeditionId = expeditionId;
+            modalState.expectedDocaName = docaName;
+            modalState.action = action;
+
+            const modalTitle = document.getElementById('qrModalTitle');
+            const modalMessage = document.getElementById('qrModalMessage');
+            const qrCodeInput = document.getElementById('qrCodeInput');
+
+            if (action === 'iniciar') {
+                modalTitle.textContent = 'Iniciar Carregamento';
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca ${docaName} para iniciar o carregamento.`;
+            } else if (action === 'finalizar') {
+                modalTitle.textContent = 'Finalizar Carregamento';
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca ${docaName} para finalizar o carregamento.`;
+            }
+
+            qrCodeInput.value = '';
+            document.getElementById('qrModal').style.display = 'flex';
+        }
+
+        function closeQrModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        async function handleQrScan() {
+            const scannedQrCode = document.getElementById('qrCodeInput').value.trim();
+
+            if (scannedQrCode.toLowerCase() !== modalState.expectedDocaName.toLowerCase()) {
+                showNotification('QR Code incorreto! Por favor, escaneie a doca correta.', 'error');
+                return;
+            }
+
+            if (modalState.action === 'iniciar') {
+                await startLoading(modalState.expeditionId);
+            } else if (modalState.action === 'finalizar') {
+                await finishLoading(modalState.expeditionId);
+            }
+
+            closeQrModal();
+        }
+
+        async function startLoading(expeditionId) {
+            try {
+                const doca = docas.find(d => d.nome === modalState.expectedDocaName);
+                if (!doca) {
+                    throw new Error("Doca não encontrada no cache local.");
+                }
+                const dataChegada = new Date().toISOString();
+
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    data_chegada_veiculo: dataChegada,
+                    status: 'em_carregamento'
+                });
+
+                // Atualizar o status da doca para 'em_uso'
+                await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'em_uso' });
+
+                debugLog.add(`Carregamento iniciado para expedição ${expeditionId}. Doca: ${modalState.expectedDocaName}`, 'success');
+                showNotification(`Carregamento iniciado na Doca ${modalState.expectedDocaName}!`, 'success');
+                consultarExpedicoesPorPlaca(); // Atualiza a lista para o motorista
+            } catch (error) {
+                debugLog.add(`Erro ao iniciar carregamento: ${error.message}`, 'error');
+                showNotification('Erro ao iniciar carregamento: ' + error.message, 'error');
+            }
+        }
+
+        async function finishLoading(expeditionId) {
+            try {
+                const doca = docas.find(d => d.nome === modalState.expectedDocaName);
+                if (!doca) {
+                    throw new Error("Doca não encontrada no cache local.");
+                }
+                const dataSaida = new Date().toISOString();
+
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    data_saida_veiculo: dataSaida,
+                    status: 'carregado'
+                });
+
+                // Atualizar o status da doca para 'disponivel'
+                await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'disponivel' });
+                
+                debugLog.add(`Carregamento finalizado para expedição ${expeditionId}.`, 'success');
+                showNotification(`Carregamento finalizado! Expedição pronta para a rua.`, 'success');
+                consultarExpedicoesPorPlaca(); // Atualiza a lista para o motorista
+            } catch (error) {
+                debugLog.add(`Erro ao finalizar carregamento: ${error.message}`, 'error');
+                showNotification('Erro ao finalizar carregamento: ' + error.message, 'error');
+            }
+        }
+        
+        // --- Fim das funções do Modal de QR Code ---
+
 
         // Mostrar mensagem quando não há resultados
         function mostrarSemResultados() {
