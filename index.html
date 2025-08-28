@@ -2290,6 +2290,8 @@ CREATE TABLE expedition_items (<br>
                 showNotification('Por favor, selecione um veículo e um motorista!', 'error');
                 return;
             }
+            const allocateButton = document.querySelector(`button[onclick="allocateTransport('${expeditionId}')"]`);
+if (allocateButton) allocateButton.disabled = true;
             
             // Validação de capacidade antes de enviar
             const selectedVehicle = veiculos.find(v => v.id === veiculoId);
@@ -2297,10 +2299,10 @@ CREATE TABLE expedition_items (<br>
             const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
             
             if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
-                showNotification(`Veículo selecionado não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade do veículo: ${selectedVehicle.capacidade_pallets}`, 'error');
-                return;
-            }
-
+    showNotification(`Veículo selecionado não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade do veículo: ${selectedVehicle.capacidade_pallets}`, 'error');
+    if (allocateButton) allocateButton.disabled = false;
+    return;
+}
             try {
                 const dataAlocacao = new Date().toISOString();
 
@@ -2446,7 +2448,7 @@ CREATE TABLE expedition_items (<br>
                     });
                     debugLog.add('Novo motorista alocado', 'success');
                 } catch (error) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${motoristaError.message}`, 'warning');
+                    debugLog.add(`Aviso: Não foi possível atualizar status do novo motorista: ${error.message}`, 'warning');
                 }
 
                 debugLog.add(`Transporte realocado com sucesso às ${new Date(dataRealocacao).toLocaleTimeString('pt-BR')}`, 'success');
@@ -3511,7 +3513,179 @@ VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
             document.getElementById('resultadosMotorista').style.display = 'none';
             document.getElementById('semResultados').style.display = 'block';
         }
+// Funções do Modal de Edição de Expedição
+async function openEditModal(expeditionId) {
+    try {
+        debugLog.add(`Abrindo modal de edição para expedição ${expeditionId}`, 'info');
+        
+        // Buscar dados da expedição
+        const expeditionData = await supabaseRequest(`expeditions?id=eq.${expeditionId}`);
+        if (!expeditionData || expeditionData.length === 0) {
+            showNotification('Expedição não encontrada!', 'error');
+            return;
+        }
+        
+        const expedition = expeditionData[0];
+        
+        // Buscar itens da expedição
+        const items = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
+        
+        // Preencher o formulário
+        document.getElementById('editExpeditionId').value = expeditionId;
+        document.getElementById('editStatus').value = expedition.status;
+        document.getElementById('editObservacoes').value = expedition.observacoes || '';
+        
+        // Limpar e recriar as linhas de lojas
+        const lojasContainer = document.getElementById('editLojasContainer');
+        lojasContainer.innerHTML = '<h4 style="color: var(--dark); margin-bottom: 10px;">Lojas e Quantidades</h4>';
+        
+        editLojaLineCounter = 0;
+        
+        if (items && items.length > 0) {
+            items.forEach((item, index) => {
+                addEditLojaLine();
+                const lastLine = document.querySelector(`#editLojasContainer .edit-loja-line:last-child`);
+                if (lastLine) {
+                    const select = lastLine.querySelector('.edit-loja-select');
+                    const palletsInput = lastLine.querySelector('.edit-pallets-input');
+                    const rolltrainersInput = lastLine.querySelector('.edit-rolltrainers-input');
+                    
+                    if (select) select.value = item.loja_id;
+                    if (palletsInput) palletsInput.value = item.pallets || 0;
+                    if (rolltrainersInput) rolltrainersInput.value = item.rolltrainers || 0;
+                }
+            });
+        } else {
+            // Se não há itens, adicionar uma linha vazia
+            addEditLojaLine();
+        }
+        
+        // Mostrar modal
+        document.getElementById('editExpeditionModal').style.display = 'flex';
+        
+    } catch (error) {
+        console.error('Erro ao abrir modal de edição:', error);
+        debugLog.add(`Erro ao abrir modal de edição: ${error.message}`, 'error');
+        showNotification('Erro ao carregar dados para edição: ' + error.message, 'error');
+    }
+}
 
+function closeEditModal() {
+    document.getElementById('editExpeditionModal').style.display = 'none';
+    document.getElementById('editFormAlert').innerHTML = '';
+}
+
+function addEditLojaLine() {
+    editLojaLineCounter++;
+    const container = document.getElementById('editLojasContainer');
+    
+    const newLine = document.createElement('div');
+    newLine.className = 'edit-loja-line';
+    newLine.setAttribute('data-edit-index', editLojaLineCounter);
+    newLine.style = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; margin-bottom: 15px; align-items: end;';
+    
+    newLine.innerHTML = `
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Loja:</label>
+            <select class="edit-loja-select" required>
+                <option value="">Selecione uma loja</option>
+                ${lojas.map(loja => 
+                    `<option value="${loja.id}">${loja.nome} ${loja.codigo ? '(' + loja.codigo + ')' : ''}</option>`
+                ).join('')}
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Pallets:</label>
+            <input type="number" class="edit-pallets-input" min="0" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>RollTrainers:</label>
+            <input type="number" class="edit-rolltrainers-input" min="0" required>
+        </div>
+        <div style="display: flex; align-items: center; height: 48px; gap: 8px;">
+            <button type="button" class="btn btn-success btn-small" onclick="addEditLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
+            <button type="button" class="btn btn-danger btn-small" onclick="removeEditLojaLine(${editLojaLineCounter})" style="padding: 12px; border-radius: 8px;">-</button>
+        </div>
+    `;
+    
+    container.appendChild(newLine);
+    debugLog.add(`Nova linha de edição adicionada (índice: ${editLojaLineCounter})`, 'info');
+}
+
+function removeEditLojaLine(index) {
+    const line = document.querySelector(`[data-edit-index="${index}"]`);
+    if (line) {
+        line.remove();
+        debugLog.add(`Linha de edição removida (índice: ${index})`, 'info');
+    }
+}
+
+// Event listener para o formulário de edição
+document.addEventListener('DOMContentLoaded', function() {
+    const editForm = document.getElementById('editExpeditionForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveEditedExpedition();
+        });
+    }
+});
+
+async function saveEditedExpedition() {
+    const expeditionId = document.getElementById('editExpeditionId').value;
+    const newStatus = document.getElementById('editStatus').value;
+    const observacoes = document.getElementById('editObservacoes').value;
+    
+    try {
+        debugLog.add(`Salvando edições da expedição ${expeditionId}`, 'info');
+        
+        // 1. Atualizar a expedição principal
+        await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+            status: newStatus,
+            observacoes: observacoes || null
+        });
+        
+        // 2. Deletar itens antigos
+        await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'DELETE');
+        
+        // 3. Criar novos itens
+        const editLines = document.querySelectorAll('.edit-loja-line');
+        const itemsData = [];
+        
+        editLines.forEach(line => {
+            const lojaSelect = line.querySelector('.edit-loja-select');
+            const palletsInput = line.querySelector('.edit-pallets-input');
+            const rolltrainersInput = line.querySelector('.edit-rolltrainers-input');
+            
+            if (lojaSelect && lojaSelect.value) {
+                itemsData.push({
+                    expedition_id: expeditionId,
+                    loja_id: lojaSelect.value,
+                    pallets: parseInt(palletsInput.value) || 0,
+                    rolltrainers: parseInt(rolltrainersInput.value) || 0
+                });
+            }
+        });
+        
+        // Salvar novos itens
+        if (itemsData.length > 0) {
+            const itemsPromises = itemsData.map(item => supabaseRequest('expedition_items', 'POST', item));
+            await Promise.all(itemsPromises);
+        }
+        
+        debugLog.add('Expedição editada com sucesso', 'success');
+        showNotification('Expedição atualizada com sucesso!', 'success');
+        
+        closeEditModal();
+        loadAcompanhamento(); // Recarregar a tabela
+        
+    } catch (error) {
+        console.error('Erro ao salvar edições:', error);
+        debugLog.add(`Erro ao salvar edições: ${error.message}`, 'error');
+        document.getElementById('editFormAlert').innerHTML = 
+            `<div class="alert alert-error">Erro ao salvar: ${error.message}</div>`;
+    }
+}
         // Inicializar aplicação
         document.addEventListener('DOMContentLoaded', async function() {
             debugLog.add('Sistema de Controle de Expedição com Timestamps e Filtros iniciado', 'info');
