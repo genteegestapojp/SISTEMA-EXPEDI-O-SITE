@@ -29,6 +29,7 @@
             background: var(--primary-gradient);
             min-height: 100vh;
             padding: 20px;
+            text-align: center;
         }
 
         .container {
@@ -39,6 +40,7 @@
             border-radius: 24px;
             box-shadow: 0 32px 64px rgba(0, 119, 182, 0.2);
             overflow: hidden;
+            text-align: left;
         }
 
         .connection-status {
@@ -344,7 +346,7 @@
             border-radius: 16px;
             box-shadow: 0 12px 40px rgba(0, 119, 182, 0.15);
             background: rgba(255, 255, 255, 0.9);
-            min-width: 1300px; /* Largura ajustada após remover uma coluna */
+            min-width: 1400px;
         }
 
         table {
@@ -352,7 +354,7 @@
             border-collapse: collapse;
             background: transparent;
             table-layout: fixed;
-            min-width: 1300px; /* Largura ajustada após remover uma coluna */
+            min-width: 1400px;
         }
 
         th,
@@ -362,79 +364,23 @@
             border-bottom: 1px solid rgba(0, 212, 170, 0.3);
             font-size: 0.85rem;
             word-wrap: break-word;
-            overflow: hidden;
-            white-space: nowrap;
         }
 
-        /* Ajustes específicos de largura das colunas - corrigindo sobreposições */
-        th:nth-child(1),
-        td:nth-child(1) {
-            width: 130px;
-        }
+        /* Ajustes específicos de largura das colunas */
+        th:nth-child(1), td:nth-child(1) { width: 100px; } /* Data/Hora */
+        th:nth-child(2), td:nth-child(2) { width: 220px; } /* Lojas e Cargas */
+        th:nth-child(3), td:nth-child(3) { width: 80px; text-align: center; } /* Pallets */
+        th:nth-child(4), td:nth-child(4) { width: 80px; text-align: center; } /* RollTrainers */
+        th:nth-child(5), td:nth-child(5) { width: 90px; } /* Doca */
+        th:nth-child(6), td:nth-child(6) { width: 120px; } /* Líder */
+        th:nth-child(7), td:nth-child(7) { width: 110px; } /* Status */
+        th:nth-child(8), td:nth-child(8) { width: 130px; } /* Veículo */
+        th:nth-child(9), td:nth-child(9) { width: 120px; } /* Ocupação */
+        th:nth-child(10), td:nth-child(10) { width: 110px; } /* Motorista */
+        th:nth-child(11), td:nth-child(11) { width: 150px; } /* Análise Tempos */
+        th:nth-child(12), td:nth-child(12) { width: 80px; } /* Ações */
 
-        /* Data/Hora */
-        th:nth-child(2),
-        td:nth-child(2) {
-            width: 200px;
-        }
 
-        /* Lojas */
-        th:nth-child(3),
-        td:nth-child(3) {
-            width: 80px;
-            text-align: center;
-        }
-
-        /* Pallets */
-        th:nth-child(4),
-        td:nth-child(4) {
-            width: 80px;
-            text-align: center;
-        }
-
-        /* RollTrainers */
-        th:nth-child(5),
-        td:nth-child(5) {
-            width: 90px;
-        }
-
-        /* Doca */
-        th:nth-child(6),
-        td:nth-child(6) {
-            width: 120px;
-        }
-
-        /* Líder */
-        th:nth-child(7),
-        td:nth-child(7) {
-            width: 120px;
-        }
-
-        /* Status */
-        th:nth-child(8),
-        td:nth-child(8) {
-            width: 130px;
-        }
-
-        /* Veículo */
-        th:nth-child(9),
-        td:nth-child(9) {
-            width: 110px;
-        }
-
-        /* Motorista */
-        th:nth-child(10),
-        td:nth-child(10) {
-            width: 190px;
-        }
-
-        /* Análise Tempos */
-        th:nth-child(11),
-        td:nth-child(11) {
-            width: 80px;
-        }
-
-        /* Ações */
         th {
             background: #0077B6;
             color: white;
@@ -494,7 +440,7 @@
             background: linear-gradient(135deg, #495057, #6C757D);
             color: white;
         }
-
+        
         .search-bar input {
             width: 100%;
             padding: 18px 24px;
@@ -715,12 +661,32 @@
 
         #addFormModal {
             display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background: rgba(255, 255, 255, 0.95);
             padding: 30px;
             border-radius: 20px;
             box-shadow: 0 32px 80px rgba(0, 119, 182, 0.2);
             margin-bottom: 20px;
             border: 1px solid rgba(0, 212, 170, 0.3);
+            z-index: 1002;
+        }
+
+        #editFormModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 32px 80px rgba(0, 119, 182, 0.2);
+            z-index: 1002;
+            max-width: 800px;
+            width: 90%;
         }
 
         #systemStatus {
@@ -757,6 +723,7 @@
             margin-bottom: 2px;
             padding: 1px 0;
             border-bottom: 1px dotted #ddd;
+            white-space: normal;
         }
 
         .carga-item:last-child {
@@ -816,6 +783,41 @@
             justify-content: center;
             gap: 10px;
         }
+        
+        /* Estilos da barra de progresso */
+        .progress-container {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+            height: 14px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.4s ease-in-out;
+            text-align: right;
+            padding-right: 5px;
+            color: black;
+            font-size: 0.7rem;
+            font-weight: 600;
+            line-height: 14px;
+        }
+
+        .progress-green {
+            background-color: #60c58e;
+        }
+
+        .progress-orange {
+            background-color: #ffb86c;
+        }
+
+        .progress-red {
+            background-color: #ff6c6c;
+        }
 
 
         @media (max-width: 768px) {
@@ -836,10 +838,6 @@
             .transport-actions {
                 grid-template-columns: 1fr;
                 gap: 16px;
-            }
-
-            .extra-buttons {
-                flex-direction: column;
             }
 
             body {
@@ -875,15 +873,15 @@
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="showTab('operacao')">Operação</button>
+            <button class="tab" onclick="showTab('operacao')">Operação</button>
             <button class="tab" onclick="showTab('transporte')">Transporte</button>
-            <button class="tab" onclick="showTab('motoristas')">Motoristas</button>
+            <button class="tab active" onclick="showTab('motoristas')">Motoristas</button>
             <button class="tab" onclick="showTab('acompanhamento')">Acompanhamento</button>
             <button class="tab" onclick="showTab('configuracoes')">Configurações</button>
         </div>
 
-        <div id="operacao" class="tab-content active">
-            <h2>Lançamento de Expedição</h2>
+        <div id="operacao" class="tab-content">
+            <h2 style="text-align: center;">Lançamento de Expedição</h2>
 
             <div class="auto-timestamp">
                 A data e hora da expedição serão registradas automaticamente no momento do lançamento
@@ -959,15 +957,15 @@ CREATE TABLE expedition_items (<br>
         </div>
 
         <div id="transporte" class="tab-content">
-            <h2>Alocação de Transporte</h2>
+            <h2 style="text-align: center;">Alocação de Transporte</h2>
             <div id="transporteList" class="loading">
                 <div class="spinner"></div>
                 Carregando expedições pendentes...
             </div>
         </div>
 
-        <div id="motoristas" class="tab-content">
-            <h2>Área do Motorista</h2>
+        <div id="motoristas" class="tab-content active">
+            <h2 style="text-align: center;">Área do Motorista</h2>
 
             <div style="background: rgba(144, 224, 239, 0.1); padding: 30px; border-radius: 16px; margin-bottom: 30px; border: 1px solid rgba(0, 212, 170, 0.3); text-align: center;">
                 <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
@@ -1002,7 +1000,7 @@ CREATE TABLE expedition_items (<br>
         </div>
 
         <div id="acompanhamento" class="tab-content">
-            <h2>Acompanhamento com Controle de Tempos</h2>
+            <h2 style="text-align: center;">Acompanhamento com Controle de Tempos</h2>
 
             <div class="stats-grid">
                 <div class="stat-card">
@@ -1090,6 +1088,7 @@ CREATE TABLE expedition_items (<br>
                             <th>Líder</th>
                             <th>Status</th>
                             <th>Veículo</th>
+                            <th>Ocupação</th>
                             <th>Motorista</th>
                             <th>Análise Tempos</th>
                             <th>Ações</th>
@@ -1097,7 +1096,7 @@ CREATE TABLE expedition_items (<br>
                     </thead>
                     <tbody id="acompanhamentoBody">
                         <tr>
-                            <td colspan="11" class="loading">
+                            <td colspan="12" class="loading">
                                 <div class="spinner"></div>
                                 Carregando dados...
                             </td>
@@ -1108,11 +1107,11 @@ CREATE TABLE expedition_items (<br>
         </div>
 
         <div id="configuracoes" class="tab-content">
-            <h2>Configurações do Sistema</h2>
+            <h2 style="text-align: center;">Configurações do Sistema</h2>
 
             <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
-                <h3>Sincronização e Diagnóstico</h3>
-                <div class="extra-buttons" style="margin-top: 15px;">
+                <h3 style="text-align: center;">Sincronização e Diagnóstico</h3>
+                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
                     <button class="btn btn-primary btn-small" onclick="forceSyncData()">Forçar Sincronização</button>
                     <button class="btn btn-success btn-small" onclick="testConnection()">Testar Conexão</button>
                     <button class="btn btn-primary btn-small" onclick="clearCache()">Limpar Cache</button>
@@ -1120,7 +1119,7 @@ CREATE TABLE expedition_items (<br>
                 </div>
             </div>
 
-            <div class="stats-grid">
+            <div class="stats-grid" style="text-align: center;">
                 <div class="stat-card">
                     <div class="stat-number" id="debugLojas">0</div>
                     <div class="stat-label">Lojas Carregadas</div>
@@ -1139,9 +1138,9 @@ CREATE TABLE expedition_items (<br>
                 </div>
             </div>
 
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <h3>Gerenciar Cadastros</h3>
-                <div class="extra-buttons" style="margin-top: 15px;">
+            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                <h3 style="text-align: center;">Gerenciar Cadastros</h3>
+                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
                     <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
                     <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
                     <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
@@ -1163,15 +1162,15 @@ CREATE TABLE expedition_items (<br>
                 <div id="addFormAlert"></div>
             </div>
 
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <h3>Status do Sistema</h3>
+            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                <h3 style="text-align: center;">Status do Sistema</h3>
                 <div id="systemStatus">
                     Carregando informações do sistema...
                 </div>
             </div>
 
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px;">
-                <h3>Log do Sistema</h3>
+            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; text-align: left;">
+                <h3 style="text-align: center;">Log do Sistema</h3>
                 <div id="debugLog">
                     Sistema iniciado...<br>
                 </div>
@@ -1193,6 +1192,49 @@ CREATE TABLE expedition_items (<br>
             </div>
         </div>
     </div>
+    
+    <!-- Modal de Edição de Expedição (Novo) -->
+    <div id="editExpeditionModal" class="modal-overlay">
+        <div id="editExpeditionContent" class="modal-content">
+            <h3 class="modal-title">Editar Expedição</h3>
+            <form id="editExpeditionForm">
+                <input type="hidden" id="editExpeditionId">
+                
+                <div class="form-group">
+                    <label for="editStatus">Status:</label>
+                    <select id="editStatus">
+                        <option value="pendente">Pendente</option>
+                        <option value="aguardando_veiculo">Aguardando Veículo</option>
+                        <option value="em_carregamento">Em Carregamento</option>
+                        <option value="carregado">Carregado</option>
+                        <option value="saiu_para_entrega">Saiu para Entrega</option>
+                        <option value="entregue">Entregue</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+
+                <div id="editLojasContainer" style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3); margin: 20px 0;">
+                    <h4 style="color: var(--dark); margin-bottom: 10px;">Lojas e Quantidades</h4>
+                    <!-- Linhas de lojas a serem carregadas dinamicamente -->
+                </div>
+                <div style="text-align: right; margin-bottom: 20px;">
+                    <button type="button" class="btn btn-success btn-small" onclick="addEditLojaLine()">+ Adicionar Loja</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="editObservacoes">Observações:</label>
+                    <textarea id="editObservacoes" placeholder="Observações..."></textarea>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-success">Salvar Edições</button>
+                    <button type="button" class="btn btn-danger" onclick="closeEditModal()">Cancelar</button>
+                </div>
+            </form>
+            <div id="editFormAlert"></div>
+        </div>
+    </div>
+
 
     <script>
         // API REST do Supabase
@@ -1347,6 +1389,7 @@ CREATE TABLE expedition_items (<br>
 
         // Contador global para linhas de lojas
         let lojaLineCounter = 0;
+        let editLojaLineCounter = 0;
 
         // Adicionar nova linha de loja
         function addLojaLine() {
@@ -1498,19 +1541,14 @@ CREATE TABLE expedition_items (<br>
 
                 // Filtro de pesquisa
                 if (searchTerm) {
-                    const lojasNomes = exp.items.map(item => {
-                        const loja = lojas.find(l => l.id === item.loja_id);
-                        return loja ? loja.nome : '';
-                    }).join(' ').toLowerCase();
-
                     const searchableText = [
-                        lojasNomes,
+                        exp.lojas_nomes.toLowerCase(),
                         exp.doca_nome || '',
                         exp.lider_nome || '',
                         exp.veiculo_placa || '',
                         exp.motorista_nome || ''
-                    ].join(' ').toLowerCase();
-
+                    ].join(' ');
+                    
                     if (!searchableText.includes(searchTerm)) return false;
                 }
 
@@ -1750,6 +1788,10 @@ CREATE TABLE expedition_items (<br>
                     const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
                     const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
 
+                    // Calcular ocupação do veículo
+                    const totalCarga = (expItems.reduce((sum, item) => sum + (item.pallets || 0), 0)) + ((expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0)) / 2);
+                    const ocupacao = veiculo && veiculo.capacidade_pallets > 0 ? (totalCarga / veiculo.capacidade_pallets) * 100 : 0;
+
                     return {
                         ...exp,
                         items: expItems,
@@ -1762,7 +1804,9 @@ CREATE TABLE expedition_items (<br>
                         lider_nome: lider ? lider.nome : 'N/A',
                         veiculo_placa: veiculo ? veiculo.placa : null,
                         veiculo_modelo: veiculo ? veiculo.modelo : null,
-                        motorista_nome: motorista ? motorista.nome : null
+                        motorista_nome: motorista ? motorista.nome : null,
+                        veiculo_capacidade: veiculo ? veiculo.capacidade_pallets : 0,
+                        ocupacao: ocupacao
                     };
                 });
 
@@ -1776,7 +1820,7 @@ CREATE TABLE expedition_items (<br>
                 console.error('Erro ao carregar acompanhamento:', error);
                 debugLog.add(`Erro ao carregar acompanhamento: ${error.message}`, 'error');
                 document.getElementById('acompanhamentoBody').innerHTML =
-                    `<tr><td colspan="11" class="alert alert-error">Erro: ${error.message}<br><small>Verifique se a tabela expedition_items foi criada no banco</small></td></tr>`;
+                    `<tr><td colspan="12" class="alert alert-error">Erro: ${error.message}<br><small>Verifique se a tabela expedition_items foi criada no banco</small></td></tr>`;
             }
         }
 
@@ -1836,12 +1880,13 @@ CREATE TABLE expedition_items (<br>
             const tbody = document.getElementById('acompanhamentoBody');
 
             if (expeditions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" class="loading">Nenhuma expedição encontrada</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" class="loading">Nenhuma expedição encontrada</td></tr>';
                 return;
             }
 
             const html = expeditions.map(exp => {
                 const temVeiculo = exp.veiculo_id || exp.veiculo_placa;
+                const veiculo = temVeiculo ? veiculos.find(v => v.id === exp.veiculo_id) : null;
 
                 // Cálculos de tempo
                 const criadaEm = new Date(exp.data_hora || exp.created_at);
@@ -1903,6 +1948,38 @@ CREATE TABLE expedition_items (<br>
                     lojasECargasHTML = '<div style="color: #999; font-style: italic;">Sem itens</div>';
                 }
 
+                // Cálculo e barra de ocupação do veículo
+                let ocupacaoHtml = '-';
+                let veiculoInfoHtml = '-';
+                if (veiculo) {
+                    const cargaTotal = (exp.total_pallets || 0) + ((exp.total_rolltrainers || 0) / 2);
+                    const ocupacaoPerc = veiculo.capacidade_pallets > 0 ? Math.round((cargaTotal / veiculo.capacidade_pallets) * 100) : 0;
+                    
+                    let barColor = 'progress-green';
+                    if (ocupacaoPerc >= 80 && ocupacaoPerc <= 100) {
+                        barColor = 'progress-orange';
+                    } else if (ocupacaoPerc > 100) {
+                        barColor = 'progress-red';
+                    }
+
+                    veiculoInfoHtml = `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem; color: #495057;">🚚</span>
+                            <div style="font-size: 0.8rem; font-weight: 600; color: #495057;">
+                                ${exp.veiculo_placa || 'N/A'}
+                            </div>
+                        </div>
+                    `;
+
+                    ocupacaoHtml = `
+                        <div class="progress-container" style="text-align: center;">
+                            <div class="progress-bar ${barColor}" style="width: ${Math.min(100, ocupacaoPerc)}%;">
+                                <span>${ocupacaoPerc}%</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 return `
                     <tr>
                         <td style="font-size: 0.85rem; padding: 10px 6px;">
@@ -1917,12 +1994,12 @@ CREATE TABLE expedition_items (<br>
                         <td style="font-size: 0.85rem; font-weight: 600;">${exp.doca_nome || '-'}</td>
                         <td style="font-size: 0.85rem; font-weight: 600;">${exp.lider_nome || '-'}</td>
                         <td><span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></td>
-                        <td style="font-size: 0.8rem;">
-                            ${exp.veiculo_placa ? `<div style="font-weight: 600;">${exp.veiculo_placa}</div><div style="color: #666;">${exp.veiculo_modelo || ''}</div>` : '-'}
-                        </td>
+                        <td>${veiculoInfoHtml}</td>
+                        <td>${ocupacaoHtml}</td>
                         <td style="font-size: 0.85rem; font-weight: 600;">${exp.motorista_nome || '-'}</td>
                         <td style="font-size: 0.75rem; padding: 8px 6px;">${analiseTempos}</td>
                         <td style="padding: 8px 6px; text-align: center;">
+                            <button class="btn btn-warning btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openEditModal('${exp.id}')">EDITAR</button>
                             <button class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteExpedition('${exp.id}')">DEL</button>
                         </td>
                     </tr>
@@ -2043,7 +2120,8 @@ CREATE TABLE expedition_items (<br>
                         lider_nome: lider ? lider.nome : null,
                         veiculo_placa: veiculo ? veiculo.placa : null,
                         veiculo_modelo: veiculo ? veiculo.modelo : null,
-                        motorista_nome: motorista ? motorista.nome : null
+                        motorista_nome: motorista ? motorista.nome : null,
+                        veiculo_capacidade: veiculo ? veiculo.capacidade_pallets : 0
                     };
                 });
 
@@ -2553,6 +2631,13 @@ Observações: ${expedition.observacoes || 'Nenhuma'}
                 let data;
                 try {
                     data = await supabaseRequest('v_expeditions_full');
+                    
+                    data = data.map(exp => {
+                         const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
+                         const totalCarga = (exp.total_pallets || 0) + ((exp.total_rolltrainers || 0) / 2);
+                         const ocupacao = veiculo && veiculo.capacidade_pallets > 0 ? (totalCarga / veiculo.capacidade_pallets) * 100 : 0;
+                         return {...exp, ocupacao: ocupacao};
+                    })
                 } catch (viewError) {
                     data = await supabaseRequest('expeditions');
                 }
@@ -2617,6 +2702,7 @@ PERFORMANCE:
 VOLUME:
 • Total de Pallets: ${monthlyData.reduce((sum, exp) => sum + (exp.total_pallets || 0), 0)}
 • Total de RollTrainers: ${monthlyData.reduce((sum, exp) => sum + (exp.total_rolltrainers || 0), 0)}
+• Ocupação Média do Veículo: ${data.length > 0 ? (data.reduce((sum, exp) => sum + exp.ocupacao, 0) / data.length).toFixed(1) : 0}%
 
 Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
                 `;
@@ -2641,10 +2727,19 @@ Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
                 } catch (viewError) {
                     data = await supabaseRequest('expeditions');
                 }
+                
+                // Adicionar cálculo de ocupação no backup
+                data = data.map(exp => {
+                    const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
+                    const totalCarga = (exp.total_pallets || 0) + ((exp.total_rolltrainers || 0) / 2);
+                    const ocupacao = veiculo && veiculo.capacidade_pallets > 0 ? (totalCarga / veiculo.capacidade_pallets) * 100 : 0;
+                    return {...exp, ocupacao: ocupacao};
+                })
+
 
                 const backup = {
                     timestamp: new Date().toISOString(),
-                    version: '3.0_time_tracking',
+                    version: '3.3_ocupacao_veiculo',
                     data: data
                 };
 
@@ -2870,7 +2965,7 @@ CACHE LOCAL:
 • Motoristas: ${motoristas.length} carregados
 
 STATUS: Sistema de tempos funcionando normalmente
-VERSÃO: 3.2 - Correções e Melhorias
+VERSÃO: 3.4 - Ocupação do Veículo e Correções de Layout
 ÚLTIMA ATUALIZAÇÃO: ${new Date().toLocaleTimeString()}
             `;
 
