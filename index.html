@@ -583,6 +583,16 @@
             color: white;
         }
 
+        .status-faturamento_iniciado {
+            background: linear-gradient(135deg, #F77F00, #FCBF49);
+            color: white;
+        }
+
+        .status-faturado {
+            background: linear-gradient(135deg, #00D4AA, #7209B7);
+            color: white;
+        }
+
         .status-saiu_para_entrega {
             background: linear-gradient(135deg, #7209B7, #A663CC);
             color: white;
@@ -1390,6 +1400,7 @@
             <div class="tabs">
                 <button class="tab" onclick="showTab('operacao')">Operação</button>
                 <button class="tab" onclick="showTab('transporte')">Transporte</button>
+                <button class="tab" onclick="showTab('faturamento')">Faturamento</button>
                 <button class="tab" onclick="showTab('motoristas')">Motoristas</button>
                 <button class="tab" onclick="showTab('acompanhamento')">Acompanhamento</button>
                 <button class="tab" onclick="showTab('configuracoes')">Configurações</button>
@@ -1460,6 +1471,44 @@
                 <div id="transporteList" class="loading">
                     <div class="spinner"></div>
                     Carregando expedições pendentes...
+                </div>
+            </div>
+
+            <div id="faturamento" class="tab-content">
+                <h2 style="text-align: center;">Controle de Faturamento</h2>
+                
+                <!-- Estatísticas de Faturamento -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCarregadas">0</div>
+                        <div class="stat-label">Cargas Carregadas</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+                        <div class="stat-number" id="emFaturamento">0</div>
+                        <div class="stat-label">Em Faturamento</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #00D4AA, #00B4D8);">
+                        <div class="stat-number" id="faturadas">0</div>
+                        <div class="stat-label">Faturadas</div>
+                    </div>
+                </div>
+
+                <!-- Quadros de Tempo de Faturamento -->
+                <div class="time-stats-grid">
+                    <div class="time-stat-card">
+                        <div class="stat-number" id="tempoMedioFaturamento">-</div>
+                        <div class="stat-label">Tempo Médio<br>Faturamento (HH:mm)</div>
+                    </div>
+                    <div class="time-stat-card">
+                        <div class="stat-number" id="metaFaturamento">-</div>
+                        <div class="stat-label">Meta Diária<br>Faturamento</div>
+                    </div>
+                </div>
+
+                <!-- Lista de Expedições para Faturamento -->
+                <div id="faturamentoList" class="loading">
+                    <div class="spinner"></div>
+                    Carregando expedições para faturamento...
                 </div>
             </div>
 
@@ -1556,6 +1605,8 @@
                                 <option value="aguardando_veiculo">Aguardando Veículo</option>
                                 <option value="em_carregamento">Em Carregamento</option>
                                 <option value="carregado">Carregado</option>
+                                <option value="faturamento_iniciado">Faturando</option>
+                                <option value="faturado">Faturado</option>
                                 <option value="saiu_para_entrega">Saiu para Entrega</option>
                                 <option value="cancelado">Cancelado</option>
                             </select>
@@ -1744,6 +1795,8 @@
                             <option value="aguardando_veiculo">Aguardando Veículo</option>
                             <option value="em_carregamento">Em Carregamento</option>
                             <option value="carregado">Carregado</option>
+                            <option value="faturamento_iniciado">Faturando</option>
+                            <option value="faturado">Faturado</option>
                             <option value="saiu_para_entrega">Saiu para Entrega</option>
                             <option value="entregue">Entregue</option>
                             <option value="cancelado">Cancelado</option>
@@ -2172,6 +2225,8 @@
 
             if (tabName === 'transporte') {
                 loadTransportList();
+            } else if (tabName === 'faturamento') {
+                loadFaturamento();
             } else if (tabName === 'acompanhamento') {
                 loadAcompanhamento();
                 setDefaultDateFilters();
@@ -2681,12 +2736,12 @@
             tbody.innerHTML = html;
         }
 
-        // Atualizar estatísticas
+        // Atualizar estatísticas gerais (incluindo novos status)
         function updateStats(data) {
             const stats = {
                 total: data.length,
                 pendentes: data.filter(d => d.status === 'pendente').length,
-                emAndamento: data.filter(d => ['aguardando_veiculo', 'em_carregamento', 'carregado', 'saiu_para_entrega'].includes(d.status)).length
+                emAndamento: data.filter(d => ['aguardando_veiculo', 'em_carregamento', 'carregado', 'faturamento_iniciado', 'faturado', 'saiu_para_entrega'].includes(d.status)).length
             };
 
             document.getElementById('totalExpedicoes').textContent = stats.total;
@@ -2701,11 +2756,242 @@
                 'aguardando_veiculo': 'Aguard. Veículo',
                 'em_carregamento': 'Carregando',
                 'carregado': 'Carregado',
+                'faturamento_iniciado': 'Faturando',
+                'faturado': 'Faturado',
                 'saiu_para_entrega': 'Saiu p/ Entrega',
                 'entregue': 'Entregue',
                 'cancelado': 'Cancelado'
             };
             return labels[status] || status;
+        }
+
+        // --- Funções da Aba de Faturamento ---
+        async function loadFaturamento() {
+            if (!selectedFilial) {
+                document.getElementById('faturamentoList').innerHTML = 
+                    '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
+                return;
+            }
+
+            try {
+                debugLog.add(`Carregando faturamento da filial: ${selectedFilial.nome}`, 'info');
+
+                // Carregar expedições carregadas, em faturamento ou faturadas
+                const expeditions = await supabaseRequest("expeditions?status=in.(carregado,faturamento_iniciado,faturado)&order=data_hora.desc");
+                const items = await supabaseRequest('expedition_items');
+
+                const expeditionsWithItems = expeditions.map(exp => {
+                    const expItems = items.filter(item => item.expedition_id === exp.id);
+
+                    const doca = docas.find(d => d.id === exp.doca_id);
+                    const lider = lideres.find(l => l.id === exp.lider_id);
+                    const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
+                    const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
+
+                    return {
+                        ...exp,
+                        items: expItems,
+                        total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
+                        total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
+                        lojas_count: expItems.length,
+                        lojas_nomes: expItems.map(item => {
+                            const loja = lojas.find(l => l.id === item.loja_id);
+                            return loja ? loja.nome : 'Loja N/A';
+                        }).join(', '),
+                        doca_nome: doca ? doca.nome : 'N/A',
+                        lider_nome: lider ? lider.nome : 'N/A',
+                        veiculo_placa: veiculo ? veiculo.placa : null,
+                        veiculo_modelo: veiculo ? veiculo.modelo : null,
+                        motorista_nome: motorista ? motorista.nome : null
+                    };
+                });
+
+                updateFaturamentoStats(expeditionsWithItems);
+                renderFaturamentoList(expeditionsWithItems);
+                debugLog.add(`${expeditionsWithItems.length} expedições carregadas para faturamento`, 'success');
+            } catch (error) {
+                console.error('Erro ao carregar faturamento:', error);
+                debugLog.add(`Erro ao carregar faturamento: ${error.message}`, 'error');
+                document.getElementById('faturamentoList').innerHTML =
+                    `<div class="alert alert-error">Erro: ${error.message}</div>`;
+            }
+        }
+
+        // Renderizar lista de faturamento
+        function renderFaturamentoList(expeditionsList) {
+            const container = document.getElementById('faturamentoList');
+
+            if (expeditionsList.length === 0) {
+                container.innerHTML = '<div class="alert alert-success">Nenhuma expedição pendente de faturamento!</div>';
+                return;
+            }
+
+            let html = '';
+            expeditionsList.forEach(exp => {
+                // Calcular tempo desde carregamento
+                const carregadoEm = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : new Date(exp.data_hora);
+                const agora = new Date();
+                const tempoEspera = Math.round((agora - carregadoEm) / 60000);
+                const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
+
+                const lojasInfo = exp.lojas_nomes || 'N/A';
+                const totalPallets = exp.total_pallets || 0;
+                const totalRolltrainers = exp.total_rolltrainers || 0;
+                const quantidadeLojas = exp.lojas_count || 0;
+
+                // Definir ações baseadas no status
+                let actionButtons = '';
+                let statusInfo = '';
+                
+                if (exp.status === 'carregado') {
+                    statusInfo = '<div style="color: var(--primary); font-weight: 600; margin-bottom: 8px;">🚛 Pronto para iniciar faturamento</div>';
+                    actionButtons = `<button class="btn btn-success" onclick="iniciarFaturamento('${exp.id}')">Iniciar Faturamento</button>`;
+                } else if (exp.status === 'faturamento_iniciado') {
+                    const iniciadoEm = exp.data_inicio_faturamento ? new Date(exp.data_inicio_faturamento) : null;
+                    const tempoFaturamento = iniciadoEm ? Math.round((agora - iniciadoEm) / 60000) : 0;
+                    const tempoFaturamentoTexto = minutesToHHMM(tempoFaturamento);
+                    
+                    statusInfo = `<div style="color: #F77F00; font-weight: 600; margin-bottom: 8px;">📄 Faturamento em andamento há ${tempoFaturamentoTexto}</div>`;
+                    actionButtons = `<button class="btn btn-primary" onclick="finalizarFaturamento('${exp.id}')">Finalizar Faturamento</button>`;
+                } else if (exp.status === 'faturado') {
+                    const faturadoEm = exp.data_fim_faturamento ? new Date(exp.data_fim_faturamento) : null;
+                    statusInfo = `<div style="color: #00D4AA; font-weight: 600; margin-bottom: 8px;">✅ Faturado em ${faturadoEm ? faturadoEm.toLocaleString('pt-BR') : 'N/A'}</div>`;
+                    actionButtons = `<button class="btn btn-warning" onclick="marcarSaiuEntrega('${exp.id}')">Marcar Saída</button>`;
+                }
+
+                html += `
+                    <div class="transport-card">
+                        <h3>Faturamento - ${quantidadeLojas} loja${quantidadeLojas > 1 ? 's' : ''}</h3>
+                        <div style="color: var(--secondary); font-weight: 600; margin-bottom: 10px;">${lojasInfo}</div>
+
+                        ${statusInfo}
+
+                        <div class="time-display ${tempoEspera > 180 ? 'danger' : tempoEspera > 120 ? 'warning' : 'good'}">
+                            <strong>Carregado há:</strong> ${tempoEsperaTexto} ${carregadoEm ? '(em ' + carregadoEm.toLocaleString('pt-BR') + ')' : ''}
+                        </div>
+
+                        <div class="transport-grid">
+                            <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${totalPallets}</span></div>
+                            <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${totalRolltrainers}</span></div>
+                            <div><strong>Doca:</strong> ${exp.doca_nome || 'N/A'}</div>
+                            <div><strong>Líder:</strong> ${exp.lider_nome || 'N/A'}</div>
+                            <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
+                            <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
+                            <div><strong>Status:</strong> <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></div>
+                        </div>
+
+                        ${exp.observacoes ? `
+                            <div style="background: rgba(144, 224, 239, 0.1); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--primary);">
+                                <span class="feature-icon note"></span><strong style="color: var(--primary);">Observações:</strong><br>
+                                <span style="color: var(--dark);">${exp.observacoes}</span>
+                            </div>
+                        ` : ''}
+
+                        <div style="text-align: center; margin-top: 20px;">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Atualizar estatísticas do faturamento
+        function updateFaturamentoStats(expeditions) {
+            const stats = {
+                carregadas: expeditions.filter(e => e.status === 'carregado').length,
+                emFaturamento: expeditions.filter(e => e.status === 'faturamento_iniciado').length,
+                faturadas: expeditions.filter(e => e.status === 'faturado').length
+            };
+
+            document.getElementById('totalCarregadas').textContent = stats.carregadas;
+            document.getElementById('emFaturamento').textContent = stats.emFaturamento;
+            document.getElementById('faturadas').textContent = stats.faturadas;
+
+            // Calcular tempo médio de faturamento
+            const expedicoesComFaturamento = expeditions.filter(e => 
+                e.data_inicio_faturamento && e.data_fim_faturamento
+            );
+
+            if (expedicoesComFaturamento.length > 0) {
+                const temposTotalFaturamento = expedicoesComFaturamento.map(exp => {
+                    const inicio = new Date(exp.data_inicio_faturamento);
+                    const fim = new Date(exp.data_fim_faturamento);
+                    return Math.round((fim - inicio) / 60000);
+                });
+
+                const tempoMedio = Math.round(temposTotalFaturamento.reduce((a, b) => a + b, 0) / temposTotalFaturamento.length);
+                document.getElementById('tempoMedioFaturamento').textContent = minutesToHHMM(tempoMedio);
+            } else {
+                document.getElementById('tempoMedioFaturamento').textContent = '-';
+            }
+
+            // Meta diária (exemplo: 80% das expedições faturadas)
+            const totalExpedicoes = expeditions.length;
+            const metaDiaria = totalExpedicoes > 0 ? Math.round((stats.faturadas / totalExpedicoes) * 100) : 0;
+            document.getElementById('metaFaturamento').textContent = `${metaDiaria}%`;
+        }
+
+        // Iniciar faturamento
+        async function iniciarFaturamento(expeditionId) {
+            try {
+                const dataInicio = new Date().toISOString();
+                
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    status: 'faturamento_iniciado',
+                    data_inicio_faturamento: dataInicio,
+                    usuario_faturamento: selectedFilial.nome // ou nome do usuário
+                });
+
+                debugLog.add(`Faturamento iniciado para expedição ${expeditionId} às ${new Date(dataInicio).toLocaleTimeString('pt-BR')}`, 'success');
+                showNotification(`Faturamento iniciado às ${new Date(dataInicio).toLocaleTimeString('pt-BR')}!`, 'success');
+                
+                loadFaturamento(); // Recarregar lista
+            } catch (error) {
+                console.error('Erro ao iniciar faturamento:', error);
+                debugLog.add(`Erro ao iniciar faturamento: ${error.message}`, 'error');
+                showNotification('Erro ao iniciar faturamento: ' + error.message, 'error');
+            }
+        }
+
+        // Finalizar faturamento
+        async function finalizarFaturamento(expeditionId) {
+            try {
+                const dataFim = new Date().toISOString();
+                
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    status: 'faturado',
+                    data_fim_faturamento: dataFim
+                });
+
+                debugLog.add(`Faturamento finalizado para expedição ${expeditionId} às ${new Date(dataFim).toLocaleTimeString('pt-BR')}`, 'success');
+                showNotification(`Faturamento finalizado às ${new Date(dataFim).toLocaleTimeString('pt-BR')}!`, 'success');
+                
+                loadFaturamento(); // Recarregar lista
+            } catch (error) {
+                console.error('Erro ao finalizar faturamento:', error);
+                debugLog.add(`Erro ao finalizar faturamento: ${error.message}`, 'error');
+                showNotification('Erro ao finalizar faturamento: ' + error.message, 'error');
+            }
+        }
+
+        // Marcar saída para entrega
+        async function marcarSaiuEntrega(expeditionId) {
+            try {
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    status: 'saiu_para_entrega'
+                });
+
+                debugLog.add(`Expedição ${expeditionId} marcada como saiu para entrega`, 'success');
+                showNotification('Expedição marcada como saiu para entrega!', 'success');
+                
+                loadFaturamento(); // Recarregar lista
+            } catch (error) {
+                console.error('Erro ao marcar saída:', error);
+                debugLog.add(`Erro ao marcar saída: ${error.message}`, 'error');
+                showNotification('Erro ao marcar saída: ' + error.message, 'error');
+            }
         }
 
         // Carregar transporte
