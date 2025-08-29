@@ -3703,6 +3703,9 @@
             scannedValue: null
         };
 
+        // Variável para controlar o estado do scanner
+        let scannerIsRunning = false;
+
         async function openQrModal(action, expeditionId, docaCode) {
             modalState.expeditionId = expeditionId;
             modalState.expectedDocaCode = docaCode;
@@ -3731,9 +3734,9 @@
 
             document.getElementById('qrModal').style.display = 'flex';
 
+            // Limpar scanner anterior se existir
             if (html5QrCodeScanner) {
-                html5QrCodeScanner.clear();
-                html5QrCodeScanner = null;
+                await stopScannerSafely();
             }
 
             html5QrCodeScanner = new Html5Qrcode("qr-reader");
@@ -3741,11 +3744,13 @@
             
             try {
                 await html5QrCodeScanner.start({ facingMode: "environment" }, config, onScanSuccess, onScanError);
+                scannerIsRunning = true;
                 debugLog.add('Scanner de QR Code iniciado com sucesso.', 'info');
             } catch (error) {
                 debugLog.add(`Erro ao iniciar scanner: ${error}`, 'error');
                 qrReader.innerHTML = '<div style="color: red; padding: 20px;">Não foi possível acessar a câmera. Verifique as permissões.</div>';
                 manualInputContainer.style.display = 'block';
+                scannerIsRunning = false;
             }
         }
         
@@ -3761,9 +3766,8 @@
                 
                 debugLog.add(`QR Code escaneado: ${decodedText}`, 'success');
 
-                if (html5QrCodeScanner) {
-                    html5QrCodeScanner.stop().catch(err => debugLog.add(`Erro ao parar o scanner: ${err}`, 'error'));
-                }
+                // Parar o scanner com verificação de estado
+                stopScannerSafely();
             }
         }
 
@@ -3771,11 +3775,36 @@
             // Silenciar erros repetitivos do scanner
         }
 
+        async function stopScannerSafely() {
+            if (html5QrCodeScanner && scannerIsRunning) {
+                try {
+                    await html5QrCodeScanner.stop();
+                    scannerIsRunning = false;
+                    debugLog.add('Scanner parado com sucesso', 'info');
+                } catch (error) {
+                    debugLog.add(`Erro ao parar scanner: ${error}`, 'warning');
+                    scannerIsRunning = false;
+                }
+            }
+        }
+
         function closeQrModal() {
             document.getElementById('qrModal').style.display = 'none';
-            if (html5QrCodeScanner) {
-                html5QrCodeScanner.stop().catch(err => debugLog.add(`Erro ao parar o scanner: ${err}`, 'error'));
-            }
+            
+            // Parar o scanner de forma segura
+            stopScannerSafely().then(() => {
+                if (html5QrCodeScanner) {
+                    html5QrCodeScanner.clear();
+                    html5QrCodeScanner = null;
+                }
+            }).catch(() => {
+                // Em caso de erro, apenas limpar
+                if (html5QrCodeScanner) {
+                    html5QrCodeScanner = null;
+                }
+                scannerIsRunning = false;
+            });
+            
             modalState.expeditionId = null;
             modalState.expectedDocaCode = null;
             modalState.action = null;
