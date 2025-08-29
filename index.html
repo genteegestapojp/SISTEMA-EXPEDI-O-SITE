@@ -2406,11 +2406,8 @@
             showTab('operacao');
             updateSystemStatus();
         }
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            debugLog.add('Sistema de Controle de Expedição v3.6 - Filiais', 'info');
-
-            // Attach all event listeners
+        
+        function initializeEventListeners() {
             document.getElementById('expeditionForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const formData = {
@@ -2442,8 +2439,31 @@
                     await saveEditedExpedition();
                 });
             }
+            
+            const passwordForm = document.getElementById('passwordForm');
+            if(passwordForm) {
+                const correctPasswords = ['JPMASTER', 'ELIELSONR'];
+                passwordForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const password = document.getElementById('passwordInput').value;
+                    if (correctPasswords.includes(password.toUpperCase())) {
+                        passwordAuthenticated = true;
+                        showNotification('Acesso concedido!', 'success');
+                        document.getElementById('passwordFormContainer').style.display = 'none';
+                        document.getElementById('configuracoesContent').style.display = 'block';
+                        updateSystemStatus();
+                        updateDebugStats();
+                    } else {
+                        showAlert('passwordAlert', 'Senha incorreta.', 'error');
+                        document.getElementById('passwordInput').value = '';
+                    }
+                });
+            }
+        }
 
-            // Start the application logic
+        document.addEventListener('DOMContentLoaded', async function() {
+            debugLog.add('Sistema de Controle de Expedição v3.6 - Filiais', 'info');
+            initializeEventListeners();
             const connected = await checkConnection();
             if (connected) {
                 await loadFiliais();
@@ -2517,6 +2537,63 @@
                 await loadSelectData();
                 hideAddForm();
             } catch (error) { showAlert('addFormAlert', `Erro: ${error.message}`, 'error'); }
+        }
+
+        async function saveEditedExpedition() {
+            const expeditionId = document.getElementById('editExpeditionId').value;
+            const newStatus = document.getElementById('editStatus').value;
+            const observacoes = document.getElementById('editObservacoes').value;
+            
+            try {
+                debugLog.add(`Salvando edições da expedição ${expeditionId}`, 'info');
+                
+                // 1. Atualizar a expedição principal
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    status: newStatus,
+                    observacoes: observacoes || null
+                });
+                
+                // 2. Deletar itens antigos
+                await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'DELETE');
+                
+                // 3. Criar novos itens
+                const editLines = document.querySelectorAll('.edit-loja-line');
+                const itemsData = [];
+                
+                editLines.forEach(line => {
+                    const lojaSelect = line.querySelector('.edit-loja-select');
+                    const palletsInput = line.querySelector('.edit-pallets-input');
+                    const rolltrainersInput = line.querySelector('.edit-rolltrainers-input');
+                    
+                    if (lojaSelect && lojaSelect.value) {
+                        itemsData.push({
+                            expedition_id: expeditionId,
+                            loja_id: lojaSelect.value,
+                            pallets: parseInt(palletsInput.value) || 0,
+                            rolltrainers: parseInt(rolltrainersInput.value) || 0,
+                            filial: selectedFilial // FIX: Added filial to new items
+                        });
+                    }
+                });
+                
+                // Salvar novos itens
+                if (itemsData.length > 0) {
+                    const itemsPromises = itemsData.map(item => supabaseRequest('expedition_items', 'POST', item));
+                    await Promise.all(itemsPromises);
+                }
+                
+                debugLog.add('Expedição editada com sucesso', 'success');
+                showNotification('Expedição atualizada com sucesso!', 'success');
+                
+                closeEditModal();
+                loadAcompanhamento(); // Recarregar a tabela
+                
+            } catch (error) {
+                console.error('Erro ao salvar edições:', error);
+                debugLog.add(`Erro ao salvar edições: ${error.message}`, 'error');
+                document.getElementById('editFormAlert').innerHTML = 
+                    `<div class="alert alert-error">Erro ao salvar: ${error.message}</div>`;
+            }
         }
 
     </script>
