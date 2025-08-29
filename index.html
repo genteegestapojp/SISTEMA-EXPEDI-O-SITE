@@ -26,19 +26,20 @@
             line-height: 16px;
         }
 
-        .feature-icon.truck::before { content: "⬛"; color: var(--accent); }
-        .feature-icon.store::before { content: "▪"; color: var(--primary); }
-        .feature-icon.package::before { content: "■"; color: var(--primary); }
-        .feature-icon.rolltrainer::before { content: "▣"; color: var(--secondary); }
-        .feature-icon.dock::before { content: "▬"; color: var(--accent); }
-        .feature-icon.user::before { content: "●"; color: var(--dark); }
-        .feature-icon.clock::before { content: "◉"; color: #F77F00; }
-        .feature-icon.calendar::before { content: "▢"; color: #F77F00; }
-        .feature-icon.note::before { content: "▤"; color: var(--primary); }
-        .feature-icon.clipboard::before { content: "▦"; color: #F77F00; }
-        .feature-icon.email::before { content: "▣"; color: white; }
-        .feature-icon.info::before { content: "▲"; color: var(--primary); }
-        .feature-icon.building::before { content: "▦"; color: var(--primary); }
+        .feature-icon.truck::before { content: "🚚"; color: var(--accent); }
+        .feature-icon.store::before { content: "🏢"; color: var(--primary); }
+        .feature-icon.package::before { content: "📦"; color: var(--primary); }
+        .feature-icon.rolltrainer::before { content: "🔄"; color: var(--secondary); }
+        .feature-icon.dock::before { content: "⚓"; color: var(--accent); }
+        .feature-icon.user::before { content: "👤"; color: var(--dark); }
+        .feature-icon.clock::before { content: "⏰"; color: #F77F00; }
+        .feature-icon.calendar::before { content: "📅"; color: #F77F00; }
+        .feature-icon.note::before { content: "📝"; color: var(--primary); }
+        .feature-icon.clipboard::before { content: "📋"; color: #F77F00; }
+        .feature-icon.email::before { content: "📧"; color: white; }
+        .feature-icon.info::before { content: "ℹ️"; color: var(--primary); }
+        .feature-icon.building::before { content: "🏢"; color: var(--primary); }
+
 
         /* Variações de cor para diferentes contextos */
         .feature-icon.primary { color: var(--primary); }
@@ -929,6 +930,28 @@
             flex-direction: column;
             gap: 6px;
         }
+        
+        .loja-descarga-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .loja-descarga-card h4 {
+            color: var(--dark);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .loja-descarga-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
 
         /* Media Queries para Tablets */
         @media (min-width: 768px) {
@@ -1375,7 +1398,6 @@
             Conectando ao banco de dados...
         </div>
 
-        <!-- Indicador de Filial Selecionada -->
         <div id="filialIndicator" class="filial-indicator">
             <span class="feature-icon building"></span>
             <span id="filialNome">Nenhuma filial selecionada</span>
@@ -1389,7 +1411,6 @@
             </div>
         </div>
 
-        <!-- Tela de Seleção de Filiais -->
         <div id="filialSelection" class="filial-selection">
             <h2>Selecione a Filial</h2>
             <p>Escolha a filial para acessar o sistema de expedição</p>
@@ -1424,7 +1445,6 @@
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label style="font-size: 1.1rem; color: var(--dark); margin-bottom: 15px;">Lojas e Quantidades:</label>
                             <div id="lojasContainer" style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3);">
-                                <!-- Primeira linha de loja (sempre presente) -->
                                 <div class="loja-line" data-index="0">
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label>Loja:</label>
@@ -1482,7 +1502,6 @@
             <div id="faturamento" class="tab-content">
                 <h2 style="text-align: center;">Controle de Faturamento</h2>
                 
-                <!-- Estatísticas de Faturamento -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number" id="totalCarregadas">0</div>
@@ -1498,7 +1517,6 @@
                     </div>
                 </div>
 
-                <!-- Quadros de Tempo de Faturamento -->
                 <div class="time-stats-grid">
                     <div class="time-stat-card">
                         <div class="stat-number" id="tempoMedioFaturamento">-</div>
@@ -1510,7 +1528,6 @@
                     </div>
                 </div>
 
-                <!-- Lista de Expedições para Faturamento -->
                 <div id="faturamentoList" class="loading">
                     <div class="spinner"></div>
                     Carregando expedições para faturamento...
@@ -1522,7 +1539,7 @@
 
                 <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
                     <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
-                    <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar as expedições aguardando ou em carregamento</p>
+                    <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar suas atividades</p>
 
                     <div style="display: flex; gap: 15px; justify-content: center; align-items: end; flex-wrap: wrap;">
                         <div class="form-group" style="min-width: 200px; margin-bottom: 0;">
@@ -1546,7 +1563,7 @@
                     <div class="alert alert-warning">
                         <h4 style="color: #F77F00; margin-bottom: 15px;"><span class="feature-icon clipboard warning"></span>Nenhuma Expedição Encontrada</h4>
                         <p style="color: #F77F00; margin: 0;">
-                            Não foram encontradas expedições aguardando veículo ou em carregamento para a placa informada.
+                            Não foram encontradas expedições ativas para a placa informada.
                         </p>
                     </div>
                 </div>
@@ -1570,7 +1587,6 @@
                     </div>
                 </div>
 
-                <!-- Quadros de Análise de Tempos -->
                 <div class="time-stats-grid">
                     <div class="time-stat-card">
                         <div class="stat-number" id="tempoMedioAlocar">-</div>
@@ -1590,7 +1606,6 @@
                     </div>
                 </div>
 
-                <!-- Filtros -->
                 <div class="filters-section">
                     <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
                     <div class="filters-grid">
@@ -1749,10 +1764,9 @@
         </div>
     </div>
 
-    <!-- Rodapé com Informações do Desenvolvedor -->
     <div style="background: var(--dark); color: white; text-align: center; padding: 16px; margin-top: 20px; border-radius: 8px;">
         <div style="font-size: 0.9rem; margin-bottom: 8px;">
-            <strong>Sistema de Controle de Expedição v4.0 - Multi-Filial</strong>
+            <strong>Sistema de Controle de Expedição v4.1 - Multi-Filial com Roteirização</strong>
         </div>
         <div style="font-size: 0.8rem; opacity: 0.8; line-height: 1.4;">
             Desenvolvido por <strong>Juliano Patrick</strong><br>
@@ -1760,11 +1774,10 @@
             <span class="feature-icon email white"></span>julianocorrea@bateforte.com.br
         </div>
         <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 8px;">
-            Sistema Multi-Filial • Controle de Tempos • Validação QR Code • Interface Responsiva
+            Sistema Multi-Filial • Controle de Tempos • Validação QR Code • Interface Responsiva • Roteirização de Entrega
         </div>
     </div>
 
-    <!-- Modal de QR Code -->
     <div id="qrModal" class="modal-overlay">
         <div class="modal-content">
             <h3 class="modal-title" id="qrModalTitle"></h3>
@@ -1786,7 +1799,6 @@
         </div>
     </div>
     
-    <!-- Modal de Edição de Expedição -->
     <div id="editExpeditionModal" class="modal-overlay">
         <div class="modal-content">
             <h3 class="modal-title">Editar Expedição</h3>
@@ -2380,7 +2392,8 @@
                         expedition_id: expeditionId,
                         loja_id: lojaSelect.value,
                         pallets: parseInt(palletsInput.value),
-                        rolltrainers: parseInt(rolltrainersInput.value)
+                        rolltrainers: parseInt(rolltrainersInput.value),
+                        status_descarga: 'pendente' // NOVO: status inicial da descarga
                         // filial será adicionada automaticamente pela função supabaseRequest
                     };
 
@@ -2567,7 +2580,7 @@
         function minutesToHHMM(minutes) {
             if (minutes === null || minutes === undefined || isNaN(minutes) || minutes < 0) return '-';
             const hours = Math.floor(minutes / 60);
-            const mins = minutes % 60;
+            const mins = Math.round(minutes % 60);
             return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
         }
 
@@ -2997,9 +3010,11 @@
         async function marcarSaiuEntrega(expeditionId) {
             try {
                 debugLog.add(`Marcando expedição ${expeditionId} como saiu para entrega`, 'info');
+                const dataSaida = new Date().toISOString(); // NOVO: Captura a data de saída
                 
                 await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-                    status: 'saiu_para_entrega'
+                    status: 'saiu_para_entrega',
+                    data_saida_entrega: dataSaida // NOVO: Salva a data de saída
                 });
 
                 debugLog.add(`Expedição ${expeditionId} marcada como saiu para entrega`, 'success');
@@ -3567,7 +3582,8 @@
             debugLog.add(`Consultando expedições para placa: ${placa} na filial: ${selectedFilial.nome}`, 'info');
 
             try {
-                const expeditions = await supabaseRequest("expeditions?status=in.(aguardando_veiculo,em_carregamento)&order=data_hora.desc");
+                // ALTERAÇÃO: Incluído status 'saiu_para_entrega'
+                const expeditions = await supabaseRequest("expeditions?status=in.(aguardando_veiculo,em_carregamento,saiu_para_entrega)&order=data_hora.desc");
                 const items = await supabaseRequest('expedition_items');
 
                 const expeditionsWithItems = expeditions
@@ -3581,7 +3597,7 @@
 
                         return {
                             ...exp,
-                            items: expItems,
+                            items: expItems, // Manter os itens associados
                             total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
                             total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
                             lojas_count: expItems.length,
@@ -3633,30 +3649,37 @@
 
                 const criadaEm = new Date(exp.data_hora || exp.created_at);
                 const agora = new Date();
-                const tempoEspera = Math.round((agora - criadaEm) / 60000);
-                const tempoEsperaTexto = minutesToHHMM(tempoEspera);
-
-                let proximaAcao = '';
-                let corStatus = '';
-                let actionButton = '';
-
-                if (exp.status === 'aguardando_veiculo') {
-                    proximaAcao = '👉 Dirija-se à doca para iniciar o carregamento';
-                    corStatus = 'var(--primary)';
-                    actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar', '${exp.id}', '${coddocaValue}')">Iniciar Carregamento</button>`;
-                } else if (exp.status === 'em_carregamento') {
-                    proximaAcao = '⏳ Aguarde a finalização do carregamento';
-                    corStatus = '#F77F00';
-                    actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar', '${exp.id}', '${coddocaValue}')">Finalizar Carregamento</button>`;
-                }
-
+                
                 html += `
                     <div class="transport-card" style="margin-bottom: 25px;">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                            <h3 style="margin: 0; color: var(--dark);">Expedição #${index + 1}</h3>
+                            <h3 style="margin: 0; color: var(--dark);">Viagem #${index + 1}</h3>
                             <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span>
-                        </div>
+                        </div>`;
 
+                if (exp.status === 'saiu_para_entrega') {
+                    // NOVO: Renderização para o processo de descarga
+                    html += renderPainelDescarga(exp);
+                } else {
+                    // Lógica existente para carregamento
+                    const tempoEspera = Math.round((agora - criadaEm) / 60000);
+                    const tempoEsperaTexto = minutesToHHMM(tempoEspera);
+
+                    let proximaAcao = '';
+                    let corStatus = '';
+                    let actionButton = '';
+
+                    if (exp.status === 'aguardando_veiculo') {
+                        proximaAcao = '👉 Dirija-se à doca para iniciar o carregamento';
+                        corStatus = 'var(--primary)';
+                        actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar', '${exp.id}', '${coddocaValue}')">Iniciar Carregamento</button>`;
+                    } else if (exp.status === 'em_carregamento') {
+                        proximaAcao = '⏳ Aguarde a finalização do carregamento';
+                        corStatus = '#F77F00';
+                        actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar', '${exp.id}', '${coddocaValue}')">Finalizar Carregamento</button>`;
+                    }
+
+                    html += `
                         <div style="background: rgba(144, 224, 239, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
                             <div style="color: ${corStatus}; font-weight: 600; margin-bottom: 8px;">${proximaAcao}</div>
                         </div>
@@ -3669,11 +3692,7 @@
                             <div><span class="feature-icon user"></span><strong>Líder:</strong> ${exp.lider_nome}</div>
                             <div><span class="feature-icon clock"></span><strong>Aguardando há:</strong> ${tempoEsperaTexto}</div>
                         </div>
-
-                        <div style="background: rgba(247, 127, 0, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #F77F00;">
-                            <span class="feature-icon calendar warning"></span><strong style="color: #F77F00;">Criada em:</strong> ${criadaEm.toLocaleString('pt-BR')}
-                        </div>
-
+                        
                         ${exp.observacoes ? `
                             <div style="background: rgba(144, 224, 239, 0.1); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--primary);">
                                 <span class="feature-icon note"></span><strong style="color: var(--primary);">Observações:</strong><br>
@@ -3683,11 +3702,74 @@
                         <div style="text-align: center; margin-top: 20px;">
                             ${actionButton}
                         </div>
-                    </div>
-                `;
+                    `;
+                }
+
+                html += `</div>`;
             });
 
             container.innerHTML = html;
+        }
+        
+        // NOVO: Função para renderizar o painel de descarga
+        function renderPainelDescarga(exp) {
+            let html = '<h3 style="color: var(--dark); margin-bottom: 20px;">Roteiro de Entregas</h3>';
+            let emTransito = true;
+            let ultimaDescargaFinalizada = new Date(exp.data_saida_entrega);
+
+            exp.items.forEach(item => {
+                const loja = lojas.find(l => l.id === item.loja_id);
+                let statusDescargaLabel, statusColor, actionButton = '';
+
+                let tempoTransito = '';
+                if (item.data_inicio_descarga) {
+                    const inicioDescarga = new Date(item.data_inicio_descarga);
+                    const minutosTransito = (inicioDescarga - ultimaDescargaFinalizada) / 60000;
+                    tempoTransito = `<div class="time-display good"><strong>Tempo de Trânsito:</strong> ${minutesToHHMM(minutosTransito)}</div>`;
+                }
+
+                if (item.status_descarga === 'pendente' && emTransito) {
+                    statusDescargaLabel = 'Próxima Entrega';
+                    statusColor = 'var(--primary)';
+                    actionButton = `<button class="btn btn-success" onclick="iniciarDescarga('${item.id}', '${exp.id}')">Iniciar Descarga</button>`;
+                    emTransito = false; // Apenas a primeira pendente pode ser iniciada
+                } else if (item.status_descarga === 'pendente' && !emTransito) {
+                    statusDescargaLabel = 'Aguardando';
+                    statusColor = '#6c757d';
+                } else if (item.status_descarga === 'em_descarga') {
+                    statusDescargaLabel = 'Em Descarga';
+                    statusColor = '#F77F00';
+                    actionButton = `<button class="btn btn-primary" onclick="finalizarDescarga('${item.id}', '${exp.id}')">Finalizar Descarga</button>`;
+                    emTransito = false;
+                } else if (item.status_descarga === 'descarregado') {
+                    statusDescargaLabel = 'Descarregado';
+                    statusColor = '#00D4AA';
+                    ultimaDescargaFinalizada = new Date(item.data_fim_descarga); // Atualiza para o próximo cálculo de trânsito
+                }
+
+                html += `
+                    <div class="loja-descarga-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                             <h4><span class="feature-icon store"></span> ${loja ? loja.nome : 'N/A'}</h4>
+                             <span style="font-weight: bold; color: ${statusColor};">${statusDescargaLabel}</span>
+                        </div>
+                        <div class="loja-descarga-info">
+                            <div><strong>Pallets:</strong> ${item.pallets}</div>
+                            <div><strong>RollTrainers:</strong> ${item.rolltrainers}</div>
+                        </div>
+                        ${tempoTransito}
+                        ${item.data_inicio_descarga ? `<div class="time-display good"><strong>Início Descarga:</strong> ${new Date(item.data_inicio_descarga).toLocaleTimeString('pt-BR')}</div>` : ''}
+                        ${item.data_fim_descarga ? `<div class="time-display good"><strong>Fim Descarga:</strong> ${new Date(item.data_fim_descarga).toLocaleTimeString('pt-BR')}</div>` : ''}
+                        ${item.data_inicio_descarga && item.data_fim_descarga ? `<div class="time-display good"><strong>Tempo Total:</strong> ${minutesToHHMM((new Date(item.data_fim_descarga) - new Date(item.data_inicio_descarga)) / 60000)}</div>` : ''}
+
+                        <div style="text-align: center; margin-top: 15px;">
+                            ${actionButton}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return html;
         }
 
         function mostrarSemResultados() {
@@ -3868,6 +3950,65 @@
                 showNotification('Erro ao iniciar carregamento: ' + error.message, 'error');
             }
         }
+        
+        // NOVO: Funções para controlar a descarga
+        async function iniciarDescarga(itemId, expeditionId) {
+             if (!await showConfirmationModal('Confirmar início da descarga nesta loja?')) {
+                return;
+            }
+            try {
+                const dataInicio = new Date().toISOString();
+                debugLog.add(`Iniciando descarga do item ${itemId}`, 'info');
+
+                await supabaseRequest(`expedition_items?id=eq.${itemId}`, 'PATCH', {
+                    status_descarga: 'em_descarga',
+                    data_inicio_descarga: dataInicio
+                });
+                
+                showNotification('Descarga iniciada com sucesso!', 'success');
+                consultarExpedicoesPorPlaca();
+
+            } catch(error) {
+                debugLog.add(`Erro ao iniciar descarga: ${error.message}`, 'error');
+                showNotification('Erro ao iniciar descarga: ' + error.message, 'error');
+            }
+        }
+
+        async function finalizarDescarga(itemId, expeditionId) {
+            if (!await showConfirmationModal('Confirmar finalização da descarga?')) {
+                return;
+            }
+            try {
+                const dataFim = new Date().toISOString();
+                debugLog.add(`Finalizando descarga do item ${itemId}`, 'info');
+                
+                await supabaseRequest(`expedition_items?id=eq.${itemId}`, 'PATCH', {
+                    status_descarga: 'descarregado',
+                    data_fim_descarga: dataFim
+                });
+                
+                // Verifica se todas as lojas da expedição foram descarregadas
+                const itemsResponse = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
+                const todosDescarregados = itemsResponse.every(item => item.status_descarga === 'descarregado');
+
+                if (todosDescarregados) {
+                    debugLog.add(`Todas as lojas da expedição ${expeditionId} foram descarregadas. Finalizando...`, 'info');
+                    await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                        status: 'entregue'
+                    });
+                     showNotification('Última entrega finalizada! Viagem concluída.', 'success');
+                } else {
+                     showNotification('Descarga da loja finalizada! Prossiga para a próxima entrega.', 'success');
+                }
+                
+                consultarExpedicoesPorPlaca();
+
+            } catch(error) {
+                debugLog.add(`Erro ao finalizar descarga: ${error.message}`, 'error');
+                showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
+            }
+        }
+
 
         async function finishLoading(expeditionId) {
             try {
@@ -4025,7 +4166,8 @@
                             expedition_id: expeditionId,
                             loja_id: lojaSelect.value,
                             pallets: parseInt(palletsInput.value) || 0,
-                            rolltrainers: parseInt(rolltrainersInput.value) || 0
+                            rolltrainers: parseInt(rolltrainersInput.value) || 0,
+                            status_descarga: 'pendente' // NOVO: Garante o status ao editar
                             // filial será adicionada automaticamente pela função supabaseRequest
                         });
                     }
@@ -4147,6 +4289,7 @@ SISTEMA MULTI-FILIAL ATIVO:
 ✓ Cálculos automáticos de tempo
 ✓ Validação QR Code com coddoca
 ✓ Interface responsiva para mobile
+✓ Roteirização e controle de descarga
 
 CACHE LOCAL:
 • Lojas: ${lojas.length} carregadas
@@ -4156,7 +4299,7 @@ CACHE LOCAL:
 • Motoristas: ${motoristas.length} carregados
 
 STATUS: Sistema multi-filial funcionando normalmente
-VERSÃO: 4.0 - Sistema Multi-Filial
+VERSÃO: 4.1 - Sistema Multi-Filial com Roteirização
 DESENVOLVIDO POR: JP Tech Solutions
 ÚLTIMA ATUALIZAÇÃO: ${new Date().toLocaleTimeString()}
             `;
@@ -4839,7 +4982,7 @@ ${expedition.observacoes || 'Nenhuma'}
             }
         }, 300000); // 5 minutos
 
-        console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.0 carregado com sucesso!');
+        console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.1 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
         console.log('📧 Contato: julianocorrea@bateforte.com.br');
     </script>
