@@ -1398,6 +1398,7 @@
             Conectando ao banco de dados...
         </div>
 
+        <!-- Indicador de Filial Selecionada -->
         <div id="filialIndicator" class="filial-indicator">
             <span class="feature-icon building"></span>
             <span id="filialNome">Nenhuma filial selecionada</span>
@@ -1411,6 +1412,7 @@
             </div>
         </div>
 
+        <!-- Tela de Seleção de Filiais -->
         <div id="filialSelection" class="filial-selection">
             <h2>Selecione a Filial</h2>
             <p>Escolha a filial para acessar o sistema de expedição</p>
@@ -1445,6 +1447,7 @@
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label style="font-size: 1.1rem; color: var(--dark); margin-bottom: 15px;">Lojas e Quantidades:</label>
                             <div id="lojasContainer" style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3);">
+                                <!-- Primeira linha de loja (sempre presente) -->
                                 <div class="loja-line" data-index="0">
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label>Loja:</label>
@@ -1502,6 +1505,7 @@
             <div id="faturamento" class="tab-content">
                 <h2 style="text-align: center;">Controle de Faturamento</h2>
                 
+                <!-- Estatísticas de Faturamento -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number" id="totalCarregadas">0</div>
@@ -1517,6 +1521,7 @@
                     </div>
                 </div>
 
+                <!-- Quadros de Tempo de Faturamento -->
                 <div class="time-stats-grid">
                     <div class="time-stat-card">
                         <div class="stat-number" id="tempoMedioFaturamento">-</div>
@@ -1528,6 +1533,7 @@
                     </div>
                 </div>
 
+                <!-- Lista de Expedições para Faturamento -->
                 <div id="faturamentoList" class="loading">
                     <div class="spinner"></div>
                     Carregando expedições para faturamento...
@@ -1587,6 +1593,7 @@
                     </div>
                 </div>
 
+                <!-- Quadros de Análise de Tempos -->
                 <div class="time-stats-grid">
                     <div class="time-stat-card">
                         <div class="stat-number" id="tempoMedioAlocar">-</div>
@@ -1606,6 +1613,7 @@
                     </div>
                 </div>
 
+                <!-- Filtros -->
                 <div class="filters-section">
                     <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
                     <div class="filters-grid">
@@ -1764,6 +1772,7 @@
         </div>
     </div>
 
+    <!-- Rodapé com Informações do Desenvolvedor -->
     <div style="background: var(--dark); color: white; text-align: center; padding: 16px; margin-top: 20px; border-radius: 8px;">
         <div style="font-size: 0.9rem; margin-bottom: 8px;">
             <strong>Sistema de Controle de Expedição v4.1 - Multi-Filial com Roteirização</strong>
@@ -1778,6 +1787,7 @@
         </div>
     </div>
 
+    <!-- Modal de QR Code -->
     <div id="qrModal" class="modal-overlay">
         <div class="modal-content">
             <h3 class="modal-title" id="qrModalTitle"></h3>
@@ -1799,6 +1809,7 @@
         </div>
     </div>
     
+    <!-- Modal de Edição de Expedição -->
     <div id="editExpeditionModal" class="modal-overlay">
         <div class="modal-content">
             <h3 class="modal-title">Editar Expedição</h3>
@@ -2490,9 +2501,9 @@
                         total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
                         total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
                         lojas_count: expItems.length,
-                        lojas_nomes: expItems.map(item => {
+                        lojas_info: expItems.map(item => {
                             const loja = lojas.find(l => l.id === item.loja_id);
-                            return loja ? loja.nome : 'Loja N/A';
+                            return loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'Loja N/A';
                         }).join(', '),
                         doca_nome: doca ? doca.nome : 'N/A',
                         lider_nome: lider ? lider.nome : 'N/A',
@@ -2540,7 +2551,7 @@
 
                 if (searchTerm) {
                     const searchableText = [
-                        exp.lojas_nomes.toLowerCase(),
+                        exp.lojas_info.toLowerCase(),
                         exp.doca_nome || '',
                         exp.lider_nome || '',
                         exp.veiculo_placa || '',
@@ -2682,10 +2693,10 @@
 
                     exp.items.forEach(item => {
                         const loja = lojas.find(l => l.id === item.loja_id);
-                        const lojaNome = loja ? (loja.codigo || loja.nome.substring(0, 15)) : 'N/A';
+                        const lojaDisplay = loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'N/A';
                         lojasECargasHTML += `
                             <div class="carga-item">
-                                <strong>${lojaNome}</strong><br>
+                                <strong>${lojaDisplay}</strong><br>
                                 ${item.pallets || 0}P + ${item.rolltrainers || 0}R
                             </div>
                         `;
@@ -2815,9 +2826,9 @@
                         total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
                         total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
                         lojas_count: expItems.length,
-                        lojas_nomes: expItems.map(item => {
+                        lojas_info: expItems.map(item => {
                             const loja = lojas.find(l => l.id === item.loja_id);
-                            return loja ? loja.nome : 'Loja N/A';
+                            return loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'Loja N/A';
                         }).join(', '),
                         doca_nome: doca ? doca.nome : 'N/A',
                         lider_nome: lider ? lider.nome : 'N/A',
@@ -2855,7 +2866,7 @@
                 const tempoEspera = Math.round((agora - carregadoEm) / 60000);
                 const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
 
-                const lojasInfo = exp.lojas_nomes || 'N/A';
+                const lojasInfo = exp.lojas_info || 'N/A';
                 const totalPallets = exp.total_pallets || 0;
                 const totalRolltrainers = exp.total_rolltrainers || 0;
                 const quantidadeLojas = exp.lojas_count || 0;
@@ -3056,9 +3067,9 @@
                         total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
                         total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
                         lojas_count: expItems.length,
-                        lojas_nomes: expItems.map(item => {
+                        lojas_info: expItems.map(item => {
                             const loja = lojas.find(l => l.id === item.loja_id);
-                            return loja ? loja.nome : 'Loja N/A';
+                            return loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'Loja N/A';
                         }).join(', '),
                         doca_nome: doca ? doca.nome : null,
                         lider_nome: lider ? lider.nome : null,
@@ -3101,7 +3112,7 @@
                 const tempoEspera = Math.round((agora - criadaEm) / 60000);
                 const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
 
-                const lojasInfo = exp.lojas_nomes || 'N/A';
+                const lojasInfo = exp.lojas_info || 'N/A';
                 const totalPallets = exp.total_pallets || 0;
                 const totalRolltrainers = exp.total_rolltrainers || 0;
                 const quantidadeLojas = exp.lojas_count || 0;
@@ -3601,9 +3612,9 @@
                             total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
                             total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
                             lojas_count: expItems.length,
-                            lojas_nomes: expItems.map(item => {
+                            lojas_info: expItems.map(item => {
                                 const loja = lojas.find(l => l.id === item.loja_id);
-                                return loja ? loja.nome : 'Loja N/A';
+                                return loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'Loja N/A';
                             }).join(', '),
                             doca_nome: doca ? doca.nome : 'N/A',
                             doca_id: doca ? doca.id : null,
@@ -3685,7 +3696,7 @@
                         </div>
 
                         <div class="transport-grid" style="margin-bottom: 15px;">
-                            <div><span class="feature-icon store"></span><strong>Lojas:</strong> ${exp.lojas_count} (${exp.lojas_nomes})</div>
+                            <div><span class="feature-icon store"></span><strong>Lojas:</strong> ${exp.lojas_count} (${exp.lojas_info})</div>
                             <div><span class="feature-icon package"></span><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
                             <div><span class="feature-icon rolltrainer"></span><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
                             <div><span class="feature-icon dock"></span><strong>Doca:</strong> ${exp.doca_nome} (${coddocaValue})</div>
@@ -3750,7 +3761,7 @@
                 html += `
                     <div class="loja-descarga-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                             <h4><span class="feature-icon store"></span> ${loja ? loja.nome : 'N/A'}</h4>
+                             <h4><span class="feature-icon store"></span> ${loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'N/A'}</h4>
                              <span style="font-weight: bold; color: ${statusColor};">${statusDescargaLabel}</span>
                         </div>
                         <div class="loja-descarga-info">
