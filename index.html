@@ -2365,18 +2365,15 @@
         async function loadFiliais() {
             try {
                 debugLog.add('Carregando filiais a partir das lojas...', 'info');
-                // FIX: Fetch from 'lojas' table since 'filiais' does not exist
                 const lojasData = await supabaseRequest('lojas?select=filial', 'GET', null, true);
                 
                 if (!lojasData) {
                     throw new Error("Não foi possível carregar os dados das lojas para determinar as filiais.");
                 }
 
-                // Extract unique filial names from the lojas data
                 const filialNames = lojasData.map(loja => loja.filial).filter(Boolean);
-                const uniqueFilialNames = [...new Set(filialNames)].sort(); // Sort alphabetically
+                const uniqueFilialNames = [...new Set(filialNames)].sort(); 
 
-                // Create an array of objects to match the expected structure
                 filiais = uniqueFilialNames.map(name => ({ nome: name }));
                 
                 const filialSelect = document.getElementById('filialSelect');
@@ -2412,6 +2409,41 @@
 
         document.addEventListener('DOMContentLoaded', async function() {
             debugLog.add('Sistema de Controle de Expedição v3.6 - Filiais', 'info');
+
+            // Attach all event listeners
+            document.getElementById('expeditionForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = {
+                    docaId: document.getElementById('docaSelect').value,
+                    liderId: document.getElementById('liderSelect').value,
+                    observacoes: document.getElementById('observacoes').value
+                };
+                saveExpedition(formData);
+            });
+
+            const addForm = document.getElementById('addForm');
+            if (addForm) {
+                addForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const title = document.getElementById('addFormTitle').textContent;
+                    if (title.includes('Loja')) await saveLoja();
+                    else if (title.includes('Doca')) await saveDoca();
+                    else if (title.includes('Líder')) await saveLider();
+                    else if (title.includes('Veículo')) await saveVeiculo();
+                    else if (title.includes('Motorista')) await saveMotorista();
+                    else showAlert('addFormAlert', 'Funcionalidade em desenvolvimento', 'warning');
+                });
+            }
+
+            const editForm = document.getElementById('editExpeditionForm');
+            if (editForm) {
+                editForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await saveEditedExpedition();
+                });
+            }
+
+            // Start the application logic
             const connected = await checkConnection();
             if (connected) {
                 await loadFiliais();
@@ -2421,11 +2453,6 @@
                 showNotification('Erro na conexão com o banco. O sistema não pode ser iniciado.', 'error');
             }
         });
-
-        // O restante das funções (saveLoja, saveDoca, etc.) usarão a função `saveData` que já inclui a filial.
-        // E as funções de leitura (loadAcompanhamento, etc.) usarão a `supabaseRequest` que já filtra.
-        // Nenhuma outra alteração é necessária nessas funções.
-        // O código existente para `saveLoja`, `saveDoca`, `saveLider`, `saveVeiculo`, `saveMotorista`, `allocateTransport`, `reallocateTransport`, `deleteExpedition`, etc. pode permanecer, mas as chamadas de POST devem ser adaptadas para usar `saveData` ou incluir a filial manualmente. Vou adaptar todas para incluir a filial.
 
         // Adaptando todas as funções de salvar
         async function saveLoja() {
