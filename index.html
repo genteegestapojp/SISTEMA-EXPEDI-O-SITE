@@ -2506,6 +2506,10 @@
                         veiculo_capacidade: veiculo ? veiculo.capacidade_pallets : 0
                     };
                 });
+                
+                // *** CORREÇÃO APLICADA AQUI ***
+                // Popula a variável global para que a função allocateTransport possa encontrar os dados da expedição.
+                allExpeditions = expeditionsWithItems;
 
                 renderTransportList(expeditionsWithItems, veiculos, motoristas);
                 debugLog.add(`${expeditionsWithItems.length} expedições carregadas com dados completos`, 'success');
@@ -2597,8 +2601,8 @@
                                         const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
                                         const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
                                         return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                            ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                                        </option>`;
+                                                    ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                </option>`;
                                     }).join('')}
                                 </select>
                             </div>
@@ -2624,8 +2628,8 @@
                                             const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
                                             const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
                                             return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                            ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                                        </option>`;
+                                                        ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                    </option>`;
                                         }).join('')}
                                     </select>
                                 </div>
