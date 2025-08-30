@@ -1775,7 +1775,7 @@
     <!-- Rodapé com Informações do Desenvolvedor -->
     <div style="background: var(--dark); color: white; text-align: center; padding: 16px; margin-top: 20px; border-radius: 8px;">
         <div style="font-size: 0.9rem; margin-bottom: 8px;">
-            <strong>Sistema de Controle de Expedição v4.1 - Multi-Filial com Roteirização</strong>
+            <strong>Sistema de Controle de Expedição v4.2 - Roteirização com QR Code</strong>
         </div>
         <div style="font-size: 0.8rem; opacity: 0.8; line-height: 1.4;">
             Desenvolvido por <strong>Juliano Patrick</strong><br>
@@ -1783,7 +1783,7 @@
             <span class="feature-icon email white"></span>julianocorrea@bateforte.com.br
         </div>
         <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 8px;">
-            Sistema Multi-Filial • Controle de Tempos • Validação QR Code • Interface Responsiva • Roteirização de Entrega
+            Sistema Multi-Filial • Controle de Tempos • Validação QR Code • Interface Responsiva • Roteirização com QR Code
         </div>
     </div>
 
@@ -2123,7 +2123,7 @@
                 debugLog.add(`Carregando dados para filial: ${selectedFilial.nome}`, 'info');
 
                 const [lojasData, docasData, lideresData, veiculosData, motoristasData] = await Promise.all([
-                    supabaseRequest('lojas?ativo=eq.true&order=nome'),
+                    supabaseRequest('lojas?select=*,codlojaqr&ativo=eq.true&order=nome'),
                     supabaseRequest('docas?ativo=eq.true&order=nome'),
                     supabaseRequest('lideres?ativo=eq.true&order=nome'),
                     supabaseRequest('veiculos?order=placa'),
@@ -3742,7 +3742,7 @@
                 if (item.status_descarga === 'pendente' && emTransito) {
                     statusDescargaLabel = 'Próxima Entrega';
                     statusColor = 'var(--primary)';
-                    actionButton = `<button class="btn btn-success" onclick="iniciarDescarga('${item.id}', '${exp.id}')">Iniciar Descarga</button>`;
+                    actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar_descarga', '${item.id}', '${loja.codlojaqr || ''}', '${exp.id}')">Iniciar Descarga</button>`;
                     emTransito = false; // Apenas a primeira pendente pode ser iniciada
                 } else if (item.status_descarga === 'pendente' && !emTransito) {
                     statusDescargaLabel = 'Aguardando';
@@ -3750,7 +3750,7 @@
                 } else if (item.status_descarga === 'em_descarga') {
                     statusDescargaLabel = 'Em Descarga';
                     statusColor = '#F77F00';
-                    actionButton = `<button class="btn btn-primary" onclick="finalizarDescarga('${item.id}', '${exp.id}')">Finalizar Descarga</button>`;
+                    actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar_descarga', '${item.id}', '${loja.codlojaqr || ''}', '${exp.id}')">Finalizar Descarga</button>`;
                     emTransito = false;
                 } else if (item.status_descarga === 'descarregado') {
                     statusDescargaLabel = 'Descarregado';
@@ -3790,19 +3790,21 @@
 
         // --- Funções do Modal de QR Code ---
         let modalState = {
-            expeditionId: null,
-            expectedDocaCode: null,
             action: null,
-            scannedValue: null
+            scannedValue: null,
+            mainId: null,
+            secondaryId: null,
+            expectedCode: null
         };
 
         // Variável para controlar o estado do scanner
         let scannerIsRunning = false;
 
-        async function openQrModal(action, expeditionId, docaCode) {
-            modalState.expeditionId = expeditionId;
-            modalState.expectedDocaCode = docaCode;
+        async function openQrModal(action, mainId, code, secondaryId = null) {
             modalState.action = action;
+            modalState.mainId = mainId;
+            modalState.secondaryId = secondaryId;
+            modalState.expectedCode = code;
             modalState.scannedValue = null;
 
             const modalTitle = document.getElementById('qrModalTitle');
@@ -3819,10 +3821,16 @@
 
             if (action === 'iniciar') {
                 modalTitle.textContent = 'Iniciar Carregamento';
-                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca (código: ${docaCode}) para iniciar o carregamento.`;
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca (código: ${code}) para iniciar o carregamento.`;
             } else if (action === 'finalizar') {
                 modalTitle.textContent = 'Finalizar Carregamento';
-                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca (código: ${docaCode}) para finalizar o carregamento.`;
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca (código: ${code}) para finalizar o carregamento.`;
+            } else if (action === 'iniciar_descarga') {
+                modalTitle.textContent = 'Iniciar Descarga';
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Loja (código: ${code}) para iniciar a descarga.`;
+            } else if (action === 'finalizar_descarga') {
+                modalTitle.textContent = 'Finalizar Descarga';
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Loja (código: ${code}) para finalizar a descarga.`;
             }
 
             document.getElementById('qrModal').style.display = 'flex';
@@ -3898,9 +3906,10 @@
                 scannerIsRunning = false;
             });
             
-            modalState.expeditionId = null;
-            modalState.expectedDocaCode = null;
             modalState.action = null;
+            modalState.mainId = null;
+            modalState.secondaryId = null;
+            modalState.expectedCode = null;
             modalState.scannedValue = null;
         }
 
@@ -3916,18 +3925,22 @@
                 return;
             }
 
-            if (valueToProcess.toLowerCase() !== modalState.expectedDocaCode.toLowerCase()) {
-                showNotification(`QR Code incorreto! Esperado: "${modalState.expectedDocaCode}", Recebido: "${valueToProcess}". Por favor, escaneie a doca correta.`, 'error');
-                debugLog.add(`Validação falhou - Esperado: ${modalState.expectedDocaCode}, Recebido: ${valueToProcess}`, 'error');
+            if (valueToProcess.toLowerCase() !== modalState.expectedCode.toLowerCase()) {
+                showNotification(`QR Code incorreto! Esperado: "${modalState.expectedCode}", Recebido: "${valueToProcess}". Por favor, escaneie o local correto.`, 'error');
+                debugLog.add(`Validação falhou - Esperado: ${modalState.expectedCode}, Recebido: ${valueToProcess}`, 'error');
                 return;
             }
 
             debugLog.add(`QR Code validado com sucesso: ${valueToProcess}`, 'success');
 
             if (modalState.action === 'iniciar') {
-                await startLoading(modalState.expeditionId);
+                await startLoading(modalState.mainId);
             } else if (modalState.action === 'finalizar') {
-                await finishLoading(modalState.expeditionId);
+                await finishLoading(modalState.mainId);
+            } else if (modalState.action === 'iniciar_descarga') {
+                await iniciarDescarga(modalState.mainId, modalState.secondaryId);
+            } else if (modalState.action === 'finalizar_descarga') {
+                await finalizarDescarga(modalState.mainId, modalState.secondaryId);
             }
 
             closeQrModal();
@@ -3935,9 +3948,9 @@
 
         async function startLoading(expeditionId) {
             try {
-                const doca = docas.find(d => d.coddoca === modalState.expectedDocaCode);
+                const doca = docas.find(d => d.coddoca === modalState.expectedCode);
                 if (!doca) {
-                    throw new Error(`Doca com código "${modalState.expectedDocaCode}" não encontrada no cache local.`);
+                    throw new Error(`Doca com código "${modalState.expectedCode}" não encontrada no cache local.`);
                 }
                 const dataChegada = new Date().toISOString();
 
@@ -3953,7 +3966,7 @@
                     debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
                 }
                 
-                debugLog.add(`Carregamento iniciado para expedição ${expeditionId}. Doca: ${doca.nome} (${modalState.expectedDocaCode})`, 'success');
+                debugLog.add(`Carregamento iniciado para expedição ${expeditionId}. Doca: ${doca.nome} (${modalState.expectedCode})`, 'success');
                 showNotification(`Carregamento iniciado na Doca ${doca.nome}!`, 'success');
                 consultarExpedicoesPorPlaca();
             } catch (error) {
@@ -3964,9 +3977,6 @@
         
         // NOVO: Funções para controlar a descarga
         async function iniciarDescarga(itemId, expeditionId) {
-             if (!await showConfirmationModal('Confirmar início da descarga nesta loja?')) {
-                return;
-            }
             try {
                 const dataInicio = new Date().toISOString();
                 debugLog.add(`Iniciando descarga do item ${itemId}`, 'info');
@@ -3986,9 +3996,6 @@
         }
 
         async function finalizarDescarga(itemId, expeditionId) {
-            if (!await showConfirmationModal('Confirmar finalização da descarga?')) {
-                return;
-            }
             try {
                 const dataFim = new Date().toISOString();
                 debugLog.add(`Finalizando descarga do item ${itemId}`, 'info');
@@ -4023,9 +4030,9 @@
 
         async function finishLoading(expeditionId) {
             try {
-                const doca = docas.find(d => d.coddoca === modalState.expectedDocaCode);
+                const doca = docas.find(d => d.coddoca === modalState.expectedCode);
                 if (!doca) {
-                    throw new Error(`Doca com código "${modalState.expectedDocaCode}" não encontrada no cache local.`);
+                    throw new Error(`Doca com código "${modalState.expectedCode}" não encontrada no cache local.`);
                 }
                 const dataSaida = new Date().toISOString();
 
@@ -4300,7 +4307,7 @@ SISTEMA MULTI-FILIAL ATIVO:
 ✓ Cálculos automáticos de tempo
 ✓ Validação QR Code com coddoca
 ✓ Interface responsiva para mobile
-✓ Roteirização e controle de descarga
+✓ Roteirização e controle de descarga com QR Code
 
 CACHE LOCAL:
 • Lojas: ${lojas.length} carregadas
@@ -4310,7 +4317,7 @@ CACHE LOCAL:
 • Motoristas: ${motoristas.length} carregados
 
 STATUS: Sistema multi-filial funcionando normalmente
-VERSÃO: 4.1 - Sistema Multi-Filial com Roteirização
+VERSÃO: 4.2 - Roteirização com QR Code
 DESENVOLVIDO POR: JP Tech Solutions
 ÚLTIMA ATUALIZAÇÃO: ${new Date().toLocaleTimeString()}
             `;
@@ -4347,6 +4354,10 @@ DESENVOLVIDO POR: JP Tech Solutions
                     <div class="form-group">
                         <label for="add_cidade">Cidade:</label>
                         <input type="text" id="add_cidade" required placeholder="Ex: Cuiabá, Rondonópolis">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_codlojaqr">Código QR da Loja:</label>
+                        <input type="text" id="add_codlojaqr" required placeholder="Ex: LOJA_BIG088" style="text-transform: uppercase;" onkeyup="this.value = this.value.toUpperCase()">
                     </div>
                     <div class="form-group">
                         <label>Filial:</label>
@@ -4447,19 +4458,21 @@ DESENVOLVIDO POR: JP Tech Solutions
             const nome = document.getElementById('add_nome').value.trim();
             const codigo = document.getElementById('add_codigo').value.trim();
             const cidade = document.getElementById('add_cidade').value.trim();
+            const codlojaqr = document.getElementById('add_codlojaqr').value.trim().toUpperCase();
 
-            if (!nome || !codigo || !cidade) {
+            if (!nome || !codigo || !cidade || !codlojaqr) {
                 showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
                 return;
             }
 
             try {
-                debugLog.add(`Salvando nova loja: ${nome} (${codigo}) - ${cidade} - Filial: ${selectedFilial.nome}`, 'info');
+                debugLog.add(`Salvando nova loja: ${nome} (${codigo}) - QR: ${codlojaqr} - Filial: ${selectedFilial.nome}`, 'info');
 
                 const lojaData = {
                     nome: nome,
                     codigo: codigo,
                     cidade: cidade,
+                    codlojaqr: codlojaqr,
                     ativo: true
                     // filial será adicionada automaticamente pela função supabaseRequest
                 };
@@ -4993,9 +5006,10 @@ ${expedition.observacoes || 'Nenhuma'}
             }
         }, 300000); // 5 minutos
 
-        console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.1 carregado com sucesso!');
+        console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.2 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
         console.log('📧 Contato: julianocorrea@bateforte.com.br');
     </script>
 </body>
 </html>
+
