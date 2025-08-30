@@ -3614,148 +3614,153 @@
         }
 
         // Realocar transporte
-        async function reallocateTransport(expeditionId) {
-            if (allocatingTransports.has(expeditionId)) {
-                showNotification('Aguarde! Realocação já está sendo processada...', 'warning');
-                return;
-            }
+        // Realocar transporte
+         async function reallocateTransport(expeditionId) {
+             if (allocatingTransports.has(expeditionId)) {
+                 showNotification('Aguarde! Realocação já está sendo processada...', 'warning');
+                 return;
+             }
 
-            const newVeiculoSelect = document.getElementById(`new_veiculo_${expeditionId}`);
-            const newMotoristaSelect = document.getElementById(`new_motorista_${expeditionId}`);
-            const reallocateButton = document.querySelector(`button[onclick="reallocateTransport('${expeditionId}')"]`);
+             const newVeiculoSelect = document.getElementById(`new_veiculo_${expeditionId}`);
+             const newMotoristaSelect = document.getElementById(`new_motorista_${expeditionId}`);
+             const reallocateButton = document.querySelector(`button[onclick="reallocateTransport('${expeditionId}')"]`);
 
-            if (!newVeiculoSelect || !newMotoristaSelect) {
-                showNotification('Erro: Elementos do formulário não encontrados', 'error');
-                return;
-            }
+             if (!newVeiculoSelect || !newMotoristaSelect) {
+                 showNotification('Erro: Elementos do formulário não encontrados', 'error');
+                 return;
+             }
 
-            const newVeiculoId = newVeiculoSelect.value;
-            const newMotoristaId = newMotoristaSelect.value;
+             const newVeiculoId = newVeiculoSelect.value;
+             const newMotoristaId = newMotoristaSelect.value;
 
-            if (!newVeiculoId || !newMotoristaId) {
-                showNotification('Por favor, selecione um novo veículo e motorista!', 'error');
-                return;
-            }
-            
-            const selectedVehicle = veiculos.find(v => v.id === newVeiculoId);
-            const expedition = allExpeditions.find(e => e.id === expeditionId);
-            
-            if (!selectedVehicle || !expedition) {
-                showNotification('Erro: Dados não encontrados para validação', 'error');
-                return;
-            }
-            
-            const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
-            
-            if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
-                showNotification(`Novo veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`, 'error');
-                return;
-            }
+             if (!newVeiculoId || !newMotoristaId) {
+                 showNotification('Por favor, selecione um novo veículo e motorista!', 'error');
+                 return;
+             }
+             
+             const selectedVehicle = veiculos.find(v => v.id === newVeiculoId);
+             const expedition = allExpeditions.find(e => e.id === expeditionId);
+             
+             if (!selectedVehicle || !expedition) {
+                 showNotification('Erro: Dados não encontrados para validação', 'error');
+                 return;
+             }
+             
+             const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
+             
+             if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
+                 showNotification(`Novo veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`, 'error');
+                 return;
+             }
 
-            if (!await showConfirmationModal('Confirma a alteração do transporte? O veículo e motorista atuais serão liberados.')) {
-                return;
-            }
+             if (!await showConfirmationModal('Confirma a alteração do transporte? O veículo e motorista atuais serão liberados.')) {
+                 return;
+             }
 
-            allocatingTransports.add(expeditionId);
-            
-            if (reallocateButton) {
-                reallocateButton.disabled = true;
-                reallocateButton.textContent = 'Realocando...';
-                reallocateButton.style.opacity = '0.6';
-            }
+             allocatingTransports.add(expeditionId);
+             
+             if (reallocateButton) {
+                 reallocateButton.disabled = true;
+                 reallocateButton.textContent = 'Realocando...';
+                 reallocateButton.style.opacity = '0.6';
+             }
 
-            newVeiculoSelect.disabled = true;
-            newMotoristaSelect.disabled = true;
+             newVeiculoSelect.disabled = true;
+             newMotoristaSelect.disabled = true;
 
-            try {
-                debugLog.add(`Iniciando realocação de transporte para expedição ${expeditionId}`, 'info');
+             try {
+                 debugLog.add(`Iniciando realocação de transporte para expedição ${expeditionId}`, 'info');
 
-                const expeditionData = await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}&select=veiculo_id,motorista_id`, 'GET', null, 30000, false);
+                 const expeditionData = await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}&select=veiculo_id,motorista_id`, 'GET', null, 30000, false);
 
-                if (!expeditionData || expeditionData.length === 0) {
-                    throw new Error(`Expedição ${expeditionId} não encontrada`);
-                }
+                 if (!expeditionData || expeditionData.length === 0) {
+                     throw new Error(`Expedição ${expeditionId} não encontrada`);
+                 }
 
-                const expedition = expeditionData[0];
-                const dataRealocacao = new Date().toISOString();
+                 const oldExpedition = expeditionData[0];
+                 const dataRealocacao = new Date().toISOString();
 
-                await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-                    veiculo_id: newVeiculoId,
-                    motorista_id: newMotoristaId,
-                    status: 'aguardando_veiculo',
-                    data_alocacao_veiculo: dataRealocacao
-                }, 30000, false);
+                 await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                     veiculo_id: newVeiculoId,
+                     motorista_id: newMotoristaId,
+                     status: 'aguardando_veiculo',
+                     data_alocacao_veiculo: dataRealocacao
+                 }, 30000, false);
 
-                debugLog.add('Expedição realocada com sucesso', 'success');
+                 debugLog.add('Expedição realocada com sucesso', 'success');
 
-                const secondaryOperations = [];
+                 const secondaryOperations = [];
 
-                if (expedition.veiculo_id) {
-                    secondaryOperations.push(
-                        supabaseRequestWithTimeout(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
-                            .then(() => debugLog.add(`Veículo anterior liberado: ${expedition.veiculo_id}`, 'success'))
-                            .catch(error => debugLog.add(`Aviso: Erro ao liberar veículo anterior: ${error.message}`, 'warning'))
-                    );
-                }
+                 // Libera os recursos ANTIGOS
+                 if (oldExpedition.veiculo_id) {
+                     secondaryOperations.push(
+                         supabaseRequestWithTimeout(`veiculos?id=eq.${oldExpedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
+                             .then(() => debugLog.add(`Veículo anterior liberado: ${oldExpedition.veiculo_id}`, 'success'))
+                             .catch(error => debugLog.add(`Aviso: Erro ao liberar veículo anterior: ${error.message}`, 'warning'))
+                     );
+                 }
 
-                if (expedition.motorista_id) {
-                    secondaryOperations.push(
-                        supabaseRequestWithTimeout(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
-                            .then(() => debugLog.add(`Motorista anterior liberado: ${expedition.motorista_id}`, 'success'))
-                            .catch(error => debugLog.add(`Aviso: Erro ao liberar motorista anterior: ${error.message}`, 'warning'))
-                    );
-                }
+                 if (oldExpedition.motorista_id) {
+                     secondaryOperations.push(
+                         supabaseRequestWithTimeout(`motoristas?id=eq.${oldExpedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
+                             .then(() => debugLog.add(`Motorista anterior liberado: ${oldExpedition.motorista_id}`, 'success'))
+                             .catch(error => debugLog.add(`Aviso: Erro ao liberar motorista anterior: ${error.message}`, 'warning'))
+                     );
+                 }
 
-                secondaryOperations.push(
-                    supabaseRequestWithTimeout(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
-                        .then(() => debugLog.add('Novo veículo alocado', 'success'))
-                        .catch(error => debugLog.add(`Aviso: Erro ao alocar novo veículo: ${error.message}`, 'warning'))
-                );
+                 // <<-- INÍCIO DA CORREÇÃO -->>
+                 // Ocupa os NOVOS recursos
+                 secondaryOperations.push(
+                     supabaseRequestWithTimeout(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
+                         .then(() => debugLog.add('Novo veículo alocado', 'success'))
+                         .catch(error => debugLog.add(`Aviso: Erro ao alocar novo veículo: ${error.message}`, 'warning'))
+                 );
 
-                secondaryOperations.push(
-                    supabaseRequestWithTimeout(`motoristas?id=eq.${newMotoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
-                        .then(() => debugLog.add('Novo motorista alocado', 'success'))
-                        .catch(error => debugLog.add(`Aviso: Erro ao alocar novo motorista: ${error.message}`, 'warning'))
-                );
+                 secondaryOperations.push(
+                     supabaseRequestWithTimeout(`motoristas?id=eq.${newMotoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
+                         .then(() => debugLog.add('Novo motorista alocado', 'success'))
+                         .catch(error => debugLog.add(`Aviso: Erro ao alocar novo motorista: ${error.message}`, 'warning'))
+                 );
+                 // <<-- FIM DA CORREÇÃO -->>
 
-                await Promise.allSettled(secondaryOperations.map(op => 
-                    Promise.race([op, new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Timeout secundário')), 10000)
-                    )])
-                ));
+                 await Promise.allSettled(secondaryOperations.map(op => 
+                     Promise.race([op, new Promise((_, reject) => 
+                         setTimeout(() => reject(new Error('Timeout secundário')), 10000)
+                     )])
+                 ));
 
-                debugLog.add(`Transporte realocado com sucesso às ${new Date(dataRealocacao).toLocaleTimeString('pt-BR')}`, 'success');
-                showNotification('Transporte alterado com sucesso!', 'success');
+                 debugLog.add(`Transporte realocado com sucesso às ${new Date(dataRealocacao).toLocaleTimeString('pt-BR')}`, 'success');
+                 showNotification('Transporte alterado com sucesso!', 'success');
 
-                try {
-                    await Promise.all([
-                        loadSelectData(),
-                        loadTransportList()
-                    ]);
-                } catch (reloadError) {
-                    debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
-                    setTimeout(loadTransportList, 2000);
-                }
+                 try {
+                     await Promise.all([
+                         loadSelectData(),
+                         loadTransportList()
+                     ]);
+                 } catch (reloadError) {
+                     debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
+                     setTimeout(loadTransportList, 2000);
+                 }
 
-            } catch (error) {
-                console.error('Erro ao realocar transporte:', error);
-                debugLog.add(`Erro ao realocar transporte: ${error.message}`, 'error');
-                showNotification(`Erro ao realocar: ${error.message}`, 'error');
-                setTimeout(loadTransportList, 2000);
+             } catch (error) {
+                 console.error('Erro ao realocar transporte:', error);
+                 debugLog.add(`Erro ao realocar transporte: ${error.message}`, 'error');
+                 showNotification(`Erro ao realocar: ${error.message}`, 'error');
+                 setTimeout(loadTransportList, 2000);
 
-            } finally {
-                allocatingTransports.delete(expeditionId);
-                
-                if (reallocateButton) {
-                    reallocateButton.disabled = false;
-                    reallocateButton.textContent = 'Confirmar Alteração';
-                    reallocateButton.style.opacity = '1';
-                }
-                
-                if (newVeiculoSelect) newVeiculoSelect.disabled = false;
-                if (newMotoristaSelect) newMotoristaSelect.disabled = false;
-            }
-        }
+             } finally {
+                 allocatingTransports.delete(expeditionId);
+                 
+                 if (reallocateButton) {
+                     reallocateButton.disabled = false;
+                     reallocateButton.textContent = 'Confirmar Alteração';
+                     reallocateButton.style.opacity = '1';
+                 }
+                 
+                 if (newVeiculoSelect) newVeiculoSelect.disabled = false;
+                 if (newMotoristaSelect) newMotoristaSelect.disabled = false;
+             }
+         }
 
         // Função para mostrar modal de confirmação
         function showConfirmationModal(message) {
