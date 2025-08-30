@@ -677,6 +677,17 @@
     background: linear-gradient(135deg, #6C757D, #ADB5BD);
     color: white;
 }
+        .status-retornando_com_imobilizado {
+    background: linear-gradient(135deg, #4361EE, #7209B7); /* Um roxo/azul diferente */
+    color: white;
+    background-size: 200% 200%;
+    animation: animatedGradient 4s ease infinite;
+}
+
+.status-descarregando_imobilizado {
+    background: linear-gradient(135deg, #F77F00, #D62828); /* Laranja/vermelho para atenção */
+    color: white;
+}
         /* Transport Cards Responsivos */
        /* NOVO: Estilo compacto para a lista de status dos motoristas */
 .motorista-status-item {
@@ -3035,26 +3046,28 @@ function renderAcompanhamentoTableWithItems(expeditions) {
             document.getElementById('emAndamentoCount').textContent = stats.emAndamento;
         }
 
-        // Obter label do status
-       function getStatusLabel(status) { 
-    const labels = { 
-        'pendente': 'Pendente', 
-        'aguardando_veiculo': 'Aguard. Veículo', 
-        'em_carregamento': 'Carregando', 
-        'carregado': 'Carregado', 
-        'aguardando_faturamento': 'Aguard. Faturamento', 
-        'faturamento_iniciado': 'Faturando', 
-        'faturado': 'Faturado', 
-        'saiu_para_entrega': 'Saiu p/ Entrega', 
-        'entregue': 'Entregue', 
+      // Nova função com os status de imobilizado
+function getStatusLabel(status) {
+    const labels = {
+        'pendente': 'Pendente',
+        'aguardando_veiculo': 'Aguard. Veículo',
+        'em_carregamento': 'Carregando',
+        'carregado': 'Carregado',
+        'aguardando_faturamento': 'Aguard. Faturamento',
+        'faturamento_iniciado': 'Faturando',
+        'faturado': 'Faturado',
+        'saiu_para_entrega': 'Saiu p/ Entrega',
+        'entregue': 'Entregue',
         'retornando_cd': 'Retornando CD',
         'cancelado': 'Cancelado',
-        // ADICIONE ESTAS 3 LINHAS ABAIXO
         'disponivel': 'Disponível',
         'em_viagem': 'Em Viagem',
-        'folga': 'Folga'
-    }; 
-    return labels[status] || status; 
+        'folga': 'Folga',
+        // NOVOS STATUS ADICIONADOS
+        'retornando_com_imobilizado': 'Retornando c/ Imobilizado',
+        'descarregando_imobilizado': 'Desc. Imobilizado'
+    };
+    return labels[status] || status;
 }
         // --- Funções da Aba de Faturamento ---
         async function loadFaturamento() {
@@ -3292,7 +3305,51 @@ function renderAcompanhamentoTableWithItems(expeditions) {
                 showNotification('Erro ao marcar saída: ' + error.message, 'error');
             }
         }
+// ADICIONE ESTA NOVA FUNÇÃO
+async function showYesNoModal(message) {
+    return new Promise((resolve) => {
+        // Reutilizando o modal de QR, mas adaptando para Sim/Não
+        const modal = document.getElementById('qrModal');
+        const title = document.getElementById('qrModalTitle');
+        const messageEl = document.getElementById('qrModalMessage');
+        const qrReader = document.getElementById('qr-reader');
+        const confirmBtn = document.getElementById('confirmQrBtn');
+        const cancelBtn = modal.querySelector('.btn-danger');
+        const qrResultDisplay = document.getElementById('qr-result-display');
+        const manualInputContainer = document.getElementById('manualInputContainer');
 
+        // Esconde elementos desnecessários
+        qrReader.style.display = 'none';
+        qrResultDisplay.style.display = 'none';
+        manualInputContainer.style.display = 'none';
+        
+        // Configura o modal
+        title.textContent = "Confirmação de Retorno";
+        messageEl.innerHTML = message;
+        confirmBtn.textContent = 'Sim';
+        cancelBtn.textContent = 'Não';
+        confirmBtn.disabled = false;
+        
+        // Limpa eventos antigos para evitar múltiplos cliques
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        // Define as ações
+        newConfirmBtn.onclick = () => {
+            closeQrModal();
+            resolve(true); // Retorna true para "Sim"
+        };
+        newCancelBtn.onclick = () => {
+            closeQrModal();
+            resolve(false); // Retorna false para "Não"
+        };
+        
+        modal.style.display = 'flex';
+    });
+}
         // Carregar transporte
         async function loadTransportList() {
             if (!selectedFilial) {
@@ -3862,15 +3919,12 @@ function renderAcompanhamentoTableWithItems(expeditions) {
             // NOVO: Renderiza a lista de status dos motoristas sempre que a aba é aberta
             await renderMotoristasStatusList();
         }
-       // SUBSTITUA A FUNÇÃO ANTIGA POR ESTA:
+// Nova função com a lógica de botões condicionais
 async function renderMotoristasStatusList() {
     const container = document.getElementById('motoristasStatusList');
     if (!container) return;
 
-    // Pega todas as expedições que não foram entregues ou canceladas
     const activeExpeditions = await supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`);
-
-    // Pega as últimas viagens finalizadas para saber quem está retornando
     const returningExpeditions = await supabaseRequest(`expeditions?status=eq.entregue&order=data_hora.desc&limit=50`);
 
     let html = `
@@ -3880,11 +3934,11 @@ async function renderMotoristasStatusList() {
                 <div class="stat-label">Motoristas Disponíveis</div>
             </div>
             <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
-                <div class="stat-number">${motoristas.filter(m => m.status === 'em_viagem').length}</div>
-                <div class="stat-label">Em Viagem / Carregamento</div>
+                <div class="stat-number">${motoristas.filter(m => ['em_viagem', 'descarregando_imobilizado'].includes(m.status)).length}</div>
+                <div class="stat-label">Em Atividade</div>
             </div>
             <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #023047);">
-                <div class="stat-number">${motoristas.filter(m => m.status === 'retornando_cd').length}</div>
+                <div class="stat-number">${motoristas.filter(m => ['retornando_cd', 'retornando_com_imobilizado'].includes(m.status)).length}</div>
                 <div class="stat-label">Retornando ao CD</div>
             </div>
         </div>
@@ -3895,21 +3949,15 @@ async function renderMotoristasStatusList() {
     const motoristasComStatus = motoristas.map(m => {
         const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
         if (activeExp) {
-            // Se o motorista está em uma viagem ativa, o status dele é o da carga.
             return { ...m, displayStatus: activeExp.status, veiculoId: activeExp.veiculo_id };
         }
-        if (m.status === 'retornando_cd') {
-            // Se o status no banco é 'retornando_cd', achamos a última viagem para pegar a placa.
-            const lastExp = returningExpeditions.find(exp => exp.motorista_id === m.id);
-            return { ...m, displayStatus: 'retornando_cd', veiculoId: lastExp ? lastExp.veiculo_id : null };
-        }
-        // Caso contrário, usamos o status padrão do motorista.
-        return { ...m, displayStatus: m.status, veiculoId: null };
+        // ALTERAÇÃO: Garante que o status do banco seja usado se não houver viagem ativa
+        const lastExp = returningExpeditions.find(exp => exp.motorista_id === m.id);
+        return { ...m, displayStatus: m.status, veiculoId: lastExp ? lastExp.veiculo_id : null };
     });
 
-    // Ordena a lista para melhor visualização
     motoristasComStatus.sort((a, b) => {
-        const order = { 'em_carregamento': 1, 'saiu_para_entrega': 2, 'aguardando_faturamento': 3, 'retornando_cd': 4, 'disponivel': 5, 'folga': 6 };
+        const order = { 'descarregando_imobilizado': 0, 'em_carregamento': 1, 'saiu_para_entrega': 2, 'aguardando_faturamento': 3, 'retornando_com_imobilizado': 4, 'retornando_cd': 5, 'disponivel': 6, 'folga': 7 };
         return (order[a.displayStatus] || 99) - (order[b.displayStatus] || 99) || a.nome.localeCompare(b.nome);
     });
 
@@ -3918,9 +3966,11 @@ async function renderMotoristasStatusList() {
         let statusClass = `status-badge status-${m.displayStatus.replace(/ /g, '_')}`;
         let actionButton = '';
 
-        // Adiciona o botão APENAS se o status for "Retornando CD" e tivermos o ID do veículo
-        if (m.displayStatus === 'retornando_cd' && m.veiculoId) {
+        // LÓGICA DE BOTÕES ATUALIZADA
+        if ((m.displayStatus === 'retornando_cd' || m.displayStatus === 'retornando_com_imobilizado') && m.veiculoId) {
             actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${m.id}', '${m.veiculoId}')" style="margin-left: auto;">Cheguei no CD</button>`;
+        } else if (m.displayStatus === 'descarregando_imobilizado' && m.veiculoId) {
+            actionButton = `<button class="btn btn-warning btn-small" onclick="finalizarDescargaImobilizado('${m.id}', '${m.veiculoId}')" style="margin-left: auto;">Finalizar Descarga Imob.</button>`;
         }
 
         html += `
@@ -4380,7 +4430,7 @@ async function renderMotoristasStatusList() {
             }
         }
 
-        // CÓDIGO CORRIGIDO
+// Nova função com a lógica do modal
 async function finalizarDescarga(itemId, expeditionId) {
     try {
         const dataFim = new Date().toISOString();
@@ -4406,21 +4456,21 @@ async function finalizarDescarga(itemId, expeditionId) {
                 status: 'entregue'
             });
 
+            // NOVO: Pergunta sobre imobilizados
+            const retornandoComImobilizado = await showYesNoModal('O motorista está retornando com imobilizados (pallets, rolltainers, etc.)?');
+            const novoStatusMotorista = retornandoComImobilizado ? 'retornando_com_imobilizado' : 'retornando_cd';
+            
             const expeditionDetails = await supabaseRequest(`expeditions?id=eq.${expeditionId}&select=motorista_id`);
             if (expeditionDetails && expeditionDetails[0] && expeditionDetails[0].motorista_id) {
                 const motoristaId = expeditionDetails[0].motorista_id;
-                await supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'retornando_cd' }, false);
-                debugLog.add(`Status do motorista ${motoristaId} alterado para 'retornando_cd'`, 'success');
+                await supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: novoStatusMotorista }, false);
+                debugLog.add(`Status do motorista ${motoristaId} alterado para '${novoStatusMotorista}'`, 'success');
 
-                // <<-- INÍCIO DA CORREÇÃO -->>
-                // 1. ATUALIZA O CACHE DE DADOS LOCAL COM O NOVO STATUS DO MOTORISTA
                 await loadSelectData();
-                // 2. REDESENHA A LISTA DE STATUS GERAL
                 await renderMotoristasStatusList();
-                // <<-- FIM DA CORREÇÃO -->>
             }
 
-            showNotification('Última entrega finalizada! Viagem concluída, retornando ao CD.', 'success');
+            showNotification(`Última entrega finalizada! Viagem concluída, status: ${getStatusLabel(novoStatusMotorista)}.`, 'success');
         } else {
             showNotification('Descarga da loja finalizada! Prossiga para a próxima entrega.', 'success');
         }
@@ -4432,7 +4482,6 @@ async function finalizarDescarga(itemId, expeditionId) {
         showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
     }
 }
-
         async function finishLoading(expeditionId) {
             try {
                 const doca = docas.find(d => d.coddoca === modalState.expectedCode);
@@ -4669,13 +4718,76 @@ async function finalizarDescarga(itemId, expeditionId) {
             }
         }
         
-        function renderHistorico(expeditions) {
-            const container = document.getElementById('historicoList');
+        // Nova função com o cálculo e exibição do Tempo de Pátio
+function renderHistorico(expeditions) {
+    const container = document.getElementById('historicoList');
 
-            if (expeditions.length === 0) {
-                container.innerHTML = '<div class="alert alert-info">Nenhum registro encontrado para os filtros selecionados.</div>';
-                return;
-            }
+    if (expeditions.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">Nenhum registro encontrado para os filtros selecionados.</div>';
+        return;
+    }
+
+    let html = '';
+    expeditions.forEach(exp => {
+        // Cálculos de tempo
+        const t_criacao = new Date(exp.data_hora);
+        const t_chegada = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
+        const t_saidaEntrega = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
+        
+        // NOVO: Cálculo do Tempo de Pátio
+        const tempoDePatio = t_chegada && t_saidaEntrega ? (t_saidaEntrega - t_chegada) / 60000 : null;
+
+        // Roteiro de entrega
+        let roteiroHtml = '<div style="margin-top:10px;">';
+        let ultimaData = t_saidaEntrega;
+        
+        if(exp.items && exp.items.length > 0) {
+             exp.items.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach((item, index) => {
+                const loja = lojas.find(l => l.id === item.loja_id);
+                const t_inicio_descarga = item.data_inicio_descarga ? new Date(item.data_inicio_descarga) : null;
+                const t_fim_descarga = item.data_fim_descarga ? new Date(item.data_fim_descarga) : null;
+
+                const tempoTransito = ultimaData && t_inicio_descarga ? (t_inicio_descarga - ultimaData) / 60000 : null;
+                const tempoEmLoja = t_fim_descarga && t_inicio_descarga ? (t_fim_descarga - t_inicio_descarga) / 60000 : null;
+                
+                roteiroHtml += `
+                    <div class="loja-descarga-card" style="padding: 10px; margin-bottom: 8px;">
+                        <strong style="font-size:0.9rem;">${index + 1}. ${loja.nome}</strong>
+                        ${tempoTransito !== null ? `<div class="time-display" style="font-size:0.7rem; padding: 4px 8px;"><strong>Trânsito:</strong> ${minutesToHHMM(tempoTransito)}</div>` : ''}
+                        ${tempoEmLoja !== null ? `<div class="time-display good" style="font-size:0.7rem; padding: 4px 8px;"><strong>Em Loja:</strong> ${minutesToHHMM(tempoEmLoja)}</div>` : ''}
+                    </div>
+                `;
+                
+                if (t_fim_descarga) ultimaData = t_fim_descarga;
+            });
+        }
+        roteiroHtml += '</div>'
+        
+        html += `
+            <div class="historico-card" style="padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div>
+                        <h3 style="font-size:1.1rem;">Viagem de ${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</h3>
+                        <p style="color: #666; font-size: 0.8rem;">
+                            <strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} | 
+                            <strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'} |
+                            <strong>Lojas:</strong> ${exp.lojas_count}
+                        </p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="status-badge status-entregue">Entregue</span>
+                        <div style="font-weight: bold; font-size:0.8rem; margin-top: 5px;">Ocupação: ${exp.ocupacao}%</div>
+                    </div>
+                </div>
+                
+                ${tempoDePatio !== null ? `<div class="time-display warning" style="margin-bottom:10px;"><strong>Tempo de Pátio:</strong> ${minutesToHHMM(tempoDePatio)}</div>` : ''}
+                
+                ${roteiroHtml}
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
 
             let html = '';
             expeditions.forEach(exp => {
@@ -5569,30 +5681,61 @@ ${expedition.observacoes || 'Nenhuma'}
             }
         }
 
-        // CÓDIGO CORRIGIDO
+ // Nova função com a lógica de status
 async function marcarRetornoCD(motoristaId, veiculoId) {
     try {
-        debugLog.add(`Marcando retorno de motorista e veículo. Motorista ID: ${motoristaId}, Veículo ID: ${veiculoId}`, 'info');
+        const motorista = motoristas.find(m => m.id === motoristaId);
+        if (!motorista) throw new Error('Motorista não encontrado!');
+
+        let novoStatusMotorista, novoStatusVeiculo, notificationMessage;
+
+        if (motorista.status === 'retornando_com_imobilizado') {
+            novoStatusMotorista = 'descarregando_imobilizado';
+            novoStatusVeiculo = 'descarregando_imobilizado'; // Atualiza o veículo também
+            notificationMessage = 'Retorno com imobilizado registrado. Inicie a descarga.';
+            debugLog.add(`Motorista ${motoristaId} chegou com imobilizado. Status alterado para 'descarregando_imobilizado'.`, 'info');
+        } else { // Status é 'retornando_cd'
+            novoStatusMotorista = 'disponivel';
+            novoStatusVeiculo = 'disponivel';
+            notificationMessage = 'Retorno ao CD registrado. Motorista e veículo disponíveis!';
+            debugLog.add(`Motorista ${motoristaId} chegou. Status alterado para 'disponivel'.`, 'info');
+        }
 
         await Promise.all([
-            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'disponivel' }, false),
-            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'disponivel' }, false)
+            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: novoStatusMotorista }, false),
+            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: novoStatusVeiculo }, false)
         ]);
+        
+        showNotification(notificationMessage, 'success');
 
-        showNotification('Retorno ao CD registrado. Motorista e veículo disponíveis!', 'success');
-
-        // 1. PRIMEIRO, ATUALIZA OS DADOS DO JAVASCRIPT BUSCANDO DO BANCO
         await loadSelectData();
-
-        // 2. AGORA SIM, REDESENHA A TELA COM OS DADOS NOVOS
-        await loadMotoristaTab();
+        await renderMotoristasStatusList(); // Usar a função que redesenha a lista
 
     } catch (error) {
         debugLog.add(`Erro ao marcar retorno ao CD: ${error.message}`, 'error');
         showNotification('Erro ao marcar retorno: ' + error.message, 'error');
     }
 }
+// ADICIONE ESTA NOVA FUNÇÃO
+async function finalizarDescargaImobilizado(motoristaId, veiculoId) {
+    try {
+        debugLog.add(`Finalizando descarga de imobilizado para motorista ${motoristaId} e veículo ${veiculoId}`, 'info');
 
+        await Promise.all([
+            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'disponivel' }, false),
+            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'disponivel' }, false)
+        ]);
+
+        showNotification('Descarga de imobilizado finalizada. Motorista e veículo disponíveis!', 'success');
+
+        await loadSelectData();
+        await renderMotoristasStatusList();
+
+    } catch (error) {
+        debugLog.add(`Erro ao finalizar descarga de imobilizado: ${error.message}`, 'error');
+        showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
+    }
+}
         // Funcionalidade de trocar filial no cabeçalho
         document.addEventListener('click', function(e) {
             if (e.target.closest('.btn-danger') && e.target.textContent.includes('Trocar Filial')) {
