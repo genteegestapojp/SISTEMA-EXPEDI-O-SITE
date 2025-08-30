@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Controle de Expedição - Filiais</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -207,6 +208,38 @@
             right: 0;
             height: 4px;
             background: var(--primary-gradient);
+        }
+
+        /* Sub-abas */
+        .sub-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(0, 212, 170, 0.2);
+        }
+
+        .sub-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            color: var(--secondary);
+            border: none;
+            background: none;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .sub-tab.active {
+            color: var(--dark);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .sub-tab-content {
+            display: none;
+        }
+
+        .sub-tab-content.active {
+            display: block;
         }
 
         /* Tabs Responsivas */
@@ -961,6 +994,18 @@
             margin-bottom: 15px;
         }
 
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 1024px) {
+            .charts-container {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+
         /* Media Queries para Tablets */
         @media (min-width: 768px) {
             body {
@@ -1547,66 +1592,130 @@
             </div>
 
             <div id="motoristas" class="tab-content">
-                <h2 style="text-align: center;">Área do Motorista</h2>
+                <div class="sub-tabs">
+                    <button class="sub-tab active" onclick="showSubTab('motoristas', 'consultaViagens')">Consulta de Viagens</button>
+                    <button class="sub-tab" onclick="showSubTab('motoristas', 'relatoriosMotoristas')">Relatórios</button>
+                </div>
 
-                <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
-                    <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
-                    <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar suas atividades</p>
+                <div id="consultaViagens" class="sub-tab-content active">
+                    <h2 style="text-align: center;">Área do Motorista</h2>
 
-                    <div style="display: flex; gap: 15px; justify-content: center; align-items: end; flex-wrap: wrap;">
-                        <div class="form-group" style="min-width: 200px; margin-bottom: 0;">
-                            <label for="placaMotorista" style="text-align: left;">Selecione a Placa do Veículo:</label>
-                            <select id="placaMotorista">
-                                <option value="">Carregando veículos...</option>
-                            </select>
+                    <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
+                        <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
+                        <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar suas atividades</p>
+
+                        <div style="display: flex; gap: 15px; justify-content: center; align-items: end; flex-wrap: wrap;">
+                            <div class="form-group" style="min-width: 200px; margin-bottom: 0;">
+                                <label for="placaMotorista" style="text-align: left;">Selecione a Placa do Veículo:</label>
+                                <select id="placaMotorista">
+                                    <option value="">Carregando veículos...</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="consultarExpedicoesPorPlaca()" style="height: 54px;">
+                                Consultar Expedições
+                            </button>
                         </div>
-                        <button class="btn btn-primary" onclick="consultarExpedicoesPorPlaca()" style="height: 54px;">
-                            Consultar Expedições
-                        </button>
+                    </div>
+
+                    <div id="resultadosMotorista" style="display: none;">
+                        <h3 style="color: var(--dark); margin-bottom: 20px;">Suas Expedições</h3>
+                        <div id="listaExpedicoesMotorista"></div>
+                    </div>
+
+                    <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
+                        <div class="alert alert-warning">
+                            <h4 style="color: #F77F00; margin-bottom: 15px;"><span class="feature-icon clipboard warning"></span>Nenhuma Expedição Encontrada</h4>
+                            <p style="color: #F77F00; margin: 0;">
+                                Não foram encontradas expedições ativas para a placa informada.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div id="resultadosMotorista" style="display: none;">
-                    <h3 style="color: var(--dark); margin-bottom: 20px;">Suas Expedições</h3>
-                    <div id="listaExpedicoesMotorista"></div>
-                </div>
-
-                <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
-                    <div class="alert alert-warning">
-                        <h4 style="color: #F77F00; margin-bottom: 15px;"><span class="feature-icon clipboard warning"></span>Nenhuma Expedição Encontrada</h4>
-                        <p style="color: #F77F00; margin: 0;">
-                            Não foram encontradas expedições ativas para a placa informada.
-                        </p>
+                <div id="relatoriosMotoristas" class="sub-tab-content">
+                    <h2 style="text-align: center;">Relatórios de Desempenho</h2>
+                    <div class="filters-section">
+                        <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros</h3>
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="relatorioMotoristaDataInicio">Data Início:</label>
+                                <input type="date" id="relatorioMotoristaDataInicio">
+                            </div>
+                            <div class="filter-group">
+                                <label for="relatorioMotoristaDataFim">Data Fim:</label>
+                                <input type="date" id="relatorioMotoristaDataFim">
+                            </div>
+                        </div>
+                        <div style="text-align: right; margin-top: 10px;">
+                             <button class="btn btn-primary btn-small" onclick="generateMotoristaReports()">Gerar Relatório</button>
+                        </div>
                     </div>
+                    
+                    <div class="stats-grid" id="motoristaReportSummary" style="display:none;">
+                        <div class="stat-card"><div class="stat-number" id="totalMotoristas">0</div><div class="stat-label">Motoristas Ativos</div></div>
+                        <div class="stat-card"><div class="stat-number" id="totalViagensMotoristas">0</div><div class="stat-label">Viagens Realizadas</div></div>
+                        <div class="stat-card"><div class="stat-number" id="totalEntregasMotoristas">0</div><div class="stat-label">Total de Entregas</div></div>
+                        <div class="stat-card"><div class="stat-number" id="produtividadeFrota">0%</div><div class="stat-label">Produtividade da Frota</div></div>
+                    </div>
+
+                    <div id="motoristaChartsContainer" class="charts-container" style="margin: 20px 0;">
+                        <canvas id="motoristasRankingChart"></canvas>
+                    </div>
+
+                    <div id="motoristaTableContainer" class="table-container"></div>
                 </div>
             </div>
             
             <div id="historico" class="tab-content">
                 <h2 style="text-align: center;">Histórico de Entregas</h2>
-                 <div class="filters-section">
-                    <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label for="historicoFiltroDataInicio">Data Início:</label>
-                            <input type="date" id="historicoFiltroDataInicio" onchange="applyHistoricoFilters()">
+                
+                <div class="sub-tabs">
+                    <button class="sub-tab active" onclick="showSubTab('historico', 'listaEntregas')">Entregas</button>
+                    <button class="sub-tab" onclick="showSubTab('historico', 'indicadores')">Indicadores</button>
+                </div>
+
+                <div id="listaEntregas" class="sub-tab-content active">
+                    <div class="filters-section">
+                        <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="historicoFiltroDataInicio">Data Início:</label>
+                                <input type="date" id="historicoFiltroDataInicio" onchange="applyHistoricoFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="historicoFiltroDataFim">Data Fim:</label>
+                                <input type="date" id="historicoFiltroDataFim" onchange="applyHistoricoFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="historicoSearchInput">Pesquisar:</label>
+                                <input type="text" id="historicoSearchInput" placeholder="Buscar por loja, doca, placa..." onkeyup="applyHistoricoFilters()">
+                            </div>
                         </div>
-                        <div class="filter-group">
-                            <label for="historicoFiltroDataFim">Data Fim:</label>
-                            <input type="date" id="historicoFiltroDataFim" onchange="applyHistoricoFilters()">
-                        </div>
-                        <div class="filter-group">
-                            <label for="historicoSearchInput">Pesquisar:</label>
-                            <input type="text" id="historicoSearchInput" placeholder="Buscar por loja, doca, placa..." onkeyup="applyHistoricoFilters()">
+                        <div style="text-align: right; margin-top: 10px;">
+                            <button class="btn btn-primary btn-small" onclick="clearHistoricoFilters()">Limpar Filtros</button>
                         </div>
                     </div>
-                    <div style="text-align: right; margin-top: 10px;">
-                        <button class="btn btn-primary btn-small" onclick="clearHistoricoFilters()">Limpar Filtros</button>
+
+                    <div id="historicoList" class="loading">
+                        <div class="spinner"></div>
+                        Carregando histórico...
                     </div>
                 </div>
 
-                <div id="historicoList" class="loading">
-                    <div class="spinner"></div>
-                    Carregando histórico...
+                <div id="indicadores" class="sub-tab-content">
+                    <h3 style="text-align:center; color: var(--dark);">Indicadores de Desempenho de Entregas</h3>
+                    <div id="indicadoresSummary" class="time-stats-grid">
+                        </div>
+                    <div class="charts-container">
+                        <div id="chartContainerLojas">
+                             <h4 style="text-align:center; color: var(--dark);">Ranking de Lojas por Tempo de Descarga</h4>
+                            <canvas id="lojasRankingChart"></canvas>
+                        </div>
+                        <div id="chartContainerEntregas">
+                            <h4 style="text-align:center; color: var(--dark);">Distribuição de Entregas</h4>
+                            <canvas id="entregasChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1923,6 +2032,8 @@
         // Variáveis globais para contadores de linhas
         let lojaLineCounter = 0;
         let editLojaLineCounter = 0;
+        let activeTimers = {}; // Para controlar os cronômetros
+        let chartInstances = {}; // Para controlar instâncias dos gráficos
 
         // Sistema de debug melhorado
         const debugLog = {
@@ -2294,8 +2405,10 @@
                 setDefaultDateFilters();
             } else if (tabName === 'motoristas') {
                 loadMotoristaTab();
+                showSubTab('motoristas', 'consultaViagens');
             } else if (tabName === 'historico') {
                 loadHistorico();
+                showSubTab('historico', 'listaEntregas');
             }
             else if (tabName === 'configuracoes') {
                 if (passwordAuthenticated) {
@@ -2307,6 +2420,25 @@
                     document.getElementById('passwordFormContainer').style.display = 'block';
                     document.getElementById('configuracoesContent').style.display = 'none';
                 }
+            }
+        }
+        
+        // Função para mostrar sub-abas
+        function showSubTab(tabName, subTabName) {
+            const tabContent = document.getElementById(tabName);
+            tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+            tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
+
+            tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`).classList.add('active');
+            tabContent.querySelector(`#${subTabName}`).classList.add('active');
+            debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
+
+            // Lógica adicional ao abrir sub-abas de relatórios
+            if (subTabName === 'indicadores') {
+                applyHistoricoFilters(); // Gera os indicadores da aba histórico
+            }
+            if (subTabName === 'relatoriosMotoristas') {
+                generateMotoristaReports(); // Gera os relatórios da aba motoristas
             }
         }
 
@@ -3681,6 +3813,10 @@
             document.getElementById('resultadosMotorista').style.display = 'block';
 
             const container = document.getElementById('listaExpedicoesMotorista');
+            
+            // Limpa timers antigos
+            Object.values(activeTimers).forEach(clearInterval);
+            activeTimers = {};
 
             let html = `
                 <div class="transport-card" style="margin-bottom: 25px;">
@@ -3774,6 +3910,25 @@
                     tempoTransito = `<div class="time-display good"><strong>Tempo de Trânsito:</strong> ${minutesToHHMM(minutosTransito)}</div>`;
                 }
 
+                // Cronômetro em tempo real
+                let timerHtml = '';
+                if (item.status_descarga === 'em_descarga' && item.data_inicio_descarga) {
+                    const timerId = `timer_${item.id}`;
+                    timerHtml = `<div id="${timerId}" class="time-display warning"><strong>Tempo em Loja:</strong> Calculando...</div>`;
+                    
+                    const startTime = new Date(item.data_inicio_descarga).getTime();
+                    if(activeTimers[timerId]) clearInterval(activeTimers[timerId]);
+
+                    activeTimers[timerId] = setInterval(() => {
+                        const now = new Date().getTime();
+                        const diff = now - startTime;
+                        const minutes = diff / 60000;
+                        const timerEl = document.getElementById(timerId);
+                        if(timerEl) timerEl.innerHTML = `<strong>Tempo em Loja:</strong> ${minutesToHHMM(minutes)}`;
+                    }, 1000);
+                }
+
+
                 if (item.status_descarga === 'pendente' && emTransito) {
                     statusDescargaLabel = 'Próxima Entrega';
                     statusColor = 'var(--primary)';
@@ -3804,9 +3959,8 @@
                             <div><strong>RollTrainers:</strong> ${item.rolltrainers}</div>
                         </div>
                         ${tempoTransito}
-                        ${item.data_inicio_descarga ? `<div class="time-display good"><strong>Início Descarga:</strong> ${new Date(item.data_inicio_descarga).toLocaleTimeString('pt-BR')}</div>` : ''}
-                        ${item.data_fim_descarga ? `<div class="time-display good"><strong>Fim Descarga:</strong> ${new Date(item.data_fim_descarga).toLocaleTimeString('pt-BR')}</div>` : ''}
-                        ${item.data_inicio_descarga && item.data_fim_descarga ? `<div class="time-display good"><strong>Tempo Total:</strong> ${minutesToHHMM((new Date(item.data_fim_descarga) - new Date(item.data_inicio_descarga)) / 60000)}</div>` : ''}
+                        ${timerHtml}
+                        ${item.data_inicio_descarga && item.data_fim_descarga ? `<div class="time-display good"><strong>Tempo Total em Loja:</strong> ${minutesToHHMM((new Date(item.data_fim_descarga) - new Date(item.data_inicio_descarga)) / 60000)}</div>` : ''}
 
                         <div style="text-align: center; margin-top: 15px;">
                             ${actionButton}
@@ -4039,6 +4193,13 @@
                     status_descarga: 'descarregado',
                     data_fim_descarga: dataFim
                 });
+                
+                // Limpa o timer
+                const timerId = `timer_${itemId}`;
+                if (activeTimers[timerId]) {
+                    clearInterval(activeTimers[timerId]);
+                    delete activeTimers[timerId];
+                }
                 
                 // Verifica se todas as lojas da expedição foram descarregadas
                 const itemsResponse = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
@@ -4311,23 +4472,11 @@
             expeditions.forEach(exp => {
                 // Cálculos de tempo
                 const t0 = new Date(exp.data_hora);
-                const t1 = exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo) : null;
-                const t2 = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
-                const t3 = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
-                const t4 = exp.data_inicio_faturamento ? new Date(exp.data_inicio_faturamento) : null;
-                const t5 = exp.data_fim_faturamento ? new Date(exp.data_fim_faturamento) : null;
                 const t6 = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
                 
-                const tempoAlocacao = t1 ? (t1 - t0) / 60000 : null;
-                const tempoEsperaDoca = t2 && t1 ? (t2 - t1) / 60000 : null;
-                const tempoCarregamento = t3 && t2 ? (t3 - t2) / 60000 : null;
-                const tempoFaturamento = t5 && t4 ? (t5 - t4) / 60000 : null;
-                
                 // Roteiro de entrega
-                let roteiroHtml = '<h4>Roteiro de Entregas</h4>';
+                let roteiroHtml = '<div style="margin-top:10px;">';
                 let ultimaData = t6;
-                let tempoTotalEmLoja = 0;
-                let tempoTotalEmTransito = 0;
                 
                 if(exp.items && exp.items.length > 0) {
                      exp.items.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach((item, index) => {
@@ -4338,27 +4487,25 @@
                         const tempoTransito = ultimaData && t_chegada ? (t_chegada - ultimaData) / 60000 : null;
                         const tempoEmLoja = t_saida && t_chegada ? (t_saida - t_chegada) / 60000 : null;
                         
-                        if(tempoEmLoja) tempoTotalEmLoja += tempoEmLoja;
-                        if(tempoTransito) tempoTotalEmTransito += tempoTransito;
-
                         roteiroHtml += `
-                            <div class="loja-descarga-card">
-                                <strong>${index + 1}. ${loja.nome}</strong>
-                                ${tempoTransito !== null ? `<div class="time-display"><strong>Trânsito:</strong> ${minutesToHHMM(tempoTransito)}</div>` : ''}
-                                ${tempoEmLoja !== null ? `<div class="time-display good"><strong>Em Loja:</strong> ${minutesToHHMM(tempoEmLoja)}</div>` : ''}
+                            <div class="loja-descarga-card" style="padding: 10px; margin-bottom: 8px;">
+                                <strong style="font-size:0.9rem;">${index + 1}. ${loja.nome}</strong>
+                                ${tempoTransito !== null ? `<div class="time-display" style="font-size:0.7rem; padding: 4px 8px;"><strong>Trânsito:</strong> ${minutesToHHMM(tempoTransito)}</div>` : ''}
+                                ${tempoEmLoja !== null ? `<div class="time-display good" style="font-size:0.7rem; padding: 4px 8px;"><strong>Em Loja:</strong> ${minutesToHHMM(tempoEmLoja)}</div>` : ''}
                             </div>
                         `;
                         
                         if (t_saida) ultimaData = t_saida;
                     });
                 }
+                roteiroHtml += '</div>'
                
                 html += `
-                    <div class="historico-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                    <div class="historico-card" style="padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                             <div>
-                                <h3>Viagem de ${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</h3>
-                                <p style="color: #666; font-size: 0.9rem;">
+                                <h3 style="font-size:1.1rem;">Viagem de ${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</h3>
+                                <p style="color: #666; font-size: 0.8rem;">
                                     <strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} | 
                                     <strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'} |
                                     <strong>Lojas:</strong> ${exp.lojas_count}
@@ -4366,20 +4513,9 @@
                             </div>
                              <div style="text-align: right;">
                                 <span class="status-badge status-entregue">Entregue</span>
-                                <div style="font-weight: bold; margin-top: 5px;">Ocupação: ${exp.ocupacao}%</div>
+                                <div style="font-weight: bold; font-size:0.8rem; margin-top: 5px;">Ocupação: ${exp.ocupacao}%</div>
                             </div>
                         </div>
-
-                        <h4>Resumo dos Tempos</h4>
-                        <div class="historico-time-grid">
-                           <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(tempoAlocacao)}</div><div class="stat-label">Alocação</div></div>
-                           <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(tempoEsperaDoca)}</div><div class="stat-label">Espera Doca</div></div>
-                           <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(tempoCarregamento)}</div><div class="stat-label">Carregamento</div></div>
-                           <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(tempoFaturamento)}</div><div class="stat-label">Faturamento</div></div>
-                           <div class="time-stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${minutesToHHMM(tempoTotalEmTransito)}</div><div class="stat-label">Total Trânsito</div></div>
-                           <div class="time-stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${minutesToHHMM(tempoTotalEmLoja)}</div><div class="stat-label">Total em Lojas</div></div>
-                        </div>
-                        
                         ${roteiroHtml}
                     </div>
                 `;
@@ -4416,8 +4552,9 @@
 
                 return true;
             });
-
+            
             renderHistorico(filteredHistorico);
+            generateHistoricoIndicators(filteredHistorico);
         }
 
         function clearHistoricoFilters(){
@@ -4426,6 +4563,7 @@
             document.getElementById('historicoSearchInput').value = '';
             filteredHistorico = [...allHistorico];
             renderHistorico(filteredHistorico);
+            generateHistoricoIndicators(filteredHistorico);
         }
 
 
@@ -5225,6 +5363,307 @@ ${expedition.observacoes || 'Nenhuma'}
                 }
             }
         }, 300000); // 5 minutos
+        
+        // --- NOVAS FUNÇÕES PARA GRÁFICOS E INDICADORES ---
+
+        function generateHistoricoIndicators(data) {
+            const summaryContainer = document.getElementById('indicadoresSummary');
+            if (data.length === 0) {
+                summaryContainer.innerHTML = '<div class="alert alert-info">Sem dados para exibir indicadores.</div>';
+                destroyChart('lojasRankingChart');
+                destroyChart('entregasChart');
+                return;
+            }
+
+            let totalViagens = data.length;
+            let totalEntregas = 0;
+            let temposDeViagem = [];
+            let temposInternos = [];
+            let temposEmTransito = [];
+            let temposEmLoja = [];
+            let lojasData = {};
+            let entregasFort = 0;
+            let entregasComper = 0;
+
+            data.forEach(exp => {
+                totalEntregas += exp.items.length;
+                
+                const t0_criacao = new Date(exp.data_hora);
+                const t6_saidaEntrega = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
+                
+                let t_ultimaDescarga = null;
+                exp.items.forEach(item => {
+                    if (item.data_fim_descarga) {
+                        const t_fim = new Date(item.data_fim_descarga);
+                        if (!t_ultimaDescarga || t_fim > t_ultimaDescarga) {
+                            t_ultimaDescarga = t_fim;
+                        }
+                    }
+                });
+
+                if (t6_saidaEntrega && t_ultimaDescarga) {
+                    temposDeViagem.push((t_ultimaDescarga - t0_criacao) / 60000);
+                }
+                
+                if(t6_saidaEntrega) {
+                    temposInternos.push((t6_saidaEntrega - t0_criacao) / 60000);
+                }
+
+                let ultimaData = t6_saidaEntrega;
+                let totalTransitoViagem = 0;
+                let totalLojaViagem = 0;
+
+                exp.items.forEach(item => {
+                    const loja = lojas.find(l => l.id === item.loja_id);
+                    const t_chegada = item.data_inicio_descarga ? new Date(item.data_inicio_descarga) : null;
+                    const t_saida = item.data_fim_descarga ? new Date(item.data_fim_descarga) : null;
+
+                    const tempoTransito = ultimaData && t_chegada ? (t_chegada - ultimaData) / 60000 : 0;
+                    const tempoEmLoja = t_saida && t_chegada ? (t_saida - t_chegada) / 60000 : 0;
+
+                    totalTransitoViagem += tempoTransito;
+                    totalLojaViagem += tempoEmLoja;
+                    
+                    if (loja) {
+                        if (!lojasData[loja.id]) {
+                            lojasData[loja.id] = { nome: `${loja.nome} (${loja.codigo})`, tempos: [], entregas: 0 };
+                        }
+                        if(tempoEmLoja > 0) lojasData[loja.id].tempos.push(tempoEmLoja);
+                        lojasData[loja.id].entregas++;
+                        
+                        if (loja.nome.toLowerCase().includes('fort')) entregasFort++;
+                        else if (loja.nome.toLowerCase().includes('comper')) entregasComper++;
+                    }
+
+                    if (t_saida) ultimaData = t_saida;
+                });
+                
+                if (totalTransitoViagem > 0) temposEmTransito.push(totalTransitoViagem);
+                if (totalLojaViagem > 0) temposEmLoja.push(totalLojaViagem);
+            });
+
+            const calcularMedia = (arr) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+            
+            summaryContainer.innerHTML = `
+                <div class="time-stat-card"><div class="stat-number">${totalViagens}</div><div class="stat-label">Total de Viagens</div></div>
+                <div class="time-stat-card"><div class="stat-number">${totalEntregas}</div><div class="stat-label">Total de Entregas</div></div>
+                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposDeViagem))}</div><div class="stat-label">Tempo Médio Total</div></div>
+                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposInternos))}</div><div class="stat-label">Tempo Médio Interno</div></div>
+                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposEmTransito))}</div><div class="stat-label">Tempo Médio em Trânsito</div></div>
+                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposEmLoja))}</div><div class="stat-label">Tempo Médio em Loja</div></div>
+            `;
+            
+            renderLojasRankingChart(lojasData);
+            renderEntregasChart(entregasFort, entregasComper);
+        }
+
+        function renderLojasRankingChart(lojasData) {
+            const ranking = Object.values(lojasData)
+                .map(loja => ({
+                    ...loja,
+                    tempoMedio: loja.tempos.length > 0 ? loja.tempos.reduce((a, b) => a + b, 0) / loja.tempos.length : 0
+                }))
+                .filter(loja => loja.tempoMedio > 0)
+                .sort((a, b) => b.tempoMedio - a.tempoMedio)
+                .slice(0, 15); // Top 15
+
+            const labels = ranking.map(l => l.nome);
+            const data = ranking.map(l => l.tempoMedio);
+            const backgroundColors = ranking.map(l => l.nome.toLowerCase().includes('fort') ? 'rgba(214, 40, 40, 0.7)' : 'rgba(0, 119, 182, 0.7)');
+            const borderColors = ranking.map(l => l.nome.toLowerCase().includes('fort') ? 'rgb(214, 40, 40)' : 'rgb(0, 119, 182)');
+
+            const chartData = {
+                labels: labels,
+                datasets: [{
+                    label: 'Tempo Médio em Loja (minutos)',
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            };
+
+            renderChart('lojasRankingChart', 'bar', chartData, {
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                             callback: function(value) {
+                                return minutesToHHMM(value);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Tempo Médio: ${minutesToHHMM(context.raw)}`;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderEntregasChart(fort, comper) {
+             const data = {
+                labels: ['Lojas Fort', 'Lojas Comper'],
+                datasets: [{
+                    label: 'Distribuição de Entregas',
+                    data: [fort, comper],
+                    backgroundColor: ['rgba(214, 40, 40, 0.7)', 'rgba(0, 119, 182, 0.7)'],
+                    borderColor: ['rgb(214, 40, 40)', 'rgb(0, 119, 182)'],
+                    borderWidth: 1
+                }]
+            };
+            renderChart('entregasChart', 'pie', data, { responsive: true });
+        }
+        
+        // --- NOVAS FUNÇÕES PARA RELATÓRIOS DE MOTORISTAS ---
+        
+        async function generateMotoristaReports() {
+            const dataInicio = document.getElementById('relatorioMotoristaDataInicio').value;
+            const dataFim = document.getElementById('relatorioMotoristaDataFim').value;
+            
+            let query = 'expeditions?status=eq.entregue&order=data_hora.desc';
+            if(dataInicio) query += `&data_hora=gte.${dataInicio}`;
+            if(dataFim) query += `&data_hora=lte.${new Date(dataFim).toISOString().split('T')[0] + 'T23:59:59.999Z'}`;
+            
+            const expeditions = await supabaseRequest(query);
+            const items = await supabaseRequest('expedition_items');
+            
+            const data = expeditions.map(exp => ({
+                ...exp,
+                items: items.filter(i => i.expedition_id === exp.id)
+            }));
+            
+            if (data.length === 0) {
+                document.getElementById('motoristaReportSummary').style.display = 'none';
+                document.getElementById('motoristaTableContainer').innerHTML = '<div class="alert alert-info">Sem dados para o período selecionado.</div>';
+                destroyChart('motoristasRankingChart');
+                return;
+            }
+            
+            document.getElementById('motoristaReportSummary').style.display = 'grid';
+
+            let motoristasData = {};
+            let totalViagens = data.length;
+            let totalEntregas = 0;
+            
+            data.forEach(exp => {
+                if (!exp.motorista_id) return;
+                
+                const motorista = motoristas.find(m => m.id === exp.motorista_id);
+                if (!motorista) return;
+
+                if (!motoristasData[motorista.id]) {
+                    motoristasData[motorista.id] = {
+                        nome: motorista.nome,
+                        viagens: 0,
+                        entregas: 0,
+                        temposDeslocamento: [],
+                        temposEmLoja: []
+                    };
+                }
+                
+                motoristasData[motorista.id].viagens++;
+                motoristasData[motorista.id].entregas += exp.items.length;
+                totalEntregas += exp.items.length;
+                
+                let ultimaData = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
+                exp.items.forEach(item => {
+                    const t_chegada = item.data_inicio_descarga ? new Date(item.data_inicio_descarga) : null;
+                    const t_saida = item.data_fim_descarga ? new Date(item.data_fim_descarga) : null;
+                    
+                    if (ultimaData && t_chegada) motoristasData[motorista.id].temposDeslocamento.push((t_chegada - ultimaData) / 60000);
+                    if (t_chegada && t_saida) motoristasData[motorista.id].temposEmLoja.push((t_saida - t_chegada) / 60000);
+                    if (t_saida) ultimaData = t_saida;
+                });
+            });
+            
+            const calcularMedia = (arr) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+            const motoristasArray = Object.values(motoristasData);
+
+            // Resumo
+            document.getElementById('totalMotoristas').textContent = motoristasArray.length;
+            document.getElementById('totalViagensMotoristas').textContent = totalViagens;
+            document.getElementById('totalEntregasMotoristas').textContent = totalEntregas;
+            const veiculosUtilizados = new Set(data.map(exp => exp.veiculo_id)).size;
+            document.getElementById('produtividadeFrota').textContent = veiculosUtilizados > 0 ? (totalEntregas / veiculosUtilizados).toFixed(1) : 0;
+            
+            // Gráfico
+            const rankingMotoristas = motoristasArray.sort((a, b) => b.entregas - a.entregas).slice(0, 10);
+            renderMotoristasRankingChart(rankingMotoristas);
+            
+            // Tabela
+            renderMotoristaTable(motoristasArray, calcularMedia);
+        }
+
+        function renderMotoristasRankingChart(ranking) {
+            const chartData = {
+                labels: ranking.map(m => m.nome),
+                datasets: [{
+                    label: 'Total de Entregas',
+                    data: ranking.map(m => m.entregas),
+                    backgroundColor: 'rgba(0, 212, 170, 0.7)',
+                    borderColor: 'rgb(0, 212, 170)',
+                    borderWidth: 1
+                }]
+            };
+            renderChart('motoristasRankingChart', 'bar', chartData, {
+                 scales: { y: { beginAtZero: true } }
+            });
+        }
+        
+        function renderMotoristaTable(data, avgFn) {
+            let tableHtml = `
+                <table id="motoristaReportTable">
+                    <thead>
+                        <tr>
+                            <th>Motorista</th>
+                            <th>Viagens</th>
+                            <th>Entregas</th>
+                            <th>Média Deslocamento</th>
+                            <th>Média em Loja</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(m => `
+                            <tr>
+                                <td>${m.nome}</td>
+                                <td>${m.viagens}</td>
+                                <td>${m.entregas}</td>
+                                <td>${minutesToHHMM(avgFn(m.temposDeslocamento))}</td>
+                                <td>${minutesToHHMM(avgFn(m.temposEmLoja))}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('motoristaTableContainer').innerHTML = tableHtml;
+        }
+
+        function renderChart(canvasId, type, data, options) {
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+        }
+        
+        function destroyChart(canvasId) {
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+                delete chartInstances[canvasId];
+            }
+        }
+
 
         console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.3 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
