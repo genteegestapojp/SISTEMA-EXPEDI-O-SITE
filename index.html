@@ -3796,23 +3796,44 @@
         }
 
         // Deletar expedição
-        async function deleteExpedition(expeditionId) {
-            if (!await showConfirmationModal('Tem certeza que deseja excluir esta expedição?')) {
-                return;
-            }
-            
-            try {
-                debugLog.add(`Deletando expedição ${expeditionId}`, 'info');
-                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE', null, false);
-                debugLog.add('Expedição excluída com sucesso', 'success');
-                showNotification('Expedição excluída com sucesso!', 'success');
-                loadAcompanhamento();
-            } catch (error) {
-                console.error('Erro ao excluir expedição:', error);
-                debugLog.add(`Erro ao excluir: ${error.message}`, 'error');
-                showNotification('Erro: ' + error.message, 'error');
-            }
-        }
+        // Deletar expedição 
+         async function deleteExpedition(expeditionId) { 
+             if (!await showConfirmationModal('Tem certeza que deseja excluir esta expedição? Os veículos e motoristas alocados serão liberados.')) { 
+                 return; 
+             } 
+              
+             try { 
+                 debugLog.add(`Iniciando exclusão da expedição ${expeditionId}`, 'info'); 
+
+                 // 1. ANTES DE DELETAR, PEGAMOS OS DADOS DA EXPEDIÇÃO PARA SABER QUAL VEÍCULO/MOTORISTA LIBERAR
+                 const expeditionResponse = await supabaseRequest(`expeditions?id=eq.${expeditionId}&select=veiculo_id,motorista_id`, 'GET', null, false);
+                 const expedition = expeditionResponse[0];
+                 
+                 // 2. AGORA SIM, DELETAMOS A EXPEDIÇÃO
+                 await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE', null, false); 
+                 debugLog.add('Expedição excluída com sucesso do banco de dados', 'success'); 
+                 
+                 // 3. LIBERAMOS O MOTORISTA E O VEÍCULO (SE EXISTIREM)
+                 if (expedition && expedition.veiculo_id && expedition.motorista_id) {
+                     debugLog.add(`Liberando veículo ${expedition.veiculo_id} e motorista ${expedition.motorista_id}`, 'info');
+                     await Promise.all([
+                         supabaseRequest(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, false),
+                         supabaseRequest(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, false)
+                     ]);
+                     debugLog.add('Veículo e motorista liberados com sucesso', 'success');
+                 }
+                 
+                 showNotification('Expedição excluída e recursos liberados!', 'success'); 
+                 // Recarrega os dados de todas as abas relevantes
+                 await loadSelectData();
+                 loadAcompanhamento(); 
+                 loadTransportList();
+             } catch (error) { 
+                 console.error('Erro ao excluir expedição:', error); 
+                 debugLog.add(`Erro ao excluir: ${error.message}`, 'error'); 
+                 showNotification('Erro: ' + error.message, 'error'); 
+             } 
+         }
 
         // --- Funções da Aba do Motorista ---
         async function loadMotoristaTab() {
