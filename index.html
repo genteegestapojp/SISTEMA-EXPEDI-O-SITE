@@ -6,6 +6,7 @@
     <title>Sistema de Controle de Expedição - Filiais</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
         * {
             margin: 0;
@@ -692,6 +693,33 @@
             gap: 12px;
             margin-top: 16px;
         }
+        
+        .availability-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            background: rgba(144, 224, 239, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 212, 170, 0.2);
+        }
+        
+        .availability-stat {
+            text-align: center;
+        }
+        
+        .availability-stat .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .availability-stat .stat-label {
+            font-size: 0.85rem;
+            color: var(--secondary);
+        }
+
 
         /* Alertas e Notificações */
         .alert {
@@ -1550,6 +1578,16 @@
 
             <div id="transporte" class="tab-content">
                 <h2 style="text-align: center;">Alocação de Transporte</h2>
+                <div id="availabilityInfo" class="availability-info">
+                    <div class="availability-stat">
+                        <div class="stat-number" id="availableVehicles">0</div>
+                        <div class="stat-label">Veículos Disponíveis</div>
+                    </div>
+                    <div class="availability-stat">
+                        <div class="stat-number" id="availableDrivers">0</div>
+                        <div class="stat-label">Motoristas Disponíveis</div>
+                    </div>
+                </div>
                 <div id="transporteList" class="loading">
                     <div class="spinner"></div>
                     Carregando expedições pendentes...
@@ -1578,10 +1616,6 @@
                     <div class="time-stat-card">
                         <div class="stat-number" id="tempoMedioFaturamento">-</div>
                         <div class="stat-label">Tempo Médio<br>Faturamento (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="metaFaturamento">-</div>
-                        <div class="stat-label">Meta Diária<br>Faturamento</div>
                     </div>
                 </div>
 
@@ -1704,6 +1738,19 @@
 
                 <div id="indicadores" class="sub-tab-content">
                     <h3 style="text-align:center; color: var(--dark);">Indicadores de Desempenho de Entregas</h3>
+                     <div class="filters-section">
+                        <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros dos Indicadores</h3>
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="indicadoresFiltroDataInicio">Data Início:</label>
+                                <input type="date" id="indicadoresFiltroDataInicio" onchange="applyHistoricoFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="indicadoresFiltroDataFim">Data Fim:</label>
+                                <input type="date" id="indicadoresFiltroDataFim" onchange="applyHistoricoFilters()">
+                            </div>
+                        </div>
+                    </div>
                     <div id="indicadoresSummary" class="time-stats-grid">
                         </div>
                     <div class="charts-container">
@@ -2832,7 +2879,7 @@
                 }
 
                 if (chegadaEm) {
-                    const minutosAteChegada = Math.round((chegadaEm - criadaEm) / 60000);
+                    const minutosAteChegada = Math.round((chegadaEm - criadoEm) / 60000);
                     tempoAteChegada = minutesToHHMM(minutosAteChegada);
                 }
 
@@ -3125,11 +3172,6 @@
             } else {
                 document.getElementById('tempoMedioFaturamento').textContent = '-';
             }
-
-            // Meta diária (exemplo: 80% das expedições faturadas)
-            const totalExpedicoes = expeditions.length;
-            const metaDiaria = totalExpedicoes > 0 ? Math.round((stats.faturadas / totalExpedicoes) * 100) : 0;
-            document.getElementById('metaFaturamento').textContent = `${metaDiaria}%`;
         }
 
         // Iniciar faturamento
@@ -3219,6 +3261,11 @@
 
                 const expeditions = await supabaseRequest("expeditions?status=in.(pendente,aguardando_veiculo,em_carregamento)&order=data_hora.desc");
                 const items = await supabaseRequest('expedition_items');
+                
+                const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
+                const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
+                document.getElementById('availableVehicles').textContent = availableVehicles;
+                document.getElementById('availableDrivers').textContent = availableDrivers;
 
                 const expeditionsWithItems = expeditions.map(exp => {
                     const expItems = items.filter(item => item.expedition_id === exp.id);
@@ -3330,7 +3377,7 @@
                                 <label>Veículo:</label>
                                 <select id="veiculo_${exp.id}">
                                     <option value="">Selecione um veículo</option>
-                                    ${veiculosList.map(v => {
+                                    ${veiculosList.filter(v => v.status === 'disponivel').map(v => {
                                         const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
                                         const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
                                         return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
@@ -3343,7 +3390,7 @@
                                 <label>Motorista:</label>
                                 <select id="motorista_${exp.id}">
                                     <option value="">Selecione um motorista</option>
-                                    ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
+                                    ${motoristasList.filter(m => m.status === 'disponivel').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
                                 </select>
                             </div>
                             <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar Agora</button>
@@ -4524,8 +4571,8 @@
         }
         
         function applyHistoricoFilters() {
-             const dataInicio = document.getElementById('historicoFiltroDataInicio').value;
-            const dataFim = document.getElementById('historicoFiltroDataFim').value;
+            const dataInicio = document.getElementById('historicoFiltroDataInicio').value || document.getElementById('indicadoresFiltroDataInicio').value;
+            const dataFim = document.getElementById('historicoFiltroDataFim').value || document.getElementById('indicadoresFiltroDataFim').value;
             const searchTerm = document.getElementById('historicoSearchInput').value.toLowerCase();
 
             filteredHistorico = allHistorico.filter(exp => {
@@ -4561,6 +4608,8 @@
             document.getElementById('historicoFiltroDataInicio').value = '';
             document.getElementById('historicoFiltroDataFim').value = '';
             document.getElementById('historicoSearchInput').value = '';
+            document.getElementById('indicadoresFiltroDataInicio').value = '';
+            document.getElementById('indicadoresFiltroDataFim').value = '';
             filteredHistorico = [...allHistorico];
             renderHistorico(filteredHistorico);
             generateHistoricoIndicators(filteredHistorico);
@@ -4781,6 +4830,14 @@ DESENVOLVIDO POR: JP Tech Solutions
                             <option value="PERLOG">PERLOG</option>
                         </select>
                     </div>
+                     <div class="form-group">
+                        <label for="add_status">Status:</label>
+                        <select id="add_status" required>
+                            <option value="disponivel">Disponível</option>
+                            <option value="em_uso">Em Uso</option>
+                            <option value="manutencao">Manutenção</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label>Filial:</label>
                         <input type="text" value="${selectedFilial.nome}" disabled style="background: #f5f5f5;">
@@ -4796,6 +4853,14 @@ DESENVOLVIDO POR: JP Tech Solutions
                     <div class="form-group">
                         <label for="add_produtivo">Produtivo (Matrícula):</label>
                         <input type="text" id="add_produtivo" required placeholder="Ex: 45676912345">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_status">Status:</label>
+                        <select id="add_status" required>
+                            <option value="disponivel">Disponível</option>
+                            <option value="em_viagem">Em Viagem</option>
+                            <option value="folga">Folga</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Filial:</label>
@@ -4934,6 +4999,8 @@ DESENVOLVIDO POR: JP Tech Solutions
             const modelo = document.getElementById('add_modelo').value.trim();
             const capacidadePallets = parseInt(document.getElementById('add_capacidade_pallets').value);
             const tipo = document.getElementById('add_tipo').value.trim();
+            const status = document.getElementById('add_status').value.trim();
+
 
             if (!placa || !modelo || !capacidadePallets || !tipo) {
                 showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
@@ -4957,7 +5024,8 @@ DESENVOLVIDO POR: JP Tech Solutions
                     placa: placa,
                     modelo: modelo,
                     capacidade_pallets: capacidadePallets,
-                    tipo: tipo
+                    tipo: tipo,
+                    status: status
                     // filial será adicionada automaticamente pela função supabaseRequest
                 };
 
@@ -4982,6 +5050,7 @@ DESENVOLVIDO POR: JP Tech Solutions
         async function saveMotorista() {
             const nome = document.getElementById('add_nome').value.trim();
             const produtivo = document.getElementById('add_produtivo').value.trim();
+            const status = document.getElementById('add_status').value.trim();
 
             if (!nome || !produtivo) {
                 showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
@@ -4993,7 +5062,8 @@ DESENVOLVIDO POR: JP Tech Solutions
 
                 const motoristaData = {
                     nome: nome,
-                    PRODUTIVO: produtivo
+                    PRODUTIVO: produtivo,
+                    status: status
                     // filial será adicionada automaticamente pela função supabaseRequest
                 };
 
@@ -5313,6 +5383,8 @@ ${expedition.observacoes || 'Nenhuma'}
             debugLog.add('Sistema de Controle de Expedição Multi-Filial iniciado', 'info');
             debugLog.add(`URL: ${SUPABASE_URL}`, 'info');
             debugLog.add('Funcionalidades ativas: Sistema Multi-Filial, Timestamps automáticos, Controle de doca, Análise de tempos, Filtros por data, Validação QR Code', 'info');
+            
+            Chart.register(ChartDataLabels);
 
             const connected = await checkConnection();
             if (connected) {
@@ -5485,21 +5557,27 @@ ${expedition.observacoes || 'Nenhuma'}
 
             renderChart('lojasRankingChart', 'bar', chartData, {
                 indexAxis: 'y',
+                plugins: {
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: (value) => minutesToHHMM(value),
+                        color: '#333'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Tempo Médio: ${minutesToHHMM(context.raw)}`;
+                            }
+                        }
+                    }
+                },
                 scales: {
                     x: {
                         beginAtZero: true,
                         ticks: {
                              callback: function(value) {
                                 return minutesToHHMM(value);
-                            }
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `Tempo Médio: ${minutesToHHMM(context.raw)}`;
                             }
                         }
                     }
@@ -5518,7 +5596,7 @@ ${expedition.observacoes || 'Nenhuma'}
                     borderWidth: 1
                 }]
             };
-            renderChart('entregasChart', 'pie', data, { responsive: true });
+            renderChart('entregasChart', 'pie', data, { responsive: true, plugins: { datalabels: { formatter: (value, ctx) => { let sum = 0; let dataArr = ctx.chart.data.datasets[0].data; dataArr.map(data => { sum += data; }); let percentage = (value*100 / sum).toFixed(2)+"%"; return `${value} (${percentage})`; }, color: '#fff', } } });
         }
         
         // --- NOVAS FUNÇÕES PARA RELATÓRIOS DE MOTORISTAS ---
@@ -5613,7 +5691,15 @@ ${expedition.observacoes || 'Nenhuma'}
                 }]
             };
             renderChart('motoristasRankingChart', 'bar', chartData, {
-                 scales: { y: { beginAtZero: true } }
+                 scales: { y: { beginAtZero: true } },
+                 plugins: {
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        formatter: (value) => value,
+                        color: '#333'
+                    }
+                }
             });
         }
         
