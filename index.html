@@ -2454,33 +2454,31 @@
 
             debugLog.add(`Navegando para aba: ${tabName}`, 'info');
 
-            if (tabName === 'transporte') {
-                loadTransportList();
-            } else if (tabName === 'faturamento') {
-                loadFaturamento();
-            } else if (tabName === 'acompanhamento') {
-                loadAcompanhamento();
-                setDefaultDateFilters();
-            } else if (tabName === 'motoristas') {
+           if (tabName === 'transporte') {
+                loadTransportList();
+            } else if (tabName === 'faturamento') {
+                loadFaturamento();
+            } else if (tabName === 'acompanhamento') {
+                loadAcompanhamento();
+                setDefaultDateFilters();
+            } else if (tabName === 'motoristas') {
                 await loadMotoristaTab(); // Garante que a lista de status seja carregada
                 showSubTab('motoristas', 'consultaViagens'); // Abre a sub-aba padrão
-            } else if (tabName === 'historico') {
-                loadHistorico();
-                showSubTab('historico', 'listaEntregas');
-            }
-            else if (tabName === 'configuracoes') {
-                if (passwordAuthenticated) {
-                    document.getElementById('passwordFormContainer').style.display = 'none';
-                    document.getElementById('configuracoesContent').style.display = 'block';
-                    updateSystemStatus();
-                    updateDebugStats();
-                } else {
-                    document.getElementById('passwordFormContainer').style.display = 'block';
-                    document.getElementById('configuracoesContent').style.display = 'none';
-                }
-            }
-        }
-    }  
+            } else if (tabName === 'historico') {
+                loadHistorico();
+                showSubTab('historico', 'listaEntregas');
+            } else if (tabName === 'configuracoes') { // <- Chave '}' removida daqui e movida para o final
+                if (passwordAuthenticated) {
+                    document.getElementById('passwordFormContainer').style.display = 'none';
+                    document.getElementById('configuracoesContent').style.display = 'block';
+                    updateSystemStatus();
+                    updateDebugStats();
+                } else {
+                    document.getElementById('passwordFormContainer').style.display = 'block';
+                    document.getElementById('configuracoesContent').style.display = 'none';
+                }
+            }
+        }
         // Função para mostrar sub-abas
         function showSubTab(tabName, subTabName) {
             const tabContent = document.getElementById(tabName);
