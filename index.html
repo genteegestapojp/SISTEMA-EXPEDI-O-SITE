@@ -1656,8 +1656,7 @@
                 </div>
 
                 <div id="consultaViagens" class="sub-tab-content active">
-                     <div id="motoristasStatusList" style="margin-bottom: 30px;">
-                                    </div>
+                     
                     <h2 style="text-align: center;">Área do Motorista</h2>
 
                     <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
@@ -1691,7 +1690,8 @@
                         </div>
                     </div>
                 </div>
-
+<div id="motoristasStatusList" style="margin-bottom: 30px;">
+                                    </div>
                 <div id="relatoriosMotoristas" class="sub-tab-content">
                     <h2 style="text-align: center;">Relatórios de Desempenho</h2>
                     <div class="filters-section">
@@ -3849,69 +3849,82 @@ function renderAcompanhamentoTableWithItems(expeditions) {
             // NOVO: Renderiza a lista de status dos motoristas sempre que a aba é aberta
             await renderMotoristasStatusList();
         }
-        // NOVO: Função para renderizar a lista de motoristas e seus status
-        async function renderMotoristasStatusList() {
-            const container = document.getElementById('motoristasStatusList');
-            if (!container) return;
-            
-            let html = `
-                <div class="stats-grid">
-                    <div class="stat-card" style="background: var(--primary-gradient);">
-                        <div class="stat-number">${motoristas.filter(m => m.status === 'disponivel').length}</div>
-                        <div class="stat-label">Motoristas Disponíveis</div>
-                    </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
-                        <div class="stat-number">${motoristas.filter(m => m.status === 'em_viagem').length}</div>
-                        <div class="stat-label">Em Viagem / Carregamento</div>
-                    </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #023047);">
-                        <div class="stat-number">${motoristas.filter(m => m.status === 'retornando_cd').length}</div>
-                        <div class="stat-label">Retornando ao CD</div>
-                    </div>
-                </div>
-                
-                <h3 style="margin-top: 30px; margin-bottom: 15px; text-align: center; color: var(--dark);">Status dos Motoristas</h3>
-            `;
-            
-            // Organiza a lista, mostrando quem está retornando primeiro
-            const motoristasOrdered = motoristas.sort((a, b) => {
-                if (a.status === 'retornando_cd' && b.status !== 'retornando_cd') return -1;
-                if (a.status !== 'retornando_cd' && b.status === 'retornando_cd') return 1;
-                if (a.status === 'em_viagem' && b.status !== 'em_viagem') return -1;
-                if (a.status !== 'em_viagem' && b.status === 'em_viagem') return 1;
-                return a.nome.localeCompare(b.nome);
-            });
-            
-            motoristasOrdered.forEach(async m => {
-                let statusLabel = getStatusLabel(m.status);
-                let statusClass = `status-badge status-${m.status}`;
-                let actionButton = '';
-                
-                if (m.status === 'retornando_cd') {
-                    // Busca o veiculo_id da última expedição entregue por este motorista
-                    const lastExpedition = await supabaseRequest(`expeditions?motorista_id=eq.${m.id}&status=eq.entregue&order=data_hora.desc&limit=1`, 'GET');
-                    const veiculoId = lastExpedition && lastExpedition[0] ? lastExpedition[0].veiculo_id : null;
-                    
-                    if (veiculoId) {
-                        actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${m.id}', '${veiculoId}')" style="margin-left: auto;">Cheguei no CD!</button>`;
-                    }
-                }
+       // SUBSTITUA A FUNÇÃO ANTIGA POR ESTA:
+async function renderMotoristasStatusList() {
+    const container = document.getElementById('motoristasStatusList');
+    if (!container) return;
 
-                // SUBSTITUA PELO SEGUINTE CÓDIGO:
-html += `
-    <div class="motorista-status-item">
-        <div>
-            <strong style="font-size: 1rem; color: var(--dark);">${m.nome}</strong>
+    // Pega todas as expedições que não foram entregues ou canceladas
+    const activeExpeditions = await supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`);
+
+    // Pega as últimas viagens finalizadas para saber quem está retornando
+    const returningExpeditions = await supabaseRequest(`expeditions?status=eq.entregue&order=data_hora.desc&limit=50`);
+
+    let html = `
+        <div class="stats-grid">
+            <div class="stat-card" style="background: var(--primary-gradient);">
+                <div class="stat-number">${motoristas.filter(m => m.status === 'disponivel').length}</div>
+                <div class="stat-label">Motoristas Disponíveis</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+                <div class="stat-number">${motoristas.filter(m => m.status === 'em_viagem').length}</div>
+                <div class="stat-label">Em Viagem / Carregamento</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #023047);">
+                <div class="stat-number">${motoristas.filter(m => m.status === 'retornando_cd').length}</div>
+                <div class="stat-label">Retornando ao CD</div>
+            </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="${statusClass}">${statusLabel}</span>
-            ${actionButton}
-        </div>
-    </div>
-`;
-            });
-            container.innerHTML = html;
-        }
+
+        <h3 style="margin-top: 30px; margin-bottom: 15px; text-align: center; color: var(--dark);">Status dos Motoristas</h3>
+    `;
+
+    const motoristasComStatus = motoristas.map(m => {
+        const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
+        if (activeExp) {
+            // Se o motorista está em uma viagem ativa, o status dele é o da carga.
+            return { ...m, displayStatus: activeExp.status, veiculoId: activeExp.veiculo_id };
+        }
+        if (m.status === 'retornando_cd') {
+            // Se o status no banco é 'retornando_cd', achamos a última viagem para pegar a placa.
+            const lastExp = returningExpeditions.find(exp => exp.motorista_id === m.id);
+            return { ...m, displayStatus: 'retornando_cd', veiculoId: lastExp ? lastExp.veiculo_id : null };
+        }
+        // Caso contrário, usamos o status padrão do motorista.
+        return { ...m, displayStatus: m.status, veiculoId: null };
+    });
+
+    // Ordena a lista para melhor visualização
+    motoristasComStatus.sort((a, b) => {
+        const order = { 'em_carregamento': 1, 'saiu_para_entrega': 2, 'aguardando_faturamento': 3, 'retornando_cd': 4, 'disponivel': 5, 'folga': 6 };
+        return (order[a.displayStatus] || 99) - (order[b.displayStatus] || 99) || a.nome.localeCompare(b.nome);
+    });
+
+    motoristasComStatus.forEach(m => {
+        let statusLabel = getStatusLabel(m.displayStatus);
+        let statusClass = `status-badge status-${m.displayStatus.replace(/ /g, '_')}`;
+        let actionButton = '';
+
+        // Adiciona o botão APENAS se o status for "Retornando CD" e tivermos o ID do veículo
+        if (m.displayStatus === 'retornando_cd' && m.veiculoId) {
+            actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${m.id}', '${m.veiculoId}')" style="margin-left: auto;">Cheguei no CD</button>`;
+        }
+
+        html += `
+            <div class="motorista-status-item">
+                <div>
+                    <strong style="font-size: 1rem; color: var(--dark);">${m.nome}</strong>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="${statusClass}">${statusLabel}</span>
+                    ${actionButton}
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
 
         async function consultarExpedicoesPorPlaca() {
             const placaSelect = document.getElementById('placaMotorista');
