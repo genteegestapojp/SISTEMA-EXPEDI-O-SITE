@@ -655,7 +655,11 @@
             background: linear-gradient(135deg, #495057, #6C757D);
             color: white;
         }
-
+/* Adicione esta regra junto com as outras de status */
+        .status-retornando_cd {
+            background: linear-gradient(135deg, #0077B6, #00B4D8); /* Um gradiente azul para diferenciar */
+            color: white;
+        }
         /* Transport Cards Responsivos */
         .transport-card, .historico-card {
             background: rgba(255, 255, 255, 0.95);
@@ -1632,6 +1636,339 @@
                 </div>
 
                 <div id="consultaViagens" class="sub-tab-content active">
+                    <div id="consultaViagens" class="sub-tab-content active">
+    <div class="transport-card" style="margin-bottom: 30px;">
+        <h3 style="text-align: center; color: var(--dark);">Status dos Motoristas</h3>
+        <div id="motoristaStatusList" class="loading">
+            <div class="spinner"></div>
+            Carregando status...
+        </div>
+    </div>
+    <h2 style="text-align: center;">Área do Motorista</h2>
+
+    ```
+
+### Passo 3: Adicionar o Novo Status aos Menus (HTML)
+
+Precisamos que o status "Retornando CD" apareça como uma opção nos filtros e no modal de edição.
+
+**1. No Modal de Edição:**
+
+* **Onde:** Dentro do `div` com `id="editExpeditionModal"`.
+* **Ação:** Adicione a nova `<option>` na lista do `select` com `id="editStatus"`.
+
+    ```html
+    <select id="editStatus">
+        <option value="pendente">Pendente</option>
+        <option value="aguardando_veiculo">Aguardando Veículo</option>
+        <option value="em_carregamento">Em Carregamento</option>
+        <option value="carregado">Carregado</option>
+        <option value="aguardando_faturamento">Aguardando Faturamento</option>
+        <option value="faturamento_iniciado">Faturando</option>
+        <option value="faturado">Faturado</option>
+        <option value="saiu_para_entrega">Saiu para Entrega</option>
+        <option value="retornando_cd">Retornando para o CD</option>
+        <option value="entregue">Entregue</option>
+        <option value="cancelado">Cancelado</option>
+    </select>
+    ```
+
+**2. Nos Filtros da Aba Acompanhamento:**
+
+* **Onde:** Dentro do `div` com `id="acompanhamento"`.
+* **Ação:** Adicione a nova `<option>` na lista do `select` com `id="filtroStatus"`.
+
+    ```html
+    <select id="filtroStatus" onchange="applyFilters()">
+        <option value="">Todos os Status</option>
+        ...
+        <option value="faturado">Faturado</option>
+        <option value="saiu_para_entrega">Saiu para Entrega</option>
+        <option value="retornando_cd">Retornando para o CD</option>
+        <option value="cancelado">Cancelado</option>
+    </select>
+    ```
+
+---
+
+### Passo 4: Implementar a Lógica (JavaScript)
+
+Esta é a parte principal. Todas as alterações a seguir são dentro da tag `<script>` no final do seu arquivo.
+
+**1. Atualize a Função `getStatusLabel`:**
+
+* **Onde:** Encontre a função `getStatusLabel(status)`.
+* **Ação:** Adicione a tradução para o novo status.
+
+    ```javascript
+    function getStatusLabel(status) {
+        const labels = {
+            // ... (outros status)
+            'saiu_para_entrega': 'Saiu p/ Entrega',
+            'retornando_cd': 'Retornando CD', // ADICIONE ESTA LINHA
+            'entregue': 'Entregue',
+            'cancelado': 'Cancelado'
+        };
+        return labels[status] || status;
+    }
+    ```
+
+**2. Atualize a Função `updateStats`:**
+
+* **Onde:** Encontre a função `updateStats(data)`.
+* **Ação:** Inclua `retornando_cd` na contagem de expedições "Em Andamento".
+
+    ```javascript
+    function updateStats(data) {
+        const stats = {
+            total: data.length,
+            pendentes: data.filter(d => d.status === 'pendente').length,
+            emAndamento: data.filter(d => 
+                ['aguardando_veiculo', 'em_carregamento', 'carregado', 'faturamento_iniciado', 'faturado', 'saiu_para_entrega', 'retornando_cd'].includes(d.status) // ADICIONE 'retornando_cd' AQUI
+            ).length
+        };
+        // ... (resto da função)
+    }
+    ```
+
+**3. Atualize a Função `consultarExpedicoesPorPlaca`:**
+
+* **Onde:** Encontre a função `async function consultarExpedicoesPorPlaca()`.
+* **Ação:** Modifique a consulta para incluir o novo status `retornando_cd` e garantir que os IDs do veículo e motorista sejam retornados.
+
+    ```javascript
+    async function consultarExpedicoesPorPlaca() {
+        // ... (início da função)
+        try {
+            // ALTERE A LINHA ABAIXO para incluir o novo status
+            const expeditions = await supabaseRequest("expeditions?status=in.(aguardando_veiculo,em_carregamento,saiu_para_entrega,retornando_cd)&order=data_hora.desc");
+            const items = await supabaseRequest('expedition_items');
+    
+            const expeditionsWithItems = expeditions
+                .map(exp => {
+                    // ... (código de mapeamento existente)
+                    const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
+                    const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
+    
+                    return {
+                        // ... (propriedades existentes)
+                        veiculo_placa: veiculo ? veiculo.placa : null,
+                        veiculo_modelo: veiculo ? veiculo.modelo : null,
+                        motorista_nome: motorista ? motorista.nome : null,
+                        // ADICIONE AS 3 LINHAS ABAIXO para garantir que os IDs estejam disponíveis
+                        veiculo_id: veiculo ? veiculo.id : null, 
+                        motorista_id: motorista ? motorista.id : null
+                    };
+                })
+                .filter(exp => exp.veiculo_placa && exp.veiculo_placa === placa);
+    
+            // ... (resto da função)
+    
+        } catch (error) {
+            // ... (bloco catch)
+        }
+    }
+    ```
+
+**4. Atualize a Função `renderExpedicoesMotorista`:**
+
+* **Onde:** Encontre a função `function renderExpedicoesMotorista(expeditions, placa)`.
+* **Ação:** Adicione um novo bloco `else if` para renderizar o painel de retorno quando o status for `retornando_cd`.
+
+    ```javascript
+    function renderExpedicoesMotorista(expeditions, placa) {
+        // ... (início da função)
+    
+        expeditions.forEach((exp, index) => {
+            // ... (código existente para criar o card)
+    
+            if (exp.status === 'saiu_para_entrega') {
+                html += renderPainelDescarga(exp);
+            
+            // ADICIONE TODO O BLOCO 'ELSE IF' ABAIXO
+            } else if (exp.status === 'retornando_cd') {
+                html += `
+                    <div style="background: rgba(0, 119, 182, 0.1); padding: 20px; border-radius: 10px; text-align: center;">
+                        <h4 style="color: var(--accent); margin-bottom: 15px;">
+                            <span class="feature-icon truck accent"></span>
+                            Retornando para o Centro de Distribuição
+                        </h4>
+                        <p style="color: var(--dark); margin-bottom: 20px;">
+                            Todas as entregas foram finalizadas. Por favor, confirme sua chegada ao CD para encerrar a viagem.
+                        </p>
+                        <button class="btn btn-success" onclick="confirmarRetornoCD('${exp.id}', '${exp.veiculo_id}', '${exp.motorista_id}')">
+                            Confirmar Retorno ao CD
+                        </button>
+                    </div>
+                `;
+            } else {
+                // ... (código original para 'aguardando_veiculo' e 'em_carregamento')
+            }
+    
+            html += `</div>`;
+        });
+    
+        container.innerHTML = html;
+    }
+    ```
+
+**5. Modifique a Função `finalizarDescarga`:**
+
+* **Onde:** Encontre a função `async function finalizarDescarga(itemId, expeditionId)`.
+* **Ação:** Altere a lógica para, ao invés de finalizar a viagem, mudar o status para `retornando_cd`.
+
+    ```javascript
+    async function finalizarDescarga(itemId, expeditionId) {
+        try {
+            // ... (código existente no início)
+    
+            const todosDescarregados = itemsResponse.every(item => item.status_descarga === 'descarregado');
+    
+            if (todosDescarregados) {
+                debugLog.add(`Todas as lojas da expedição ${expeditionId} foram descarregadas. Iniciando retorno...`, 'info');
+                
+                // SUBSTITUA A LINHA 'status: 'entregue'' PELA LINHA ABAIXO
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    status: 'retornando_cd' 
+                });
+                showNotification('Última entrega finalizada! Viagem em rota de retorno.', 'success');
+            } else {
+                 showNotification('Descarga da loja finalizada! Prossiga para a próxima entrega.', 'success');
+            }
+            
+            consultarExpedicoesPorPlaca();
+    
+        } catch(error) {
+            // ... (bloco catch)
+        }
+    }
+    ```
+
+**6. Adicione as Novas Funções:**
+
+* **Onde:** No final da sua tag `<script>`, antes da última linha `console.log(...)`.
+* **Ação:** Cole as duas novas funções abaixo. Uma para confirmar o retorno e outra para carregar a lista de status.
+
+    ```javascript
+    // ======================================================
+    // ==============  NOVAS FUNÇÕES INICIAM AQUI ==============
+    // ======================================================
+    
+    // Função para confirmar o retorno ao CD
+    async function confirmarRetornoCD(expeditionId, veiculoId, motoristaId) {
+        if (!await showConfirmationModal('Confirma que você retornou ao CD? Esta ação finalizará a viagem e liberará seu status.')) {
+            return;
+        }
+    
+        try {
+            debugLog.add(`Confirmando retorno ao CD para expedição ${expeditionId}`, 'info');
+            const dataRetorno = new Date().toISOString();
+    
+            const updatePromises = [];
+    
+            // 1. Finaliza a expedição como "Entregue"
+            updatePromises.push(
+                supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', { 
+                    status: 'entregue', 
+                    data_retorno_cd: dataRetorno // Opcional: registrar data de retorno
+                })
+            );
+            // 2. Libera o veículo
+            if (veiculoId && veiculoId !== 'null') {
+                updatePromises.push(
+                    supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'disponivel' }, false)
+                );
+            }
+            // 3. Libera o motorista
+            if (motoristaId && motoristaId !== 'null') {
+                updatePromises.push(
+                    supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'disponivel' }, false)
+                );
+            }
+    
+            await Promise.all(updatePromises);
+    
+            showNotification('Retorno ao CD confirmado! Viagem finalizada com sucesso.', 'success');
+            debugLog.add(`Viagem ${expeditionId} finalizada. Motorista e veículo liberados.`, 'success');
+            
+            // Recarrega os dados da aba
+            consultarExpedicoesPorPlaca();
+            loadMotoristaStatusList();
+    
+        } catch (error) {
+            debugLog.add(`Erro ao confirmar retorno: ${error.message}`, 'error');
+            showNotification('Erro ao confirmar o retorno: ' + error.message, 'error');
+        }
+    }
+    
+    // Função para carregar a lista de status dos motoristas
+    async function loadMotoristaStatusList() {
+        const container = document.getElementById('motoristaStatusList');
+        if (!container) return;
+        
+        container.innerHTML = '<div class="spinner"></div> Carregando status...';
+    
+        try {
+            debugLog.add(`Carregando status dos motoristas para filial: ${selectedFilial.nome}`, 'info');
+            const motoristasDaFilial = await supabaseRequest('motoristas?order=nome');
+    
+            if (!motoristasDaFilial || motoristasDaFilial.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">Nenhum motorista cadastrado para esta filial.</div>';
+                return;
+            }
+    
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">';
+            
+            motoristasDaFilial.forEach(motorista => {
+                let statusLabel = motorista.status || 'indefinido';
+                statusLabel = statusLabel.replace('_', ' '); // formatação básica
+                
+                let statusColor = 'var(--dark)';
+                if (statusLabel.toLowerCase() === 'disponivel') {
+                    statusColor = 'var(--primary)';
+                } else if (statusLabel.toLowerCase() === 'ocupado' || statusLabel.toLowerCase() === 'em viagem') {
+                    statusColor = '#F77F00';
+                }
+
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 8px 12px; border-radius: 6px; border-left: 4px solid ${statusColor};">
+                        <span style="font-weight: 600; color: var(--dark);">${motorista.nome}</span>
+                        <span class="status-badge" style="background-color: ${statusColor}; color: white; text-transform: capitalize;">${statusLabel}</span>
+                    </div>
+                `;
+            });
+    
+            html += '</div>';
+            container.innerHTML = html;
+    
+        } catch (error) {
+            debugLog.add(`Erro ao carregar status dos motoristas: ${error.message}`, 'error');
+            container.innerHTML = `<div class="alert alert-error">Erro ao carregar status: ${error.message}</div>`;
+        }
+    }
+    // ======================================================
+    // ================  FIM DAS NOVAS FUNÇÕES ================
+    // ======================================================
+    ```
+
+**7. Chame a Nova Função `loadMotoristaStatusList`:**
+
+* **Onde:** Encontre a função `async function showTab(tabName)`.
+* **Ação:** Adicione a chamada `loadMotoristaStatusList()` dentro do `if` que verifica a aba "motoristas".
+
+    ```javascript
+    async function showTab(tabName) {
+        // ...
+        } else if (tabName === 'motoristas') {
+            loadMotoristaTab();
+            loadMotoristaStatusList(); // ADICIONE ESTA LINHA
+            showSubTab('motoristas', 'consultaViagens');
+        } 
+        // ...
+    }
+    ```
+
+Após realizar todas essas alterações, seu sistema estará pronto com o novo fluxo de retorno! Salve o arquivo e teste o processo completo.
                     <h2 style="text-align: center;">Área do Motorista</h2>
 
                     <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
