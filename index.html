@@ -2879,134 +2879,135 @@
         }
 
         // Renderizar tabela com nova estrutura (expedições + itens)
-        function renderAcompanhamentoTableWithItems(expeditions) {
-            const tbody = document.getElementById('acompanhamentoBody');
+       // Renderizar tabela com nova estrutura (expedições + itens)
+function renderAcompanhamentoTableWithItems(expeditions) {
+    const tbody = document.getElementById('acompanhamentoBody');
 
-            if (expeditions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="12" class="loading">Nenhuma expedição encontrada</td></tr>';
-                return;
-            }
+    if (expeditions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" class="loading">Nenhuma expedição encontrada</td></tr>';
+        return;
+    }
 
-            const html = expeditions.map(exp => {
-                const temVeiculo = exp.veiculo_id || exp.veiculo_placa;
-                const veiculo = temVeiculo ? veiculos.find(v => v.id === exp.veiculo_id) : null;
+    const html = expeditions.map(exp => {
+        const temVeiculo = exp.veiculo_id || exp.veiculo_placa;
+        const veiculo = temVeiculo ? veiculos.find(v => v.id === exp.veiculo_id) : null;
 
-                const criadaEm = new Date(exp.data_hora || exp.created_at);
-                const alocadaEm = exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo) : null;
-                const chegadaEm = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
-                const saidaEm = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
+        const criadaEm = new Date(exp.data_hora || exp.created_at);
+        const alocadaEm = exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo) : null;
+        const chegadaEm = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
+        const saidaEm = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
 
-                let tempoAlocar = '-';
-                let tempoAteChegada = '-';
-                let tempoCarregamento = '-';
+        let tempoAlocar = '-';
+        let tempoAteChegada = '-';
+        let tempoCarregamento = '-';
 
-                if (alocadaEm) {
-                    const minutosAlocar = Math.round((alocadaEm - criadaEm) / 60000);
-                    tempoAlocar = minutesToHHMM(minutosAlocar);
-                }
+        if (alocadaEm) {
+            const minutosAlocar = Math.round((alocadaEm - criadaEm) / 60000);
+            tempoAlocar = minutesToHHMM(minutosAlocar);
+        }
 
-                if (chegadaEm) {
-                    const minutosAteChegada = Math.round((chegadaEm - criadoEm) / 60000);
-                    tempoAteChegada = minutesToHHMM(minutosAteChegada);
-                }
+        if (chegadaEm) {
+            const minutosAteChegada = Math.round((chegadaEm - criadaEm) / 60000);
+            tempoAteChegada = minutesToHHMM(minutosAteChegada);
+        }
 
-                if (chegadaEm && saidaEm) {
-                    const minutosCarregamento = Math.round((saidaEm - chegadaEm) / 60000);
-                    tempoCarregamento = minutesToHHMM(minutosCarregamento);
-                }
+        if (chegadaEm && saidaEm) {
+            const minutosCarregamento = Math.round((saidaEm - chegadaEm) / 60000);
+            tempoCarregamento = minutesToHHMM(minutosCarregamento);
+        }
 
-                const analiseTempos = `
-                    <div style="font-size: 0.7rem; line-height: 1.2;">
-                        <div style="margin-bottom: 2px;"><strong>Aloc:</strong> ${tempoAlocar}</div>
-                        <div style="margin-bottom: 2px;"><strong>Total:</strong> ${tempoAteChegada}</div>
-                        <div><strong>Carreg:</strong> ${tempoCarregamento}</div>
+        const analiseTempos = `
+            <div style="font-size: 0.7rem; line-height: 1.2;">
+                <div style="margin-bottom: 2px;"><strong>Aloc:</strong> ${tempoAlocar}</div>
+                <div style="margin-bottom: 2px;"><strong>Total:</strong> ${tempoAteChegada}</div>
+                <div><strong>Carreg:</strong> ${tempoCarregamento}</div>
+            </div>
+        `;
+
+        let lojasECargasHTML = '';
+        if (exp.items && exp.items.length > 0) {
+            lojasECargasHTML = `
+                <div style="font-weight: 600; color: var(--primary); margin-bottom: 5px;">
+                    ${exp.lojas_count || 0} loja${(exp.lojas_count || 0) !== 1 ? 's' : ''}
+                </div>
+                <div class="carga-details">
+            `;
+
+            exp.items.forEach(item => {
+                const loja = lojas.find(l => l.id === item.loja_id);
+                const lojaDisplay = loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'N/A';
+                lojasECargasHTML += `
+                    <div class="carga-item">
+                        <strong>${lojaDisplay}</strong><br>
+                        ${item.pallets || 0}P + ${item.rolltrainers || 0}R
                     </div>
                 `;
+            });
 
-                let lojasECargasHTML = '';
-                if (exp.items && exp.items.length > 0) {
-                    lojasECargasHTML = `
-                        <div style="font-weight: 600; color: var(--primary); margin-bottom: 5px;">
-                            ${exp.lojas_count || 0} loja${(exp.lojas_count || 0) !== 1 ? 's' : ''}
-                        </div>
-                        <div class="carga-details">
-                    `;
-
-                    exp.items.forEach(item => {
-                        const loja = lojas.find(l => l.id === item.loja_id);
-                        const lojaDisplay = loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'N/A';
-                        lojasECargasHTML += `
-                            <div class="carga-item">
-                                <strong>${lojaDisplay}</strong><br>
-                                ${item.pallets || 0}P + ${item.rolltrainers || 0}R
-                            </div>
-                        `;
-                    });
-
-                    lojasECargasHTML += '</div>';
-                } else {
-                    lojasECargasHTML = '<div style="color: #999; font-style: italic;">Sem itens</div>';
-                }
-
-                let ocupacaoHtml = '-';
-                let veiculoInfoHtml = '-';
-                if (veiculo) {
-                    const cargaTotal = (exp.total_pallets || 0) + ((exp.total_rolltrainers || 0) / 2);
-                    const ocupacaoPerc = veiculo.capacidade_pallets > 0 ? Math.round((cargaTotal / veiculo.capacidade_pallets) * 100) : 0;
-                    
-                    let barColor = 'progress-green';
-                    if (ocupacaoPerc >= 80 && ocupacaoPerc <= 100) {
-                        barColor = 'progress-orange';
-                    } else if (ocupacaoPerc > 100) {
-                        barColor = 'progress-red';
-                    }
-
-                    veiculoInfoHtml = `
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 1.2rem; color: #495057;">🚚</span>
-                            <div style="font-size: 0.8rem; font-weight: 600; color: #495057;">
-                                ${exp.veiculo_placa || 'N/A'}
-                            </div>
-                        </div>
-                    `;
-
-                    ocupacaoHtml = `
-                        <div class="progress-container" style="text-align: center;">
-                            <div class="progress-bar ${barColor}" style="width: ${Math.min(100, ocupacaoPerc)}%;">
-                                <span>${ocupacaoPerc}%</span>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                return `
-                    <tr>
-                        <td style="font-size: 0.85rem; padding: 10px 6px;">
-                            <div style="font-weight: 600;">${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</div>
-                            <div style="font-size: 0.75rem; color: #666;">${new Date(exp.data_hora).toLocaleTimeString('pt-BR')}</div>
-                        </td>
-                        <td style="font-size: 0.8rem; padding: 10px 6px;">
-                            ${lojasECargasHTML}
-                        </td>
-                        <td style="text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--primary);">${exp.total_pallets || 0}</td>
-                        <td style="text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--secondary);">${exp.total_rolltrainers || 0}</td>
-                        <td style="font-size: 0.85rem; font-weight: 600;">${exp.doca_nome || '-'}</td>
-                        <td style="font-size: 0.85rem; font-weight: 600;">${exp.lider_nome || '-'}</td>
-                        <td><span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></td>
-                        <td>${veiculoInfoHtml}</td>
-                        <td>${ocupacaoHtml}</td>
-                        <td style="font-size: 0.85rem; font-weight: 600;">${exp.motorista_nome || '-'}</td>
-                        <td style="font-size: 0.75rem; padding: 8px 6px;">${analiseTempos}</td>
-                        <td style="padding: 8px 6px; text-align: center;">
-                            <button class="btn btn-warning btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openEditModal('${exp.id}')">EDITAR</button>
-                            <button class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteExpedition('${exp.id}')">DEL</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-
-            tbody.innerHTML = html;
+            lojasECargasHTML += '</div>';
+        } else {
+            lojasECargasHTML = '<div style="color: #999; font-style: italic;">Sem itens</div>';
         }
+
+        let ocupacaoHtml = '-';
+        let veiculoInfoHtml = '-';
+        if (veiculo) {
+            const cargaTotal = (exp.total_pallets || 0) + ((exp.total_rolltrainers || 0) / 2);
+            const ocupacaoPerc = veiculo.capacidade_pallets > 0 ? Math.round((cargaTotal / veiculo.capacidade_pallets) * 100) : 0;
+
+            let barColor = 'progress-green';
+            if (ocupacaoPerc >= 80 && ocupacaoPerc <= 100) {
+                barColor = 'progress-orange';
+            } else if (ocupacaoPerc > 100) {
+                barColor = 'progress-red';
+            }
+
+            veiculoInfoHtml = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.2rem; color: #495057;">🚚</span>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #495057;">
+                        ${exp.veiculo_placa || 'N/A'}
+                    </div>
+                </div>
+            `;
+
+            ocupacaoHtml = `
+                <div class="progress-container" style="text-align: center;">
+                    <div class="progress-bar ${barColor}" style="width: ${Math.min(100, ocupacaoPerc)}%;">
+                        <span>${ocupacaoPerc}%</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <tr>
+                <td style="font-size: 0.85rem; padding: 10px 6px;">
+                    <div style="font-weight: 600;">${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</div>
+                    <div style="font-size: 0.75rem; color: #666;">${new Date(exp.data_hora).toLocaleTimeString('pt-BR')}</div>
+                </td>
+                <td style="font-size: 0.8rem; padding: 10px 6px;">
+                    ${lojasECargasHTML}
+                </td>
+                <td style="text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--primary);">${exp.total_pallets || 0}</td>
+                <td style="text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--secondary);">${exp.total_rolltrainers || 0}</td>
+                <td style="font-size: 0.85rem; font-weight: 600;">${exp.doca_nome || '-'}</td>
+                <td style="font-size: 0.85rem; font-weight: 600;">${exp.lider_nome || '-'}</td>
+                <td><span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></td>
+                <td>${veiculoInfoHtml}</td>
+                <td>${ocupacaoHtml}</td>
+                <td style="font-size: 0.85rem; font-weight: 600;">${exp.motorista_nome || '-'}</td>
+                <td style="font-size: 0.75rem; padding: 8px 6px;">${analiseTempos}</td>
+                <td style="padding: 8px 6px; text-align: center;">
+                    <button class="btn btn-warning btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openEditModal('${exp.id}')">EDITAR</button>
+                    <button class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteExpedition('${exp.id}')">DEL</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    tbody.innerHTML = html;
+}
 
         // Atualizar estatísticas gerais (incluindo novos status)
         function updateStats(data) {
