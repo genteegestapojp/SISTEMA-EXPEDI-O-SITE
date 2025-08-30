@@ -1633,7 +1633,73 @@
 
                 <div id="consultaViagens" class="sub-tab-content active">
                     <h2 style="text-align: center;">Área do Motorista</h2>
+<div id="consultaViagens" class="sub-tab-content active">
+    <h2 style="text-align: center;">Área do Motorista</h2>
 
+    <div id="painelStatusMotoristas" class="transport-card" style="margin-bottom: 30px;">
+        <h3 style="color: var(--dark); margin-bottom: 15px; text-align: center;">
+            <span class="feature-icon user dark"></span> Status da Equipe
+        </h3>
+        <div id="listaStatusMotoristas" class="loading">
+            <div class="spinner"></div>
+            Carregando status...
+        </div>
+    </div>
+    <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
+        ```
+
+Agora, crie a função Javascript para carregar e renderizar essa lista.
+
+**Onde Inserir:** Adicione esta nova função `loadMotoristaStatusList` no final da seção de scripts, antes da última tag `</script>`.
+
+```javascript
+// --- INSERIR NOVA FUNÇÃO AQUI ---
+
+async function loadMotoristaStatusList() {
+    if (!selectedFilial) return;
+
+    const container = document.getElementById('listaStatusMotoristas');
+    container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando status...</div>`;
+
+    try {
+        // Busca todos os motoristas da filial
+        const todosMotoristas = await supabaseRequest('motoristas?order=nome');
+
+        if (!todosMotoristas || todosMotoristas.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">Nenhum motorista cadastrado para esta filial.</div>';
+            return;
+        }
+
+        const statusMap = {
+            'disponivel': { label: 'Disponível', icon: '✅', color: '#00D4AA' },
+            'em_viagem': { label: 'Em Viagem', icon: '🚚', color: '#0077B6' },
+            'retornando_cd': { label: 'Retornando CD', icon: '🔄', color: '#F77F00' },
+            'folga': { label: 'Folga', icon: '🛌', color: '#6C757D' },
+        };
+
+        let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+        
+        todosMotoristas.forEach(motorista => {
+            const statusInfo = statusMap[motorista.status] || { label: motorista.status, icon: '❔', color: '#333' };
+            html += `
+                <div style="background: rgba(255,255,255,0.9); padding: 12px; border-radius: 8px; border-left: 5px solid ${statusInfo.color}; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <div style="font-weight: 600; color: var(--dark); margin-bottom: 5px;">${motorista.nome}</div>
+                    <div style="font-size: 0.9rem; color: ${statusInfo.color}; font-weight: 500;">
+                        ${statusInfo.icon} ${statusInfo.label}
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+        debugLog.add('Painel de status dos motoristas atualizado.', 'success');
+
+    } catch (error) {
+        container.innerHTML = `<div class="alert alert-error">Erro ao carregar status: ${error.message}</div>`;
+        debugLog.add(`Erro ao carregar painel de status: ${error.message}`, 'error');
+    }
+}
                     <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
                         <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
                         <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar suas atividades</p>
@@ -2451,8 +2517,9 @@
                 loadAcompanhamento();
                 setDefaultDateFilters();
             } else if (tabName === 'motoristas') {
-                loadMotoristaTab();
-                showSubTab('motoristas', 'consultaViagens');
+    loadMotoristaTab();
+    loadMotoristaStatusList(); // <-- ADICIONAR ESTA LINHA
+    showSubTab('motoristas', 'consultaViagens');
             } else if (tabName === 'historico') {
                 loadHistorico();
                 showSubTab('historico', 'listaEntregas');
@@ -2994,22 +3061,25 @@
             document.getElementById('emAndamentoCount').textContent = stats.emAndamento;
         }
 
-        // Obter label do status
-        function getStatusLabel(status) {
-            const labels = {
-                'pendente': 'Pendente',
-                'aguardando_veiculo': 'Aguard. Veículo',
-                'em_carregamento': 'Carregando',
-                'carregado': 'Carregado',
-                'aguardando_faturamento': 'Aguard. Faturamento',
-                'faturamento_iniciado': 'Faturando',
-                'faturado': 'Faturado',
-                'saiu_para_entrega': 'Saiu p/ Entrega',
-                'entregue': 'Entregue',
-                'cancelado': 'Cancelado'
-            };
-            return labels[status] || status;
-        }
+       // CÓDIGO A SER MODIFICADO (função getStatusLabel)
+
+function getStatusLabel(status) {
+    const labels = {
+        'pendente': 'Pendente',
+        'aguardando_veiculo': 'Aguard. Veículo',
+        'em_carregamento': 'Carregando',
+        'carregado': 'Carregado',
+        'aguardando_faturamento': 'Aguard. Faturamento',
+        'faturamento_iniciado': 'Faturando',
+        'faturado': 'Faturado',
+        'saiu_para_entrega': 'Saiu p/ Entrega',
+        'entregue': 'Entregue',
+        'cancelado': 'Cancelado',
+        // --- INSERIR CÓDIGO ABAIXO ---
+        'retornando_cd': 'Retornando CD' 
+    };
+    return labels[status] || status;
+}
 
         // --- Funções da Aba de Faturamento ---
         async function loadFaturamento() {
@@ -3808,7 +3878,7 @@
 
             try {
                 // ALTERAÇÃO: Incluído status 'saiu_para_entrega'
-                const expeditions = await supabaseRequest("expeditions?status=in.(aguardando_veiculo,em_carregamento,saiu_para_entrega)&order=data_hora.desc");
+                const expeditions = await supabaseRequest("expeditions?status=in.(aguardando_veiculo,em_carregamento,saiu_para_entrega,retornando_cd)&order=data_hora.desc");
                 const items = await supabaseRequest('expedition_items');
 
                 const expeditionsWithItems = expeditions
@@ -3907,6 +3977,37 @@
                         corStatus = '#F77F00';
                         actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar', '${exp.id}', '${coddocaValue}')">Finalizar Carregamento</button>`;
                     }
+                    // CÓDIGO A SER MODIFICADO (dentro de renderExpedicoesMotorista)
+
+// Encontre este trecho:
+if (exp.status === 'saiu_para_entrega') {
+    // NOVO: Renderização para o processo de descarga
+    html += renderPainelDescarga(exp);
+} else {
+// ... lógica existente ...
+}
+
+// E adicione o novo bloco "else if" ANTES do "else", assim:
+if (exp.status === 'saiu_para_entrega') {
+    html += renderPainelDescarga(exp);
+} else if (exp.status === 'retornando_cd') { // --- INSERIR ESTE BLOCO ---
+    html += `
+        <div style="background: rgba(0, 119, 182, 0.1); padding: 20px; border-radius: 10px; text-align: center;">
+            <h4 style="color: var(--accent); margin-bottom: 15px;">
+                <span class="feature-icon truck accent" style="font-size: 1.5rem;"></span>
+                Viagem finalizada, retornando para o CD.
+            </h4>
+            <p style="color: var(--dark); margin-bottom: 20px;">
+                Clique no botão abaixo assim que chegar no pátio do CD para finalizar a viagem e ficar disponível.
+            </p>
+            <button class="btn btn-primary" onclick="registrarRetornoCD('${exp.id}')">
+                Registrar Retorno ao CD
+            </button>
+        </div>
+    `;
+} else {
+    // ... lógica existente para carregamento ...
+}
 
                     html += `
                         <div style="background: rgba(144, 224, 239, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
@@ -4231,45 +4332,96 @@
             }
         }
 
-        async function finalizarDescarga(itemId, expeditionId) {
-            try {
-                const dataFim = new Date().toISOString();
-                debugLog.add(`Finalizando descarga do item ${itemId}`, 'info');
-                
-                await supabaseRequest(`expedition_items?id=eq.${itemId}`, 'PATCH', {
-                    status_descarga: 'descarregado',
-                    data_fim_descarga: dataFim
-                });
-                
-                // Limpa o timer
-                const timerId = `timer_${itemId}`;
-                if (activeTimers[timerId]) {
-                    clearInterval(activeTimers[timerId]);
-                    delete activeTimers[timerId];
-                }
-                
-                // Verifica se todas as lojas da expedição foram descarregadas
-                const itemsResponse = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
-                const todosDescarregados = itemsResponse.every(item => item.status_descarga === 'descarregado');
+       // SUBSTITUIR A FUNÇÃO finalizarDescarga INTEIRA
 
-                if (todosDescarregados) {
-                    debugLog.add(`Todas as lojas da expedição ${expeditionId} foram descarregadas. Finalizando...`, 'info');
-                    await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-                        status: 'entregue'
-                    });
-                     showNotification('Última entrega finalizada! Viagem concluída.', 'success');
-                } else {
-                     showNotification('Descarga da loja finalizada! Prossiga para a próxima entrega.', 'success');
-                }
-                
-                consultarExpedicoesPorPlaca();
+async function finalizarDescarga(itemId, expeditionId) {
+    try {
+        const dataFim = new Date().toISOString();
+        debugLog.add(`Finalizando descarga do item ${itemId}`, 'info');
 
-            } catch(error) {
-                debugLog.add(`Erro ao finalizar descarga: ${error.message}`, 'error');
-                showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
-            }
+        await supabaseRequest(`expedition_items?id=eq.${itemId}`, 'PATCH', {
+            status_descarga: 'descarregado',
+            data_fim_descarga: dataFim
+        });
+
+        const timerId = `timer_${itemId}`;
+        if (activeTimers[timerId]) {
+            clearInterval(activeTimers[timerId]);
+            delete activeTimers[timerId];
         }
 
+        const itemsResponse = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
+        const todosDescarregados = itemsResponse.every(item => item.status_descarga === 'descarregado');
+
+        if (todosDescarregados) {
+            debugLog.add(`Todas as entregas finalizadas para expedição ${expeditionId}. Mudando status para Retornando CD.`, 'info');
+            
+            // Pega os dados da expedição para atualizar o motorista
+            const expeditionResponse = await supabaseRequest(`expeditions?id=eq.${expeditionId}&select=motorista_id`, 'GET', null, false);
+            const motoristaId = expeditionResponse[0]?.motorista_id;
+
+            // Atualiza a expedição e o motorista
+            await Promise.all([
+                supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    status: 'retornando_cd' 
+                }),
+                motoristaId ? supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', {
+                    status: 'retornando_cd'
+                }, false) : Promise.resolve()
+            ]);
+
+            showNotification('Última entrega finalizada! Status atualizado para "Retornando para o CD".', 'success');
+        } else {
+            showNotification('Descarga da loja finalizada! Prossiga para a próxima entrega.', 'success');
+        }
+
+        consultarExpedicoesPorPlaca();
+
+    } catch (error) {
+        debugLog.add(`Erro ao finalizar descarga: ${error.message}`, 'error');
+        showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
+    }
+}
+        // --- INSERIR NOVA FUNÇÃO AQUI ---
+
+async function registrarRetornoCD(expeditionId) {
+    if (!await showConfirmationModal('Confirma que você retornou ao CD? Esta ação finalizará a viagem e liberará você e o veículo.')) {
+        return;
+    }
+
+    try {
+        debugLog.add(`Registrando retorno ao CD para expedição ${expeditionId}`, 'info');
+
+        // Pega os dados da expedição
+        const expeditionResponse = await supabaseRequest(`expeditions?id=eq.${expeditionId}&select=veiculo_id,motorista_id`, 'GET', null, false);
+        if (!expeditionResponse || expeditionResponse.length === 0) {
+            throw new Error('Expedição não encontrada para finalizar.');
+        }
+        const { veiculo_id, motorista_id } = expeditionResponse[0];
+
+        // Atualiza todos os status em paralelo
+        await Promise.all([
+            supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                status: 'entregue', // Finaliza a expedição
+                data_retorno_cd: new Date().toISOString()
+            }),
+            veiculo_id ? supabaseRequest(`veiculos?id=eq.${veiculo_id}`, 'PATCH', { status: 'disponivel' }, false) : Promise.resolve(),
+            motorista_id ? supabaseRequest(`motoristas?id=eq.${motorista_id}`, 'PATCH', { status: 'disponivel' }, false) : Promise.resolve()
+        ]);
+
+        showNotification('Retorno ao CD registrado com sucesso! Você está disponível.', 'success');
+        debugLog.add(`Viagem ${expeditionId} finalizada. Veículo ${veiculo_id} e motorista ${motorista_id} estão disponíveis.`, 'success');
+
+        // Recarrega a lista do motorista (que agora estará vazia)
+        consultarExpedicoesPorPlaca();
+        // Recarrega a lista de status gerais
+        loadMotoristaStatusList();
+
+    } catch (error) {
+        debugLog.add(`Erro ao registrar retorno ao CD: ${error.message}`, 'error');
+        showNotification('Erro ao registrar retorno: ' + error.message, 'error');
+    }
+}
 
         async function finishLoading(expeditionId) {
             try {
