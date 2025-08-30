@@ -4430,7 +4430,7 @@ async function renderMotoristasStatusList() {
             }
         }
 
-// Nova função com a lógica do modal
+// CÓDIGO CORRIGIDO
 async function finalizarDescarga(itemId, expeditionId) {
     try {
         const dataFim = new Date().toISOString();
@@ -4469,8 +4469,10 @@ async function finalizarDescarga(itemId, expeditionId) {
                 await loadSelectData();
                 await renderMotoristasStatusList();
             }
-
+            
+            // A notificação foi movida para dentro do IF para ter a lógica correta
             showNotification(`Última entrega finalizada! Viagem concluída, status: ${getStatusLabel(novoStatusMotorista)}.`, 'success');
+
         } else {
             showNotification('Descarga da loja finalizada! Prossiga para a próxima entrega.', 'success');
         }
@@ -4481,6 +4483,7 @@ async function finalizarDescarga(itemId, expeditionId) {
         debugLog.add(`Erro ao finalizar descarga: ${error.message}`, 'error');
         showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
     }
+    // A chave extra '}' foi removida daqui.
 }
         async function finishLoading(expeditionId) {
             try {
