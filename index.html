@@ -1431,7 +1431,6 @@
                 <button class="tab" onclick="showTab('faturamento')">Faturamento</button>
                 <button class="tab" onclick="showTab('motoristas')">Motoristas</button>
                 <button class="tab" onclick="showTab('acompanhamento')">Acompanhamento</button>
-                <button class="tab" onclick="showTab('historico')">Histórico</button>
                 <button class="tab" onclick="showTab('configuracoes')">Configurações</button>
                 <button class="btn btn-danger btn-small" onclick="trocarFilial()" style="margin: 8px; font-size: 0.75rem; padding: 8px 12px; text-transform: none;">Trocar Filial</button>
             </div>
@@ -1683,36 +1682,6 @@
                 </div>
             </div>
 
-            <div id="historico" class="tab-content">
-                <h2 style="text-align: center;">Histórico de Entregas</h2>
-                <!-- Filters section -->
-                <div class="filters-section">
-                    <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros de Histórico</h3>
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label for="historyFiltroDataInicio">Data Início:</label>
-                            <input type="date" id="historyFiltroDataInicio" onchange="applyHistoryFilters()">
-                        </div>
-                        <div class="filter-group">
-                            <label for="historyFiltroDataFim">Data Fim:</label>
-                            <input type="date" id="historyFiltroDataFim" onchange="applyHistoryFilters()">
-                        </div>
-                        <div class="filter-group">
-                            <label for="historySearchInput">Pesquisar:</label>
-                            <input type="text" id="historySearchInput" placeholder="Buscar por placa, motorista..." onkeyup="applyHistoryFilters()">
-                        </div>
-                    </div>
-                    <div style="text-align: right; margin-top: 10px;">
-                        <button class="btn btn-primary btn-small" onclick="clearHistoryFilters()">Limpar Filtros</button>
-                    </div>
-                </div>
-                <!-- History list container -->
-                <div id="historyList" class="loading">
-                    <div class="spinner"></div>
-                    Carregando histórico...
-                </div>
-            </div>
-
             <div id="configuracoes" class="tab-content">
                 <h2 style="text-align: center;">Acesso Restrito</h2>
                 <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
@@ -1806,7 +1775,7 @@
     <!-- Rodapé com Informações do Desenvolvedor -->
     <div style="background: var(--dark); color: white; text-align: center; padding: 16px; margin-top: 20px; border-radius: 8px;">
         <div style="font-size: 0.9rem; margin-bottom: 8px;">
-            <strong>Sistema de Controle de Expedição v4.3 - Histórico de Performance</strong>
+            <strong>Sistema de Controle de Expedição v4.2 - Roteirização com QR Code</strong>
         </div>
         <div style="font-size: 0.8rem; opacity: 0.8; line-height: 1.4;">
             Desenvolvido por <strong>Juliano Patrick</strong><br>
@@ -1814,7 +1783,7 @@
             <span class="feature-icon email white"></span>julianocorrea@bateforte.com.br
         </div>
         <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 8px;">
-            Sistema Multi-Filial • Controle de Tempos • Validação QR Code • Roteirização • Histórico
+            Sistema Multi-Filial • Controle de Tempos • Validação QR Code • Interface Responsiva • Roteirização com QR Code
         </div>
     </div>
 
@@ -1908,12 +1877,9 @@
         let motoristas = [];
         let filiais = [];
         
-        // Variáveis de dados
+        // Variáveis para filtros
         let allExpeditions = [];
         let filteredExpeditions = [];
-        let allHistory = [];
-        let filteredHistory = [];
-
         let passwordAuthenticated = false;
 
         // Estado da filial selecionada
@@ -1959,7 +1925,8 @@
         async function supabaseRequest(endpoint, method = 'GET', data = null, includeFilialFilter = true) {
             let url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
             
-            if (includeFilialFilter && selectedFilial && method === 'GET' && !endpoint.includes('filial=')) {
+            // Adicionar filtro de filial automaticamente quando necessário
+            if (includeFilialFilter && selectedFilial && method === 'GET') {
                 const separator = endpoint.includes('?') ? '&' : '?';
                 url += `${separator}filial=eq.${selectedFilial.nome}`;
             }
@@ -1970,6 +1937,7 @@
             };
 
             if (data) {
+                // Se está criando/atualizando e há filial selecionada, adicionar filial aos dados
                 if (includeFilialFilter && selectedFilial && (method === 'POST' || method === 'PATCH')) {
                     if (Array.isArray(data)) {
                         data = data.map(item => ({ ...item, filial: selectedFilial.nome }));
@@ -1978,9 +1946,7 @@
                     }
                 }
                 options.body = JSON.stringify(data);
-                if (method !== 'DELETE') {
-                    options.headers.Prefer = 'return=representation';
-                }
+                options.headers.Prefer = 'return=representation';
             }
 
             debugLog.add(`Fazendo requisição: ${method} ${url}`, 'request');
@@ -1995,10 +1961,7 @@
                 }
 
                 debugLog.add(`Requisição bem-sucedida: ${method} ${endpoint}`, 'success');
-                if (response.status === 204 || method === 'DELETE') { // No Content
-                    return null;
-                }
-                return await response.json();
+                return method === 'DELETE' ? null : await response.json();
             } catch (error) {
                 debugLog.add(`Falha na requisição: ${error.message}`, 'error');
                 throw error;
@@ -2044,6 +2007,8 @@
         async function loadFiliais() {
             try {
                 debugLog.add('Carregando filiais disponíveis...', 'info');
+                
+                // Buscar filiais únicas no banco
                 const filiaisData = await supabaseRequest('filiais?select=nome,descricao,ativo&ativo=eq.true&order=nome', 'GET', null, false);
                 
                 if (!filiaisData || filiaisData.length === 0) {
@@ -2055,6 +2020,7 @@
                 filiais = filiaisData;
                 debugLog.add(`${filiais.length} filiais carregadas`, 'success');
 
+                // Renderizar cards de filiais
                 const grid = document.getElementById('filiaisGrid');
                 grid.innerHTML = '';
 
@@ -2089,16 +2055,24 @@
                 debugLog.add(`Filial selecionada: ${filial.nome}`, 'info');
                 
                 selectedFilial = filial;
+                
+                // Atualizar indicador de filial
                 document.getElementById('filialNome').textContent = filial.nome;
                 document.getElementById('filialIndicator').classList.add('active');
+                
+                // Ocultar seleção de filiais e mostrar sistema principal
                 document.getElementById('filialSelection').style.display = 'none';
                 document.getElementById('mainSystem').style.display = 'block';
                 
+                // Habilitar todas as abas
                 document.querySelectorAll('.tab').forEach(tab => {
                     tab.classList.add('enabled');
                 });
                 
+                // Carregar dados da filial selecionada
                 await loadSelectData();
+                
+                // Mostrar primeira aba
                 showTab('operacao');
                 
                 showNotification(`Bem-vindo à filial: ${filial.nome}!`, 'success');
@@ -2115,13 +2089,26 @@
         function trocarFilial() {
             debugLog.add('Trocando filial - voltando para seleção', 'info');
             
+            // Limpar dados da filial atual
             selectedFilial = null;
-            lojas = []; docas = []; lideres = []; veiculos = []; motoristas = [];
+            lojas = [];
+            docas = [];
+            lideres = [];
+            veiculos = [];
+            motoristas = [];
             
+            // Ocultar indicador e sistema principal
             document.getElementById('filialIndicator').classList.remove('active');
             document.getElementById('mainSystem').style.display = 'none';
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('enabled', 'active'));
+            
+            // Desabilitar abas
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('enabled', 'active');
+            });
+            
+            // Mostrar seleção de filiais
             document.getElementById('filialSelection').style.display = 'block';
+            
             showNotification('Selecione uma nova filial para continuar', 'info');
         }
 
@@ -2170,8 +2157,11 @@
 
         // Popular selects
         function populateSelects() {
+            // Popular todos os selects de lojas existentes
             const lojaSelects = document.querySelectorAll('.loja-select');
-            lojaSelects.forEach(select => populateLojaSelect(select));
+            lojaSelects.forEach(select => {
+                populateLojaSelect(select);
+            });
 
             const docaSelect = document.getElementById('docaSelect');
             if (docaSelect) {
@@ -2189,6 +2179,7 @@
                 });
             }
 
+            // Popular o select da aba de motoristas
             const placaMotoristaSelect = document.getElementById('placaMotorista');
             if (placaMotoristaSelect) {
                 placaMotoristaSelect.innerHTML = '<option value="">Selecione uma placa</option>';
@@ -2207,17 +2198,32 @@
         function addLojaLine() {
             lojaLineCounter++;
             const container = document.getElementById('lojasContainer');
+
             const newLine = document.createElement('div');
             newLine.className = 'loja-line';
             newLine.setAttribute('data-index', lojaLineCounter);
+
             newLine.innerHTML = `
-                <div class="form-group" style="margin-bottom: 0;"><label>Loja:</label><select class="loja-select" required><option value="">Selecione uma loja</option></select></div>
-                <div class="form-group" style="margin-bottom: 0;"><label>Pallets:</label><input type="number" class="pallets-input" min="0" required></div>
-                <div class="form-group" style="margin-bottom: 0;"><label>RollTrainers:</label><input type="number" class="rolltrainers-input" min="0" required></div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Loja:</label>
+                    <select class="loja-select" required>
+                        <option value="">Selecione uma loja</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Pallets:</label>
+                    <input type="number" class="pallets-input" min="0" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>RollTrainers:</label>
+                    <input type="number" class="rolltrainers-input" min="0" required>
+                </div>
                 <div style="display: flex; align-items: center; height: 48px; gap: 8px;">
                     <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
                     <button type="button" class="btn btn-danger btn-small" onclick="removeLojaLine(${lojaLineCounter})" style="padding: 12px; border-radius: 8px;">-</button>
-                </div>`;
+                </div>
+            `;
+
             container.appendChild(newLine);
             populateLojaSelect(newLine.querySelector('.loja-select'));
             debugLog.add(`Nova linha de loja adicionada (índice: ${lojaLineCounter})`, 'info');
@@ -2232,7 +2238,7 @@
             }
         }
 
-        // Mostrar abas
+        // Mostrar abas (só funciona se filial estiver selecionada)
         async function showTab(tabName) {
             if (!selectedFilial) {
                 showNotification('Selecione uma filial primeiro!', 'error');
@@ -2241,8 +2247,10 @@
 
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
             document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
             document.getElementById(tabName).classList.add('active');
+
             debugLog.add(`Navegando para aba: ${tabName}`, 'info');
 
             if (tabName === 'transporte') {
@@ -2254,9 +2262,6 @@
                 setDefaultDateFilters();
             } else if (tabName === 'motoristas') {
                 loadMotoristaTab();
-            } else if (tabName === 'historico') {
-                loadHistory();
-                setDefaultDateFilters('historyFiltro');
             } else if (tabName === 'configuracoes') {
                 if (passwordAuthenticated) {
                     document.getElementById('passwordFormContainer').style.display = 'none';
@@ -2269,23 +2274,23 @@
                 }
             }
         }
-        
+
         // Definir filtros de data padrão
-        function setDefaultDateFilters(prefix = 'filtro') {
+        function setDefaultDateFilters() {
             const hoje = new Date();
             const primeiroDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
-            const filtroInicio = document.getElementById(`${prefix}DataInicio`);
-            const filtroFim = document.getElementById(`${prefix}DataFim`);
+            const filtroInicio = document.getElementById('filtroDataInicio');
+            const filtroFim = document.getElementById('filtroDataFim');
 
             if (filtroInicio && !filtroInicio.value) {
                 filtroInicio.value = primeiroDiaDoMes.toISOString().split('T')[0];
             }
+
             if (filtroFim && !filtroFim.value) {
                 filtroFim.value = hoje.toISOString().split('T')[0];
             }
         }
-
 
         // Mostrar alertas
         function showAlert(containerId, message, type = 'success') {
@@ -2381,6 +2386,7 @@
                     observacoes: formData.observacoes || null,
                     status: 'pendente',
                     created_at: dataHoraLancamento
+                    // filial será adicionada automaticamente pela função supabaseRequest
                 };
 
                 const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
@@ -2398,7 +2404,8 @@
                         loja_id: lojaSelect.value,
                         pallets: parseInt(palletsInput.value),
                         rolltrainers: parseInt(rolltrainersInput.value),
-                        status_descarga: 'pendente'
+                        status_descarga: 'pendente' // NOVO: status inicial da descarga
+                        // filial será adicionada automaticamente pela função supabaseRequest
                     };
 
                     itemsData.push(itemData);
@@ -2439,10 +2446,23 @@
             const container = document.getElementById('lojasContainer');
             container.innerHTML = `
                 <div class="loja-line" data-index="0">
-                    <div class="form-group" style="margin-bottom: 0;"><label>Loja:</label><select class="loja-select" required><option value="">Selecione uma loja</option></select></div>
-                    <div class="form-group" style="margin-bottom: 0;"><label>Pallets:</label><input type="number" class="pallets-input" min="0" required></div>
-                    <div class="form-group" style="margin-bottom: 0;"><label>RollTrainers:</label><input type="number" class="rolltrainers-input" min="0" required></div>
-                    <div style="display: flex; align-items: center; height: 48px;"><button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button></div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Loja:</label>
+                        <select class="loja-select" required>
+                            <option value="">Selecione uma loja</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Pallets:</label>
+                        <input type="number" class="pallets-input" min="0" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>RollTrainers:</label>
+                        <input type="number" class="rolltrainers-input" min="0" required>
+                    </div>
+                    <div style="display: flex; align-items: center; height: 48px;">
+                        <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
+                    </div>
                 </div>
             `;
 
@@ -2453,21 +2473,25 @@
         // Carregar acompanhamento com dados relacionados completos (filtrado por filial)
         async function loadAcompanhamento() {
             if (!selectedFilial) {
-                document.getElementById('acompanhamentoBody').innerHTML = '<tr><td colspan="12" class="alert alert-error">Selecione uma filial primeiro!</td></tr>';
+                document.getElementById('acompanhamentoBody').innerHTML =
+                    '<tr><td colspan="12" class="alert alert-error">Selecione uma filial primeiro!</td></tr>';
                 return;
             }
 
             try {
                 debugLog.add(`Carregando expedições da filial: ${selectedFilial.nome}`, 'info');
+
                 const expeditions = await supabaseRequest('expeditions?status=not.eq.entregue&order=data_hora.desc');
                 const items = await supabaseRequest('expedition_items');
 
                 const expeditionsWithItems = expeditions.map(exp => {
                     const expItems = items.filter(item => item.expedition_id === exp.id);
+
                     const doca = docas.find(d => d.id === exp.doca_id);
                     const lider = lideres.find(l => l.id === exp.lider_id);
                     const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
                     const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
+
                     const totalCarga = (expItems.reduce((sum, item) => sum + (item.pallets || 0), 0)) + ((expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0)) / 2);
                     const ocupacao = veiculo && veiculo.capacidade_pallets > 0 ? (totalCarga / veiculo.capacidade_pallets) * 100 : 0;
 
@@ -2492,13 +2516,16 @@
                 });
 
                 debugLog.add(`${expeditionsWithItems.length} expedições carregadas para ${selectedFilial.nome}`, 'success');
+
                 allExpeditions = expeditionsWithItems;
                 filteredExpeditions = [...allExpeditions];
+
                 applyFilters();
             } catch (error) {
                 console.error('Erro ao carregar acompanhamento:', error);
                 debugLog.add(`Erro ao carregar acompanhamento: ${error.message}`, 'error');
-                document.getElementById('acompanhamentoBody').innerHTML = `<tr><td colspan="12" class="alert alert-error">Erro: ${error.message}</td></tr>`;
+                document.getElementById('acompanhamentoBody').innerHTML =
+                    `<tr><td colspan="12" class="alert alert-error">Erro: ${error.message}</td></tr>`;
             }
         }
 
@@ -2514,11 +2541,14 @@
                     const expDate = new Date(exp.data_hora).toISOString().split('T')[0];
                     if (expDate < dataInicio) return false;
                 }
+
                 if (dataFim) {
                     const expDate = new Date(exp.data_hora).toISOString().split('T')[0];
                     if (expDate > dataFim) return false;
                 }
+
                 if (status && exp.status !== status) return false;
+
                 if (searchTerm) {
                     const searchableText = [
                         exp.lojas_info.toLowerCase(),
@@ -2527,14 +2557,17 @@
                         exp.veiculo_placa || '',
                         exp.motorista_nome || ''
                     ].join(' ');
+                    
                     if (!searchableText.includes(searchTerm)) return false;
                 }
+
                 return true;
             });
 
             updateStats(filteredExpeditions);
             updateTimeStats(filteredExpeditions);
             renderAcompanhamentoTableWithItems(filteredExpeditions);
+
             debugLog.add(`Filtros aplicados: ${filteredExpeditions.length}/${allExpeditions.length} expedições`, 'info');
         }
 
@@ -2544,8 +2577,13 @@
             document.getElementById('filtroDataFim').value = '';
             document.getElementById('filtroStatus').value = '';
             document.getElementById('searchInput').value = '';
+
+            filteredExpeditions = [...allExpeditions];
+            updateStats(filteredExpeditions);
+            updateTimeStats(filteredExpeditions);
+            renderAcompanhamentoTableWithItems(filteredExpeditions);
+
             setDefaultDateFilters();
-            applyFilters();
             debugLog.add('Filtros limpos', 'info');
         }
 
@@ -2559,17 +2597,36 @@
 
         // Atualizar estatísticas de tempo
         function updateTimeStats(expeditions) {
-            const temposAlocacao = [], temposChegada = [], temposCarregamento = [], temposTotal = [];
+            const temposAlocacao = [];
+            const temposChegada = [];
+            const temposCarregamento = [];
+            const temposTotal = [];
 
             expeditions.forEach(exp => {
                 const criadoEm = new Date(exp.data_hora || exp.created_at);
                 const alocadoEm = exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo) : null;
                 const chegadaEm = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
                 const saidaEm = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
-                if (alocadoEm) temposAlocacao.push(Math.round((alocadoEm - criadoEm) / 60000));
-                if (chegadaEm) temposChegada.push(Math.round((chegadaEm - criadoEm) / 60000));
-                if (chegadaEm && saidaEm) temposCarregamento.push(Math.round((saidaEm - chegadaEm) / 60000));
-                if (saidaEm) temposTotal.push(Math.round((saidaEm - criadoEm) / 60000));
+
+                if (alocadoEm) {
+                    const minutosAlocar = Math.round((alocadoEm - criadoEm) / 60000);
+                    temposAlocacao.push(minutosAlocar);
+                }
+
+                if (chegadaEm) {
+                    const minutosAteChegada = Math.round((chegadaEm - criadoEm) / 60000);
+                    temposChegada.push(minutosAteChegada);
+                }
+
+                if (chegadaEm && saidaEm) {
+                    const minutosCarregamento = Math.round((saidaEm - chegadaEm) / 60000);
+                    temposCarregamento.push(minutosCarregamento);
+                }
+
+                if (saidaEm) {
+                    const minutosTotal = Math.round((saidaEm - criadoEm) / 60000);
+                    temposTotal.push(minutosTotal);
+                }
             });
 
             const calcularMedia = (array) => array.length > 0 ? Math.round(array.reduce((a, b) => a + b, 0) / array.length) : 0;
@@ -2590,73 +2647,134 @@
             }
 
             const html = expeditions.map(exp => {
-                const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+                const temVeiculo = exp.veiculo_id || exp.veiculo_placa;
+                const veiculo = temVeiculo ? veiculos.find(v => v.id === exp.veiculo_id) : null;
+
                 const criadaEm = new Date(exp.data_hora || exp.created_at);
                 const alocadaEm = exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo) : null;
                 const chegadaEm = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
                 const saidaEm = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
 
-                let tempoAlocar = alocadaEm ? minutesToHHMM(Math.round((alocadaEm - criadaEm) / 60000)) : '-';
-                let tempoAteChegada = chegadaEm ? minutesToHHMM(Math.round((chegadaEm - criadaEm) / 60000)) : '-';
-                let tempoCarregamento = (chegadaEm && saidaEm) ? minutesToHHMM(Math.round((saidaEm - chegadaEm) / 60000)) : '-';
+                let tempoAlocar = '-';
+                let tempoAteChegada = '-';
+                let tempoCarregamento = '-';
 
-                const analiseTempos = `<div style="font-size: 0.7rem; line-height: 1.2;">
-                        <div><strong>Aloc:</strong> ${tempoAlocar}</div>
-                        <div><strong>Total:</strong> ${tempoAteChegada}</div>
-                        <div><strong>Carreg:</strong> ${tempoCarregamento}</div></div>`;
+                if (alocadaEm) {
+                    const minutosAlocar = Math.round((alocadaEm - criadaEm) / 60000);
+                    tempoAlocar = minutesToHHMM(minutosAlocar);
+                }
+
+                if (chegadaEm) {
+                    const minutosAteChegada = Math.round((chegadaEm - criadaEm) / 60000);
+                    tempoAteChegada = minutesToHHMM(minutosAteChegada);
+                }
+
+                if (chegadaEm && saidaEm) {
+                    const minutosCarregamento = Math.round((saidaEm - chegadaEm) / 60000);
+                    tempoCarregamento = minutesToHHMM(minutosCarregamento);
+                }
+
+                const analiseTempos = `
+                    <div style="font-size: 0.7rem; line-height: 1.2;">
+                        <div style="margin-bottom: 2px;"><strong>Aloc:</strong> ${tempoAlocar}</div>
+                        <div style="margin-bottom: 2px;"><strong>Total:</strong> ${tempoAteChegada}</div>
+                        <div><strong>Carreg:</strong> ${tempoCarregamento}</div>
+                    </div>
+                `;
 
                 let lojasECargasHTML = '';
                 if (exp.items && exp.items.length > 0) {
-                    lojasECargasHTML = `<div style="font-weight: 600; color: var(--primary); margin-bottom: 5px;">${exp.lojas_count || 0} loja${(exp.lojas_count || 0) !== 1 ? 's' : ''}</div><div class="carga-details">`;
+                    lojasECargasHTML = `
+                        <div style="font-weight: 600; color: var(--primary); margin-bottom: 5px;">
+                            ${exp.lojas_count || 0} loja${(exp.lojas_count || 0) !== 1 ? 's' : ''}
+                        </div>
+                        <div class="carga-details">
+                    `;
+
                     exp.items.forEach(item => {
                         const loja = lojas.find(l => l.id === item.loja_id);
                         const lojaDisplay = loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'N/A';
-                        lojasECargasHTML += `<div class="carga-item"><strong>${lojaDisplay}</strong><br>${item.pallets || 0}P + ${item.rolltrainers || 0}R</div>`;
+                        lojasECargasHTML += `
+                            <div class="carga-item">
+                                <strong>${lojaDisplay}</strong><br>
+                                ${item.pallets || 0}P + ${item.rolltrainers || 0}R
+                            </div>
+                        `;
                     });
+
                     lojasECargasHTML += '</div>';
                 } else {
                     lojasECargasHTML = '<div style="color: #999; font-style: italic;">Sem itens</div>';
                 }
 
-                let ocupacaoHtml = '-', veiculoInfoHtml = '-';
+                let ocupacaoHtml = '-';
+                let veiculoInfoHtml = '-';
                 if (veiculo) {
                     const cargaTotal = (exp.total_pallets || 0) + ((exp.total_rolltrainers || 0) / 2);
                     const ocupacaoPerc = veiculo.capacidade_pallets > 0 ? Math.round((cargaTotal / veiculo.capacidade_pallets) * 100) : 0;
+                    
                     let barColor = 'progress-green';
-                    if (ocupacaoPerc >= 80 && ocupacaoPerc <= 100) barColor = 'progress-orange';
-                    else if (ocupacaoPerc > 100) barColor = 'progress-red';
+                    if (ocupacaoPerc >= 80 && ocupacaoPerc <= 100) {
+                        barColor = 'progress-orange';
+                    } else if (ocupacaoPerc > 100) {
+                        barColor = 'progress-red';
+                    }
 
-                    veiculoInfoHtml = `<div style="font-size: 0.8rem; font-weight: 600; color: #495057;">🚚 ${exp.veiculo_placa || 'N/A'}</div>`;
-                    ocupacaoHtml = `<div class="progress-container"><div class="progress-bar ${barColor}" style="width: ${Math.min(100, ocupacaoPerc)}%;"><span>${ocupacaoPerc}%</span></div></div>`;
+                    veiculoInfoHtml = `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem; color: #495057;">🚚</span>
+                            <div style="font-size: 0.8rem; font-weight: 600; color: #495057;">
+                                ${exp.veiculo_placa || 'N/A'}
+                            </div>
+                        </div>
+                    `;
+
+                    ocupacaoHtml = `
+                        <div class="progress-container" style="text-align: center;">
+                            <div class="progress-bar ${barColor}" style="width: ${Math.min(100, ocupacaoPerc)}%;">
+                                <span>${ocupacaoPerc}%</span>
+                            </div>
+                        </div>
+                    `;
                 }
 
-                return `<tr>
-                        <td><div>${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</div><div style="font-size: 0.75rem; color: #666;">${new Date(exp.data_hora).toLocaleTimeString('pt-BR')}</div></td>
-                        <td>${lojasECargasHTML}</td>
-                        <td style="text-align: center; font-weight: 700;">${exp.total_pallets || 0}</td>
-                        <td style="text-align: center; font-weight: 700;">${exp.total_rolltrainers || 0}</td>
-                        <td>${exp.doca_nome || '-'}</td>
-                        <td>${exp.lider_nome || '-'}</td>
-                        <td><span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></td>
-                        <td>${veiculoInfoHtml}</td><td>${ocupacaoHtml}</td>
-                        <td>${exp.motorista_nome || '-'}</td>
-                        <td>${analiseTempos}</td>
-                        <td style="text-align: center;">
-                            <button class="btn btn-warning btn-small" onclick="openEditModal('${exp.id}')">EDITAR</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteExpedition('${exp.id}')">DEL</button>
+                return `
+                    <tr>
+                        <td style="font-size: 0.85rem; padding: 10px 6px;">
+                            <div style="font-weight: 600;">${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</div>
+                            <div style="font-size: 0.75rem; color: #666;">${new Date(exp.data_hora).toLocaleTimeString('pt-BR')}</div>
                         </td>
-                    </tr>`;
+                        <td style="font-size: 0.8rem; padding: 10px 6px;">
+                            ${lojasECargasHTML}
+                        </td>
+                        <td style="text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--primary);">${exp.total_pallets || 0}</td>
+                        <td style="text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--secondary);">${exp.total_rolltrainers || 0}</td>
+                        <td style="font-size: 0.85rem; font-weight: 600;">${exp.doca_nome || '-'}</td>
+                        <td style="font-size: 0.85rem; font-weight: 600;">${exp.lider_nome || '-'}</td>
+                        <td><span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></td>
+                        <td>${veiculoInfoHtml}</td>
+                        <td>${ocupacaoHtml}</td>
+                        <td style="font-size: 0.85rem; font-weight: 600;">${exp.motorista_nome || '-'}</td>
+                        <td style="font-size: 0.75rem; padding: 8px 6px;">${analiseTempos}</td>
+                        <td style="padding: 8px 6px; text-align: center;">
+                            <button class="btn btn-warning btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openEditModal('${exp.id}')">EDITAR</button>
+                            <button class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteExpedition('${exp.id}')">DEL</button>
+                        </td>
+                    </tr>
+                `;
             }).join('');
+
             tbody.innerHTML = html;
         }
 
-        // Atualizar estatísticas gerais
+        // Atualizar estatísticas gerais (incluindo novos status)
         function updateStats(data) {
             const stats = {
                 total: data.length,
                 pendentes: data.filter(d => d.status === 'pendente').length,
                 emAndamento: data.filter(d => ['aguardando_veiculo', 'em_carregamento', 'carregado', 'faturamento_iniciado', 'faturado', 'saiu_para_entrega'].includes(d.status)).length
             };
+
             document.getElementById('totalExpedicoes').textContent = stats.total;
             document.getElementById('pendentesCount').textContent = stats.pendentes;
             document.getElementById('emAndamentoCount').textContent = stats.emAndamento;
@@ -2665,9 +2783,16 @@
         // Obter label do status
         function getStatusLabel(status) {
             const labels = {
-                'pendente': 'Pendente', 'aguardando_veiculo': 'Aguard. Veículo', 'em_carregamento': 'Carregando',
-                'carregado': 'Carregado', 'aguardando_faturamento': 'Aguard. Faturamento', 'faturamento_iniciado': 'Faturando',
-                'faturado': 'Faturado', 'saiu_para_entrega': 'Saiu p/ Entrega', 'entregue': 'Entregue', 'cancelado': 'Cancelado'
+                'pendente': 'Pendente',
+                'aguardando_veiculo': 'Aguard. Veículo',
+                'em_carregamento': 'Carregando',
+                'carregado': 'Carregado',
+                'aguardando_faturamento': 'Aguard. Faturamento',
+                'faturamento_iniciado': 'Faturando',
+                'faturado': 'Faturado',
+                'saiu_para_entrega': 'Saiu p/ Entrega',
+                'entregue': 'Entregue',
+                'cancelado': 'Cancelado'
             };
             return labels[status] || status;
         }
@@ -2675,19 +2800,26 @@
         // --- Funções da Aba de Faturamento ---
         async function loadFaturamento() {
             if (!selectedFilial) {
-                document.getElementById('faturamentoList').innerHTML = '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
+                document.getElementById('faturamentoList').innerHTML = 
+                    '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
                 return;
             }
+
             try {
                 debugLog.add(`Carregando faturamento da filial: ${selectedFilial.nome}`, 'info');
+
+                // Carregar expedições aguardando faturamento, em faturamento ou faturadas
                 const expeditions = await supabaseRequest("expeditions?status=in.(aguardando_faturamento,faturamento_iniciado,faturado)&order=data_hora.desc");
                 const items = await supabaseRequest('expedition_items');
+
                 const expeditionsWithItems = expeditions.map(exp => {
                     const expItems = items.filter(item => item.expedition_id === exp.id);
+
                     const doca = docas.find(d => d.id === exp.doca_id);
                     const lider = lideres.find(l => l.id === exp.lider_id);
                     const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
                     const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
+
                     return {
                         ...exp,
                         items: expItems,
@@ -2705,60 +2837,96 @@
                         motorista_nome: motorista ? motorista.nome : null
                     };
                 });
+
                 updateFaturamentoStats(expeditionsWithItems);
                 renderFaturamentoList(expeditionsWithItems);
                 debugLog.add(`${expeditionsWithItems.length} expedições carregadas para faturamento`, 'success');
             } catch (error) {
                 console.error('Erro ao carregar faturamento:', error);
                 debugLog.add(`Erro ao carregar faturamento: ${error.message}`, 'error');
-                document.getElementById('faturamentoList').innerHTML = `<div class="alert alert-error">Erro: ${error.message}</div>`;
+                document.getElementById('faturamentoList').innerHTML =
+                    `<div class="alert alert-error">Erro: ${error.message}</div>`;
             }
         }
 
         // Renderizar lista de faturamento
         function renderFaturamentoList(expeditionsList) {
             const container = document.getElementById('faturamentoList');
+
             if (expeditionsList.length === 0) {
                 container.innerHTML = '<div class="alert alert-success">Nenhuma expedição pendente de faturamento!</div>';
                 return;
             }
-            container.innerHTML = expeditionsList.map(exp => {
+
+            let html = '';
+            expeditionsList.forEach(exp => {
+                // Calcular tempo desde carregamento
                 const carregadoEm = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : new Date(exp.data_hora);
-                const tempoEspera = Math.round((new Date() - carregadoEm) / 60000);
-                let actionButtons = '', statusInfo = '';
+                const agora = new Date();
+                const tempoEspera = Math.round((agora - carregadoEm) / 60000);
+                const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
+
+                const lojasInfo = exp.lojas_info || 'N/A';
+                const totalPallets = exp.total_pallets || 0;
+                const totalRolltrainers = exp.total_rolltrainers || 0;
+                const quantidadeLojas = exp.lojas_count || 0;
+
+                // Definir ações baseadas no status
+                let actionButtons = '';
+                let statusInfo = '';
                 
                 if (exp.status === 'aguardando_faturamento') {
-                    statusInfo = '<div>Pronto para iniciar faturamento</div>';
+                    statusInfo = '<div style="color: var(--primary); font-weight: 600; margin-bottom: 8px;">📄 Pronto para iniciar faturamento</div>';
                     actionButtons = `<button class="btn btn-success" onclick="iniciarFaturamento('${exp.id}')">Iniciar Faturamento</button>`;
                 } else if (exp.status === 'faturamento_iniciado') {
                     const iniciadoEm = exp.data_inicio_faturamento ? new Date(exp.data_inicio_faturamento) : null;
-                    const tempoFaturamentoTexto = iniciadoEm ? minutesToHHMM(Math.round((new Date() - iniciadoEm) / 60000)) : '00:00';
-                    statusInfo = `<div>Faturamento em andamento há ${tempoFaturamentoTexto}</div>`;
+                    const tempoFaturamento = iniciadoEm ? Math.round((agora - iniciadoEm) / 60000) : 0;
+                    const tempoFaturamentoTexto = minutesToHHMM(tempoFaturamento);
+                    
+                    statusInfo = `<div style="color: #F77F00; font-weight: 600; margin-bottom: 8px;">📄 Faturamento em andamento há ${tempoFaturamentoTexto}</div>`;
                     actionButtons = `<button class="btn btn-primary" onclick="finalizarFaturamento('${exp.id}')">Finalizar Faturamento</button>`;
                 } else if (exp.status === 'faturado') {
                     const faturadoEm = exp.data_fim_faturamento ? new Date(exp.data_fim_faturamento) : null;
-                    statusInfo = `<div>Faturado em ${faturadoEm ? faturadoEm.toLocaleString('pt-BR') : 'N/A'}</div>`;
+                    statusInfo = `<div style="color: #00D4AA; font-weight: 600; margin-bottom: 8px;">✅ Faturado em ${faturadoEm ? faturadoEm.toLocaleString('pt-BR') : 'N/A'}</div>`;
                     actionButtons = `<button class="btn btn-warning" onclick="marcarSaiuEntrega('${exp.id}')">Marcar Saída</button>`;
                 }
 
-                return `<div class="transport-card">
-                        <h3>Faturamento - ${exp.lojas_count} loja(s)</h3>
-                        <div>${exp.lojas_info}</div>
+                html += `
+                    <div class="transport-card">
+                        <h3>Faturamento - ${quantidadeLojas} loja${quantidadeLojas > 1 ? 's' : ''}</h3>
+                        <div style="color: var(--secondary); font-weight: 600; margin-bottom: 10px;">${lojasInfo}</div>
+
                         ${statusInfo}
-                        <div>Carregado há: ${tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`}</div>
+
+                        <div class="time-display ${tempoEspera > 180 ? 'danger' : tempoEspera > 120 ? 'warning' : 'good'}">
+                            <strong>Carregado há:</strong> ${tempoEsperaTexto} ${carregadoEm ? '(em ' + carregadoEm.toLocaleString('pt-BR') + ')' : ''}
+                        </div>
+
                         <div class="transport-grid">
-                            <div><strong>Pallets:</strong> ${exp.total_pallets}</div>
-                            <div><strong>RollTrainers:</strong> ${exp.total_rolltrainers}</div>
-                            <div><strong>Doca:</strong> ${exp.doca_nome}</div>
-                            <div><strong>Líder:</strong> ${exp.lider_nome}</div>
-                            <div><strong>Veículo:</strong> ${exp.veiculo_placa} - ${exp.veiculo_modelo}</div>
-                            <div><strong>Motorista:</strong> ${exp.motorista_nome}</div>
+                            <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${totalPallets}</span></div>
+                            <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${totalRolltrainers}</span></div>
+                            <div><strong>Doca:</strong> ${exp.doca_nome || 'N/A'}</div>
+                            <div><strong>Líder:</strong> ${exp.lider_nome || 'N/A'}</div>
+                            <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
+                            <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
                             <div><strong>Status:</strong> <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></div>
                         </div>
-                        ${exp.observacoes ? `<div><strong>Obs:</strong> ${exp.observacoes}</div>` : ''}
-                        <div style="text-align: center; margin-top: 20px;">${actionButtons}</div>
-                    </div>`;
-            }).join('');
+
+                        ${exp.observacoes ? `
+                            <div style="background: rgba(144, 224, 239, 0.1); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--primary);">
+                                <span class="feature-icon note"></span><strong style="color: var(--primary);">Observações:</strong><br>
+                                <span style="color: var(--dark);">${exp.observacoes}</span>
+                            </div>
+                        ` : ''}
+
+                        <div style="text-align: center; margin-top: 20px;">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
         }
 
         // Atualizar estatísticas do faturamento
@@ -2773,31 +2941,53 @@
             document.getElementById('emFaturamento').textContent = stats.emFaturamento;
             document.getElementById('faturadas').textContent = stats.faturadas;
 
-            const expedicoesComFaturamento = expeditions.filter(e => e.data_inicio_faturamento && e.data_fim_faturamento);
+            // Calcular tempo médio de faturamento
+            const expedicoesComFaturamento = expeditions.filter(e => 
+                e.data_inicio_faturamento && e.data_fim_faturamento
+            );
+
             if (expedicoesComFaturamento.length > 0) {
-                const tempos = expedicoesComFaturamento.map(e => (new Date(e.data_fim_faturamento) - new Date(e.data_inicio_faturamento)) / 60000);
-                const tempoMedio = Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length);
+                const temposTotalFaturamento = expedicoesComFaturamento.map(exp => {
+                    const inicio = new Date(exp.data_inicio_faturamento);
+                    const fim = new Date(exp.data_fim_faturamento);
+                    return Math.round((fim - inicio) / 60000);
+                });
+
+                const tempoMedio = Math.round(temposTotalFaturamento.reduce((a, b) => a + b, 0) / temposTotalFaturamento.length);
                 document.getElementById('tempoMedioFaturamento').textContent = minutesToHHMM(tempoMedio);
             } else {
                 document.getElementById('tempoMedioFaturamento').textContent = '-';
             }
 
+            // Meta diária (exemplo: 80% das expedições faturadas)
             const totalExpedicoes = expeditions.length;
-            document.getElementById('metaFaturamento').textContent = `${totalExpedicoes > 0 ? Math.round((stats.faturadas / totalExpedicoes) * 100) : 0}%`;
+            const metaDiaria = totalExpedicoes > 0 ? Math.round((stats.faturadas / totalExpedicoes) * 100) : 0;
+            document.getElementById('metaFaturamento').textContent = `${metaDiaria}%`;
         }
 
         // Iniciar faturamento
         async function iniciarFaturamento(expeditionId) {
             try {
                 const dataInicio = new Date().toISOString();
-                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                const usuarioFaturamento = selectedFilial ? selectedFilial.nome : 'Sistema';
+                
+                debugLog.add(`Tentando iniciar faturamento para expedição ${expeditionId}`, 'info');
+                
+                const updateData = {
                     status: 'faturamento_iniciado',
                     data_inicio_faturamento: dataInicio,
-                    usuario_faturamento: selectedFilial.nome
-                });
-                showNotification(`Faturamento iniciado!`, 'success');
-                loadFaturamento();
+                    usuario_faturamento: usuarioFaturamento
+                };
+                
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', updateData);
+
+                debugLog.add(`Faturamento iniciado para expedição ${expeditionId} às ${new Date(dataInicio).toLocaleTimeString('pt-BR')}`, 'success');
+                showNotification(`Faturamento iniciado às ${new Date(dataInicio).toLocaleTimeString('pt-BR')}!`, 'success');
+                
+                loadFaturamento(); // Recarregar lista
             } catch (error) {
+                console.error('Erro ao iniciar faturamento:', error);
+                debugLog.add(`Erro ao iniciar faturamento: ${error.message}`, 'error');
                 showNotification('Erro ao iniciar faturamento: ' + error.message, 'error');
             }
         }
@@ -2806,13 +2996,23 @@
         async function finalizarFaturamento(expeditionId) {
             try {
                 const dataFim = new Date().toISOString();
-                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                
+                debugLog.add(`Tentando finalizar faturamento para expedição ${expeditionId}`, 'info');
+                
+                const updateData = {
                     status: 'faturado',
                     data_fim_faturamento: dataFim
-                });
-                showNotification(`Faturamento finalizado!`, 'success');
-                loadFaturamento();
+                };
+                
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', updateData);
+
+                debugLog.add(`Faturamento finalizado para expedição ${expeditionId} às ${new Date(dataFim).toLocaleTimeString('pt-BR')}`, 'success');
+                showNotification(`Faturamento finalizado às ${new Date(dataFim).toLocaleTimeString('pt-BR')}!`, 'success');
+                
+                loadFaturamento(); // Recarregar lista
             } catch (error) {
+                console.error('Erro ao finalizar faturamento:', error);
+                debugLog.add(`Erro ao finalizar faturamento: ${error.message}`, 'error');
                 showNotification('Erro ao finalizar faturamento: ' + error.message, 'error');
             }
         }
@@ -2820,14 +3020,21 @@
         // Marcar saída para entrega
         async function marcarSaiuEntrega(expeditionId) {
             try {
-                const dataSaida = new Date().toISOString();
+                debugLog.add(`Marcando expedição ${expeditionId} como saiu para entrega`, 'info');
+                const dataSaida = new Date().toISOString(); // NOVO: Captura a data de saída
+                
                 await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
                     status: 'saiu_para_entrega',
-                    data_saida_entrega: dataSaida
+                    data_saida_entrega: dataSaida // NOVO: Salva a data de saída
                 });
+
+                debugLog.add(`Expedição ${expeditionId} marcada como saiu para entrega`, 'success');
                 showNotification('Expedição marcada como saiu para entrega!', 'success');
-                loadFaturamento();
+                
+                loadFaturamento(); // Recarregar lista
             } catch (error) {
+                console.error('Erro ao marcar saída:', error);
+                debugLog.add(`Erro ao marcar saída: ${error.message}`, 'error');
                 showNotification('Erro ao marcar saída: ' + error.message, 'error');
             }
         }
@@ -2835,15 +3042,20 @@
         // Carregar transporte
         async function loadTransportList() {
             if (!selectedFilial) {
-                document.getElementById('transporteList').innerHTML = '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
+                document.getElementById('transporteList').innerHTML = 
+                    '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
                 return;
             }
+
             try {
                 debugLog.add(`Carregando expedições para transporte da filial: ${selectedFilial.nome}`, 'info');
+
                 const expeditions = await supabaseRequest("expeditions?status=in.(pendente,aguardando_veiculo,em_carregamento)&order=data_hora.desc");
                 const items = await supabaseRequest('expedition_items');
+
                 const expeditionsWithItems = expeditions.map(exp => {
                     const expItems = items.filter(item => item.expedition_id === exp.id);
+
                     const doca = docas.find(d => d.id === exp.doca_id);
                     const lider = lideres.find(l => l.id === exp.lider_id);
                     const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
@@ -2867,250 +3079,707 @@
                         veiculo_capacidade: veiculo ? veiculo.capacidade_pallets : 0
                     };
                 });
+                
                 allExpeditions = expeditionsWithItems;
                 renderTransportList(expeditionsWithItems, veiculos, motoristas);
                 debugLog.add(`${expeditionsWithItems.length} expedições carregadas para transporte`, 'success');
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
                 debugLog.add(`Erro ao carregar transporte: ${error.message}`, 'error');
-                document.getElementById('transporteList').innerHTML = `<div class="alert alert-error">Erro: ${error.message}</div>`;
+                document.getElementById('transporteList').innerHTML =
+                    `<div class="alert alert-error">Erro: ${error.message}</div>`;
             }
         }
 
         // Renderizar lista de transporte
         function renderTransportList(expeditionsList, veiculosList, motoristasList) {
             const container = document.getElementById('transporteList');
+
             if (expeditionsList.length === 0) {
                 container.innerHTML = '<div class="alert alert-success">Nenhuma expedição pendente de alocação!</div>';
                 return;
             }
-            container.innerHTML = expeditionsList.map(exp => {
-                const podeAlterar = !['em_carregamento', 'carregado', 'saiu_para_entrega', 'entregue'].includes(exp.status);
-                const tempoEspera = minutesToHHMM(Math.round((new Date() - new Date(exp.data_hora || exp.created_at)) / 60000));
-                const cargaTotal = exp.total_pallets + (exp.total_rolltrainers / 2);
-                let actionsHTML = '';
-                
-                if (exp.veiculo_id && exp.motorista_id) {
-                    actionsHTML = `<div style="background: rgba(0,212,170,0.1); padding: 20px; border-radius:10px; margin: 20px 0;">
-                                    <h4 style="color:var(--dark); margin-bottom:15px;">Transporte Alocado:</h4>
-                                    <div class="transport-grid">
-                                        <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
-                                        <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
-                                    </div>
-                                    ${podeAlterar ? `<div style="text-align:center; margin-top: 15px;"><button class="btn btn-primary" onclick="showReallocateForm('${exp.id}')">Alterar</button></div>` : ''}
-                                 </div>`;
-                } else {
-                    actionsHTML = `<div class="transport-actions">
-                                    <div class="form-group"><label>Veículo:</label><select id="veiculo_${exp.id}">${veiculosList.map(v => `<option value="${v.id}" ${(v.capacidade_pallets||0) < cargaTotal ? 'disabled' : ''}>${(v.capacidade_pallets||0) < cargaTotal ? '⚠️' : '✅'} ${v.placa} (${v.capacidade_pallets||0}P)</option>`).join('')}</select></div>
-                                    <div class="form-group"><label>Motorista:</label><select id="motorista_${exp.id}">${motoristasList.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}</select></div>
-                                    <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar</button>
-                                 </div>`;
-                }
 
-                return `<div class="transport-card">
-                            <h3>Expedição - ${exp.lojas_count} loja(s)</h3>
-                            <div style="color: var(--secondary); font-weight: 600;">${exp.lojas_info}</div>
-                            <div>Aguardando há: ${tempoEspera}</div>
+            let html = '';
+            expeditionsList.forEach(exp => {
+                const temVeiculo = exp.veiculo_id || exp.veiculo_placa;
+                const temMotorista = exp.motorista_id || exp.motorista_nome;
+
+                const podeAlterarTransporte = !['em_carregamento', 'carregado', 'saiu_para_entrega', 'entregue'].includes(exp.status);
+
+                const criadaEm = new Date(exp.data_hora || exp.created_at);
+                const agora = new Date();
+                const tempoEspera = Math.round((agora - criadaEm) / 60000);
+                const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
+
+                const lojasInfo = exp.lojas_info || 'N/A';
+                const totalPallets = exp.total_pallets || 0;
+                const totalRolltrainers = exp.total_rolltrainers || 0;
+                const quantidadeLojas = exp.lojas_count || 0;
+
+                const cargaTotalNecessaria = totalPallets + (totalRolltrainers / 2);
+
+                html += `
+                    <div class="transport-card">
+                        <h3>Expedição - ${quantidadeLojas} loja${quantidadeLojas > 1 ? 's' : ''}</h3>
+                        <div style="color: var(--secondary); font-weight: 600; margin-bottom: 10px;">${lojasInfo}</div>
+
+                        <div class="time-display ${tempoEspera > 60 ? 'warning' : tempoEspera > 120 ? 'danger' : 'good'}">
+                            <strong>Aguardando há:</strong> ${tempoEsperaTexto} (desde ${criadaEm.toLocaleString('pt-BR')})
+                        </div>
+
+                        <div class="transport-grid">
+                            <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${totalPallets}</span></div>
+                            <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${totalRolltrainers}</span></div>
+                            <div><strong>Carga (Pallets):</strong> ${Math.ceil(cargaTotalNecessaria)}</div>
+                            <div><strong>Doca:</strong> ${exp.doca_nome || 'N/A'}</div>
+                            <div><strong>Líder:</strong> ${exp.lider_nome || 'N/A'}</div>
+                            <div><strong>Status:</strong> <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></div>
+                        </div>
+
+                        ${temVeiculo && temMotorista ? `
+                        <div style="background: rgba(0, 212, 170, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid rgba(0, 212, 170, 0.3);">
+                            <h4 style="color: var(--dark); margin-bottom: 15px;">Transporte Alocado:</h4>
                             <div class="transport-grid">
-                                <div><strong>Pallets:</strong> ${exp.total_pallets}</div>
-                                <div><strong>RollTrainers:</strong> ${exp.total_rolltrainers}</div>
-                                <div><strong>Carga Total:</strong> ${Math.ceil(cargaTotal)}P</div>
-                                <div><strong>Status:</strong> <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></div>
+                                <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
+                                <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
+                                <div><strong>Alocado em:</strong> ${exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo).toLocaleString('pt-BR') : 'N/A'}</div>
                             </div>
-                            ${actionsHTML}
-                            <div id="reallocate_${exp.id}" style="display:none; padding:15px; border:1px solid #ddd; margin-top:15px;">
-                                <div class="transport-actions">
-                                    <div class="form-group"><label>Novo Veículo:</label><select id="new_veiculo_${exp.id}">${veiculosList.map(v => `<option value="${v.id}" ${(v.capacidade_pallets||0) < cargaTotal ? 'disabled' : ''}>${(v.capacidade_pallets||0) < cargaTotal ? '⚠️' : '✅'} ${v.placa} (${v.capacidade_pallets||0}P)</option>`).join('')}</select></div>
-                                    <div class="form-group"><label>Novo Motorista:</label><select id="new_motorista_${exp.id}">${motoristasList.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}</select></div>
-                                    <button class="btn btn-success" onclick="reallocateTransport('${exp.id}')">Confirmar</button>
-                                    <button class="btn btn-danger" onclick="hideReallocateForm('${exp.id}')">Cancelar</button>
+                        </div>
+                        ${podeAlterarTransporte ? `
+                            <div style="text-align: center;">
+                                <button class="btn btn-primary" onclick="showReallocateForm('${exp.id}')">Alterar Transporte</button>
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 12px; background: rgba(247, 127, 0, 0.1); border-radius: 8px; border: 1px solid #F77F00;">
+                                <span style="color: #F77F00; font-weight: 600; font-size: 0.9rem;">
+                                    🔒 Transporte não pode ser alterado - Carga em ${getStatusLabel(exp.status)}
+                                </span>
+                            </div>
+                        `}
+                        ` : `
+                        <div class="transport-actions">
+                            <div class="form-group">
+                                <label>Veículo:</label>
+                                <select id="veiculo_${exp.id}">
+                                    <option value="">Selecione um veículo</option>
+                                    ${veiculosList.map(v => {
+                                        const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
+                                        const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
+                                        return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
+                                                    ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                </option>`;
+                                    }).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Motorista:</label>
+                                <select id="motorista_${exp.id}">
+                                    <option value="">Selecione um motorista</option>
+                                    ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
+                                </select>
+                            </div>
+                            <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar Agora</button>
+                        </div>
+                        `}
+
+                        <div id="reallocate_${exp.id}" style="display: none; background: rgba(247, 127, 0, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #F77F00;">
+                            <h4 style="color: var(--dark); margin-bottom: 15px;">Alterar Transporte:</h4>
+                            <div class="transport-actions">
+                                <div class="form-group">
+                                    <label>Novo Veículo:</label>
+                                    <select id="new_veiculo_${exp.id}">
+                                        <option value="">Selecione um veículo</option>
+                                        ${veiculosList.map(v => {
+                                            const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
+                                            const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
+                                            return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
+                                                        ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                                    </option>`;
+                                        }).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Novo Motorista:</label>
+                                    <select id="new_motorista_${exp.id}">
+                                        <option value="">Selecione um motorista</option>
+                                        ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <button class="btn btn-success" onclick="reallocateTransport('${exp.id}')">Confirmar Alteração</button>
+                                    <button class="btn btn-danger" onclick="hideReallocateForm('${exp.id}')" style="margin-left: 10px;">Cancelar</button>
                                 </div>
                             </div>
-                        </div>`;
-            }).join('');
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
         }
 
-        function showReallocateForm(id) { document.getElementById(`reallocate_${id}`).style.display = 'block'; }
-        function hideReallocateForm(id) { document.getElementById(`reallocate_${id}`).style.display = 'none'; }
-        
+        // Mostrar/ocultar formulários de realocação
+        function showReallocateForm(expeditionId) {
+            debugLog.add(`Abrindo formulário de realocação para expedição ${expeditionId}`, 'info');
+            document.getElementById(`reallocate_${expeditionId}`).style.display = 'block';
+        }
 
-        // --- Funções de Alocação ---
+        function hideReallocateForm(expeditionId) {
+            debugLog.add(`Fechando formulário de realocação para expedição ${expeditionId}`, 'info');
+            document.getElementById(`reallocate_${expeditionId}`).style.display = 'none';
+        }
+
+        // Variável para controlar alocações em andamento
         let allocatingTransports = new Set();
-        async function allocateTransport(expeditionId, isReallocation = false) {
+
+        // Função para requisições com timeout
+        async function supabaseRequestWithTimeout(endpoint, method = 'GET', data = null, timeoutMs = 30000, includeFilialFilter = true) {
+            return new Promise(async (resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Timeout: Operação demorou mais que 30 segundos'));
+                }, timeoutMs);
+
+                try {
+                    const result = await supabaseRequest(endpoint, method, data, includeFilialFilter);
+                    clearTimeout(timeoutId);
+                    resolve(result);
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            });
+        }
+
+        // Alocar transporte
+        async function allocateTransport(expeditionId) {
             if (allocatingTransports.has(expeditionId)) {
-                showNotification('Processando...', 'info');
+                showNotification('Aguarde! Alocação já está sendo processada...', 'warning');
                 return;
             }
-            const veiculoId = document.getElementById(`${isReallocation ? 'new_' : ''}veiculo_${expeditionId}`).value;
-            const motoristaId = document.getElementById(`${isReallocation ? 'new_' : ''}motorista_${expeditionId}`).value;
+
+            const veiculoSelect = document.getElementById(`veiculo_${expeditionId}`);
+            const motoristaSelect = document.getElementById(`motorista_${expeditionId}`);
+            const allocateButton = document.querySelector(`button[onclick="allocateTransport('${expeditionId}')"]`);
+
+            if (!veiculoSelect || !motoristaSelect) {
+                showNotification('Erro: Elementos do formulário não encontrados', 'error');
+                return;
+            }
+
+            const veiculoId = veiculoSelect.value;
+            const motoristaId = motoristaSelect.value;
+
             if (!veiculoId || !motoristaId) {
-                showNotification('Selecione veículo e motorista.', 'error');
+                showNotification('Por favor, selecione um veículo e um motorista!', 'error');
                 return;
             }
 
             allocatingTransports.add(expeditionId);
+            
+            if (allocateButton) {
+                allocateButton.disabled = true;
+                allocateButton.textContent = 'Alocando...';
+                allocateButton.style.opacity = '0.6';
+            }
+
+            veiculoSelect.disabled = true;
+            motoristaSelect.disabled = true;
+
             try {
-                let oldVeiculoId, oldMotoristaId;
-                if (isReallocation) {
-                    const [expData] = await supabaseRequest(`expeditions?id=eq.${expeditionId}&select=veiculo_id,motorista_id`, 'GET', null, false);
-                    oldVeiculoId = expData.veiculo_id;
-                    oldMotoristaId = expData.motorista_id;
+                const selectedVehicle = veiculos.find(v => v.id === veiculoId);
+                const expedition = allExpeditions.find(e => e.id === expeditionId);
+                
+                if (!selectedVehicle || !expedition) {
+                    throw new Error('Veículo ou expedição não encontrados');
                 }
 
-                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
+                
+                if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
+                    throw new Error(`Veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`);
+                }
+
+                const dataAlocacao = new Date().toISOString();
+                debugLog.add(`Iniciando alocação de transporte para expedição ${expeditionId}`, 'info');
+
+                const expeditionUpdateData = {
                     veiculo_id: veiculoId,
                     motorista_id: motoristaId,
                     status: 'aguardando_veiculo',
-                    data_alocacao_veiculo: new Date().toISOString()
-                }, false);
+                    data_alocacao_veiculo: dataAlocacao
+                };
 
-                const updates = [
-                    supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
-                    supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false)
-                ];
-                if (isReallocation) {
-                    updates.push(supabaseRequest(`veiculos?id=eq.${oldVeiculoId}`, 'PATCH', { status: 'disponivel' }, false));
-                    updates.push(supabaseRequest(`motoristas?id=eq.${oldMotoristaId}`, 'PATCH', { status: 'disponivel' }, false));
+                await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdateData, 30000, false);
+                debugLog.add('Expedição atualizada com sucesso', 'success');
+
+                const secondaryOperations = [];
+
+                secondaryOperations.push(
+                    supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
+                        .then(() => debugLog.add('Status do veículo atualizado', 'success'))
+                        .catch(error => debugLog.add(`Aviso: Erro ao atualizar veículo: ${error.message}`, 'warning'))
+                );
+
+                secondaryOperations.push(
+                    supabaseRequestWithTimeout(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
+                        .then(() => debugLog.add('Status do motorista atualizado', 'success'))
+                        .catch(error => debugLog.add(`Aviso: Erro ao atualizar motorista: ${error.message}`, 'warning'))
+                );
+
+                await Promise.allSettled(secondaryOperations.map(op => 
+                    Promise.race([op, new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout secundário')), 10000)
+                    )])
+                ));
+
+                debugLog.add(`Transporte alocado com sucesso às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}`, 'success');
+                showNotification(`Transporte alocado às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}!`, 'success');
+
+                try {
+                    await Promise.all([
+                        loadSelectData(),
+                        loadTransportList()
+                    ]);
+                } catch (reloadError) {
+                    debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
+                    setTimeout(loadTransportList, 2000);
                 }
-                await Promise.all(updates);
 
-                showNotification(`Transporte ${isReallocation ? 'realocado' : 'alocado'} com sucesso!`, 'success');
-                loadTransportList();
             } catch (error) {
+                console.error('Erro ao alocar transporte:', error);
+                debugLog.add(`Erro ao alocar transporte: ${error.message}`, 'error');
                 showNotification(`Erro: ${error.message}`, 'error');
+                setTimeout(() => {
+                    loadTransportList();
+                }, 2000);
+
             } finally {
                 allocatingTransports.delete(expeditionId);
+                
+                if (allocateButton) {
+                    allocateButton.disabled = false;
+                    allocateButton.textContent = 'Alocar Agora';
+                    allocateButton.style.opacity = '1';
+                }
+                
+                if (veiculoSelect) veiculoSelect.disabled = false;
+                if (motoristaSelect) motoristaSelect.disabled = false;
             }
         }
-        function reallocateTransport(id) { allocateTransport(id, true); }
 
+        // Realocar transporte
+        async function reallocateTransport(expeditionId) {
+            if (allocatingTransports.has(expeditionId)) {
+                showNotification('Aguarde! Realocação já está sendo processada...', 'warning');
+                return;
+            }
+
+            const newVeiculoSelect = document.getElementById(`new_veiculo_${expeditionId}`);
+            const newMotoristaSelect = document.getElementById(`new_motorista_${expeditionId}`);
+            const reallocateButton = document.querySelector(`button[onclick="reallocateTransport('${expeditionId}')"]`);
+
+            if (!newVeiculoSelect || !newMotoristaSelect) {
+                showNotification('Erro: Elementos do formulário não encontrados', 'error');
+                return;
+            }
+
+            const newVeiculoId = newVeiculoSelect.value;
+            const newMotoristaId = newMotoristaSelect.value;
+
+            if (!newVeiculoId || !newMotoristaId) {
+                showNotification('Por favor, selecione um novo veículo e motorista!', 'error');
+                return;
+            }
+            
+            const selectedVehicle = veiculos.find(v => v.id === newVeiculoId);
+            const expedition = allExpeditions.find(e => e.id === expeditionId);
+            
+            if (!selectedVehicle || !expedition) {
+                showNotification('Erro: Dados não encontrados para validação', 'error');
+                return;
+            }
+            
+            const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
+            
+            if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
+                showNotification(`Novo veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`, 'error');
+                return;
+            }
+
+            if (!await showConfirmationModal('Confirma a alteração do transporte? O veículo e motorista atuais serão liberados.')) {
+                return;
+            }
+
+            allocatingTransports.add(expeditionId);
+            
+            if (reallocateButton) {
+                reallocateButton.disabled = true;
+                reallocateButton.textContent = 'Realocando...';
+                reallocateButton.style.opacity = '0.6';
+            }
+
+            newVeiculoSelect.disabled = true;
+            newMotoristaSelect.disabled = true;
+
+            try {
+                debugLog.add(`Iniciando realocação de transporte para expedição ${expeditionId}`, 'info');
+
+                const expeditionData = await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}&select=veiculo_id,motorista_id`, 'GET', null, 30000, false);
+
+                if (!expeditionData || expeditionData.length === 0) {
+                    throw new Error(`Expedição ${expeditionId} não encontrada`);
+                }
+
+                const expedition = expeditionData[0];
+                const dataRealocacao = new Date().toISOString();
+
+                await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                    veiculo_id: newVeiculoId,
+                    motorista_id: newMotoristaId,
+                    status: 'aguardando_veiculo',
+                    data_alocacao_veiculo: dataRealocacao
+                }, 30000, false);
+
+                debugLog.add('Expedição realocada com sucesso', 'success');
+
+                const secondaryOperations = [];
+
+                if (expedition.veiculo_id) {
+                    secondaryOperations.push(
+                        supabaseRequestWithTimeout(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
+                            .then(() => debugLog.add(`Veículo anterior liberado: ${expedition.veiculo_id}`, 'success'))
+                            .catch(error => debugLog.add(`Aviso: Erro ao liberar veículo anterior: ${error.message}`, 'warning'))
+                    );
+                }
+
+                if (expedition.motorista_id) {
+                    secondaryOperations.push(
+                        supabaseRequestWithTimeout(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
+                            .then(() => debugLog.add(`Motorista anterior liberado: ${expedition.motorista_id}`, 'success'))
+                            .catch(error => debugLog.add(`Aviso: Erro ao liberar motorista anterior: ${error.message}`, 'warning'))
+                    );
+                }
+
+                secondaryOperations.push(
+                    supabaseRequestWithTimeout(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
+                        .then(() => debugLog.add('Novo veículo alocado', 'success'))
+                        .catch(error => debugLog.add(`Aviso: Erro ao alocar novo veículo: ${error.message}`, 'warning'))
+                );
+
+                secondaryOperations.push(
+                    supabaseRequestWithTimeout(`motoristas?id=eq.${newMotoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
+                        .then(() => debugLog.add('Novo motorista alocado', 'success'))
+                        .catch(error => debugLog.add(`Aviso: Erro ao alocar novo motorista: ${error.message}`, 'warning'))
+                );
+
+                await Promise.allSettled(secondaryOperations.map(op => 
+                    Promise.race([op, new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout secundário')), 10000)
+                    )])
+                ));
+
+                debugLog.add(`Transporte realocado com sucesso às ${new Date(dataRealocacao).toLocaleTimeString('pt-BR')}`, 'success');
+                showNotification('Transporte alterado com sucesso!', 'success');
+
+                try {
+                    await Promise.all([
+                        loadSelectData(),
+                        loadTransportList()
+                    ]);
+                } catch (reloadError) {
+                    debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
+                    setTimeout(loadTransportList, 2000);
+                }
+
+            } catch (error) {
+                console.error('Erro ao realocar transporte:', error);
+                debugLog.add(`Erro ao realocar transporte: ${error.message}`, 'error');
+                showNotification(`Erro ao realocar: ${error.message}`, 'error');
+                setTimeout(loadTransportList, 2000);
+
+            } finally {
+                allocatingTransports.delete(expeditionId);
+                
+                if (reallocateButton) {
+                    reallocateButton.disabled = false;
+                    reallocateButton.textContent = 'Confirmar Alteração';
+                    reallocateButton.style.opacity = '1';
+                }
+                
+                if (newVeiculoSelect) newVeiculoSelect.disabled = false;
+                if (newMotoristaSelect) newMotoristaSelect.disabled = false;
+            }
+        }
+
+        // Função para mostrar modal de confirmação
+        function showConfirmationModal(message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('qrModal');
+                const title = document.getElementById('qrModalTitle');
+                const messageEl = document.getElementById('qrModalMessage');
+                const qrReader = document.getElementById('qr-reader');
+                const confirmBtn = document.getElementById('confirmQrBtn');
+                const qrResultDisplay = document.getElementById('qr-result-display');
+                const manualInputContainer = document.getElementById('manualInputContainer');
+
+                title.textContent = "Confirmação";
+                messageEl.innerHTML = message;
+
+                qrReader.style.display = 'none';
+                qrResultDisplay.style.display = 'none';
+                manualInputContainer.style.display = 'none';
+                confirmBtn.style.display = 'block';
+
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                
+                const newCancelBtn = modal.querySelector('.btn-danger').cloneNode(true);
+                modal.querySelector('.btn-danger').parentNode.replaceChild(newCancelBtn, modal.querySelector('.btn-danger'));
+
+                newConfirmBtn.onclick = () => {
+                    closeQrModal();
+                    resolve(true);
+                };
+                newCancelBtn.onclick = () => {
+                    closeQrModal();
+                    resolve(false);
+                };
+
+                modal.style.display = 'flex';
+            });
+        }
 
         // Deletar expedição
         async function deleteExpedition(expeditionId) {
-            if (await showConfirmationModal('Tem certeza que deseja excluir esta expedição?')) {
-                try {
-                    await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE', null, false);
-                    showNotification('Expedição excluída!', 'success');
-                    loadAcompanhamento();
-                } catch (error) {
-                    showNotification(`Erro: ${error.message}`, 'error');
-                }
+            if (!await showConfirmationModal('Tem certeza que deseja excluir esta expedição?')) {
+                return;
+            }
+            
+            try {
+                debugLog.add(`Deletando expedição ${expeditionId}`, 'info');
+                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE', null, false);
+                debugLog.add('Expedição excluída com sucesso', 'success');
+                showNotification('Expedição excluída com sucesso!', 'success');
+                loadAcompanhamento();
+            } catch (error) {
+                console.error('Erro ao excluir expedição:', error);
+                debugLog.add(`Erro ao excluir: ${error.message}`, 'error');
+                showNotification('Erro: ' + error.message, 'error');
             }
         }
-        
 
         // --- Funções da Aba do Motorista ---
         async function loadMotoristaTab() {
+            debugLog.add('Preparando a aba do motorista', 'info');
             document.getElementById('resultadosMotorista').style.display = 'none';
             document.getElementById('semResultados').style.display = 'none';
         }
 
         async function consultarExpedicoesPorPlaca() {
-            const placa = document.getElementById('placaMotorista').value.trim();
+            const placaSelect = document.getElementById('placaMotorista');
+            const placa = placaSelect.value.trim();
+
             if (!placa) {
-                showNotification('Selecione uma placa', 'error');
+                showNotification('Por favor, selecione uma placa de veículo', 'error');
                 return;
             }
-            debugLog.add(`Consultando para placa: ${placa}`, 'info');
+
+            if (!selectedFilial) {
+                showNotification('Selecione uma filial primeiro!', 'error');
+                return;
+            }
+
+            debugLog.add(`Consultando expedições para placa: ${placa} na filial: ${selectedFilial.nome}`, 'info');
 
             try {
-                const expeditions = await supabaseRequest(`expeditions?status=in.(aguardando_veiculo,em_carregamento,saiu_para_entrega)&order=data_hora.desc`);
-                const items = await supabaseRequest(`expedition_items`);
-                const veiculo = veiculos.find(v => v.placa === placa);
-
-                if (!veiculo) {
-                    mostrarSemResultados();
-                    return;
-                }
+                // ALTERAÇÃO: Incluído status 'saiu_para_entrega'
+                const expeditions = await supabaseRequest("expeditions?status=in.(aguardando_veiculo,em_carregamento,saiu_para_entrega)&order=data_hora.desc");
+                const items = await supabaseRequest('expedition_items');
 
                 const expeditionsWithItems = expeditions
-                    .filter(exp => exp.veiculo_id === veiculo.id)
-                    .map(exp => ({
-                        ...exp,
-                        items: items.filter(item => item.expedition_id === exp.id),
-                        lojas_info: items.filter(item => item.expedition_id === exp.id).map(item => {
-                            const loja = lojas.find(l => l.id === item.loja_id);
-                            return loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'Loja N/A';
-                        }).join(', '),
-                        doca: docas.find(d => d.id === exp.doca_id) || {},
-                    }));
+                    .map(exp => {
+                        const expItems = items.filter(item => item.expedition_id === exp.id);
+
+                        const doca = docas.find(d => d.id === exp.doca_id);
+                        const lider = lideres.find(l => l.id === exp.lider_id);
+                        const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
+                        const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
+
+                        return {
+                            ...exp,
+                            items: expItems, // Manter os itens associados
+                            total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
+                            total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
+                            lojas_count: expItems.length,
+                            lojas_info: expItems.map(item => {
+                                const loja = lojas.find(l => l.id === item.loja_id);
+                                return loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'Loja N/A';
+                            }).join(', '),
+                            doca_nome: doca ? doca.nome : 'N/A',
+                            doca_id: doca ? doca.id : null,
+                            lider_nome: lider ? lider.nome : 'N/A',
+                            veiculo_placa: veiculo ? veiculo.placa : null,
+                            veiculo_modelo: veiculo ? veiculo.modelo : null,
+                            motorista_nome: motorista ? motorista.nome : null
+                        };
+                    })
+                    .filter(exp => exp.veiculo_placa && exp.veiculo_placa === placa);
 
                 if (expeditionsWithItems.length > 0) {
                     renderExpedicoesMotorista(expeditionsWithItems, placa);
+                    debugLog.add(`${expeditionsWithItems.length} expedições encontradas para placa ${placa}`, 'success');
                 } else {
                     mostrarSemResultados();
+                    debugLog.add(`Nenhuma expedição encontrada para placa ${placa}`, 'info');
                 }
+
             } catch (error) {
-                showNotification(`Erro: ${error.message}`, 'error');
+                console.error('Erro ao consultar expedições:', error);
+                debugLog.add(`Erro ao consultar expedições: ${error.message}`, 'error');
+                showNotification('Erro ao consultar expedições: ' + error.message, 'error');
             }
         }
 
         function renderExpedicoesMotorista(expeditions, placa) {
-            document.getElementById('resultadosMotorista').style.display = 'block';
             document.getElementById('semResultados').style.display = 'none';
+            document.getElementById('resultadosMotorista').style.display = 'block';
+
             const container = document.getElementById('listaExpedicoesMotorista');
-            container.innerHTML = `<div class="transport-card"><h4>Veículo: ${placa}</h4><p>${expeditions.length} viagem(ns) encontrada(s)</p></div>` + 
-                expeditions.map((exp, index) => {
-                    let contentHTML = '';
-                    if (exp.status === 'saiu_para_entrega') {
-                        contentHTML = renderPainelDescarga(exp);
-                    } else {
-                        const tempoEspera = minutesToHHMM(Math.round((new Date() - new Date(exp.data_hora)) / 60000));
-                        let proximaAcao = '', actionButton = '';
-                        if (exp.status === 'aguardando_veiculo') {
-                            proximaAcao = 'Dirija-se à doca para carregar';
-                            actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar', '${exp.id}', '${exp.doca.coddoca}')">Iniciar Carregamento</button>`;
-                        } else if (exp.status === 'em_carregamento') {
-                            proximaAcao = 'Aguarde a finalização do carregamento';
-                            actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar', '${exp.id}', '${exp.doca.coddoca}')">Finalizar Carregamento</button>`;
-                        }
-                        contentHTML = `<div style="padding: 15px; border-radius: 10px; margin-bottom: 15px;"><div>${proximaAcao}</div></div>
-                                       <div class="transport-grid">
-                                           <div><strong>Lojas:</strong> ${exp.lojas_info}</div>
-                                           <div><strong>Doca:</strong> ${exp.doca.nome} (${exp.doca.coddoca})</div>
-                                           <div><strong>Aguardando há:</strong> ${tempoEspera}</div>
-                                       </div>
-                                       <div style="text-align: center; margin-top: 20px;">${actionButton}</div>`;
+
+            let html = `
+                <div class="transport-card" style="margin-bottom: 25px;">
+                    <h4 style="color: var(--primary); margin-bottom: 10px;"><span class="feature-icon truck"></span>Veículo: ${placa} - Filial: ${selectedFilial.nome}</h4>
+                    <p style="color: var(--dark); margin: 0;">${expeditions.length} expedição${expeditions.length > 1 ? 'ões' : ''} encontrada${expeditions.length > 1 ? 's' : ''}</p>
+                </div>
+            `;
+
+            expeditions.forEach((exp, index) => {
+                const docaCompleta = docas.find(d => d.id === exp.doca_id);
+                const coddocaValue = docaCompleta ? docaCompleta.coddoca : exp.doca_nome;
+
+                const criadaEm = new Date(exp.data_hora || exp.created_at);
+                const agora = new Date();
+                
+                html += `
+                    <div class="transport-card" style="margin-bottom: 25px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: var(--dark);">Viagem #${index + 1}</h3>
+                            <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span>
+                        </div>`;
+
+                if (exp.status === 'saiu_para_entrega') {
+                    // NOVO: Renderização para o processo de descarga
+                    html += renderPainelDescarga(exp);
+                } else {
+                    // Lógica existente para carregamento
+                    const tempoEspera = Math.round((agora - criadaEm) / 60000);
+                    const tempoEsperaTexto = minutesToHHMM(tempoEspera);
+
+                    let proximaAcao = '';
+                    let corStatus = '';
+                    let actionButton = '';
+
+                    if (exp.status === 'aguardando_veiculo') {
+                        proximaAcao = '👉 Dirija-se à doca para iniciar o carregamento';
+                        corStatus = 'var(--primary)';
+                        actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar', '${exp.id}', '${coddocaValue}')">Iniciar Carregamento</button>`;
+                    } else if (exp.status === 'em_carregamento') {
+                        proximaAcao = '⏳ Aguarde a finalização do carregamento';
+                        corStatus = '#F77F00';
+                        actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar', '${exp.id}', '${coddocaValue}')">Finalizar Carregamento</button>`;
                     }
-                    return `<div class="transport-card"><h3>Viagem #${index + 1} <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></h3>${contentHTML}</div>`;
-                }).join('');
+
+                    html += `
+                        <div style="background: rgba(144, 224, 239, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <div style="color: ${corStatus}; font-weight: 600; margin-bottom: 8px;">${proximaAcao}</div>
+                        </div>
+
+                        <div class="transport-grid" style="margin-bottom: 15px;">
+                            <div><span class="feature-icon store"></span><strong>Lojas:</strong> ${exp.lojas_count} (${exp.lojas_info})</div>
+                            <div><span class="feature-icon package"></span><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${exp.total_pallets}</span></div>
+                            <div><span class="feature-icon rolltrainer"></span><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${exp.total_rolltrainers}</span></div>
+                            <div><span class="feature-icon dock"></span><strong>Doca:</strong> ${exp.doca_nome} (${coddocaValue})</div>
+                            <div><span class="feature-icon user"></span><strong>Líder:</strong> ${exp.lider_nome}</div>
+                            <div><span class="feature-icon clock"></span><strong>Aguardando há:</strong> ${tempoEsperaTexto}</div>
+                        </div>
+                        
+                        ${exp.observacoes ? `
+                            <div style="background: rgba(144, 224, 239, 0.1); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--primary);">
+                                <span class="feature-icon note"></span><strong style="color: var(--primary);">Observações:</strong><br>
+                                <span style="color: var(--dark);">${exp.observacoes}</span>
+                            </div>
+                        ` : ''}
+                        <div style="text-align: center; margin-top: 20px;">
+                            ${actionButton}
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+            });
+
+            container.innerHTML = html;
         }
         
+        // NOVO: Função para renderizar o painel de descarga
         function renderPainelDescarga(exp) {
-            let html = '<h4 style="margin-bottom: 15px;">Roteiro de Entregas</h4>';
+            let html = '<h3 style="color: var(--dark); margin-bottom: 20px;">Roteiro de Entregas</h3>';
             let emTransito = true;
             let ultimaDescargaFinalizada = new Date(exp.data_saida_entrega);
 
             exp.items.forEach(item => {
                 const loja = lojas.find(l => l.id === item.loja_id);
                 let statusDescargaLabel, statusColor, actionButton = '';
-                let tempoTransito = item.data_inicio_descarga ? minutesToHHMM((new Date(item.data_inicio_descarga) - ultimaDescargaFinalizada) / 60000) : '';
 
-                if (item.status_descarga === 'pendente' && emTransito) {
-                    statusDescargaLabel = 'Próxima Entrega'; statusColor = 'var(--primary)';
-                    actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar_descarga', '${item.id}', '${loja.codlojaqr}', '${exp.id}')">Iniciar Descarga</button>`;
-                    emTransito = false;
-                } else if (item.status_descarga === 'pendente') {
-                    statusDescargaLabel = 'Aguardando'; statusColor = '#6c757d';
-                } else if (item.status_descarga === 'em_descarga') {
-                    statusDescargaLabel = 'Em Descarga'; statusColor = '#F77F00';
-                    actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar_descarga', '${item.id}', '${loja.codlojaqr}', '${exp.id}')">Finalizar Descarga</button>`;
-                    emTransito = false;
-                } else if (item.status_descarga === 'descarregado') {
-                    statusDescargaLabel = 'Descarregado'; statusColor = '#00D4AA';
-                    ultimaDescargaFinalizada = new Date(item.data_fim_descarga);
+                let tempoTransito = '';
+                if (item.data_inicio_descarga) {
+                    const inicioDescarga = new Date(item.data_inicio_descarga);
+                    const minutosTransito = (inicioDescarga - ultimaDescargaFinalizada) / 60000;
+                    tempoTransito = `<div class="time-display good"><strong>Tempo de Trânsito:</strong> ${minutesToHHMM(minutosTransito)}</div>`;
                 }
 
-                html += `<div class="loja-descarga-card">
-                            <div style="display: flex; justify-content: space-between;">
-                                <h4>${loja.nome} (${loja.codigo})</h4>
-                                <span style="font-weight: bold; color: ${statusColor};">${statusDescargaLabel}</span>
-                            </div>
-                            ${tempoTransito ? `<div><strong>Trânsito:</strong> ${tempoTransito}</div>` : ''}
-                            ${item.data_fim_descarga ? `<div><strong>Tempo em Loja:</strong> ${minutesToHHMM((new Date(item.data_fim_descarga) - new Date(item.data_inicio_descarga)) / 60000)}</div>` : ''}
-                            <div style="text-align: center; margin-top: 15px;">${actionButton}</div>
-                         </div>`;
+                if (item.status_descarga === 'pendente' && emTransito) {
+                    statusDescargaLabel = 'Próxima Entrega';
+                    statusColor = 'var(--primary)';
+                    actionButton = `<button class="btn btn-success" onclick="openQrModal('iniciar_descarga', '${item.id}', '${loja.codlojaqr || ''}', '${exp.id}')">Iniciar Descarga</button>`;
+                    emTransito = false; // Apenas a primeira pendente pode ser iniciada
+                } else if (item.status_descarga === 'pendente' && !emTransito) {
+                    statusDescargaLabel = 'Aguardando';
+                    statusColor = '#6c757d';
+                } else if (item.status_descarga === 'em_descarga') {
+                    statusDescargaLabel = 'Em Descarga';
+                    statusColor = '#F77F00';
+                    actionButton = `<button class="btn btn-primary" onclick="openQrModal('finalizar_descarga', '${item.id}', '${loja.codlojaqr || ''}', '${exp.id}')">Finalizar Descarga</button>`;
+                    emTransito = false;
+                } else if (item.status_descarga === 'descarregado') {
+                    statusDescargaLabel = 'Descarregado';
+                    statusColor = '#00D4AA';
+                    ultimaDescargaFinalizada = new Date(item.data_fim_descarga); // Atualiza para o próximo cálculo de trânsito
+                }
+
+                html += `
+                    <div class="loja-descarga-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                             <h4><span class="feature-icon store"></span> ${loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'N/A'}</h4>
+                             <span style="font-weight: bold; color: ${statusColor};">${statusDescargaLabel}</span>
+                        </div>
+                        <div class="loja-descarga-info">
+                            <div><strong>Pallets:</strong> ${item.pallets}</div>
+                            <div><strong>RollTrainers:</strong> ${item.rolltrainers}</div>
+                        </div>
+                        ${tempoTransito}
+                        ${item.data_inicio_descarga ? `<div class="time-display good"><strong>Início Descarga:</strong> ${new Date(item.data_inicio_descarga).toLocaleTimeString('pt-BR')}</div>` : ''}
+                        ${item.data_fim_descarga ? `<div class="time-display good"><strong>Fim Descarga:</strong> ${new Date(item.data_fim_descarga).toLocaleTimeString('pt-BR')}</div>` : ''}
+                        ${item.data_inicio_descarga && item.data_fim_descarga ? `<div class="time-display good"><strong>Tempo Total:</strong> ${minutesToHHMM((new Date(item.data_fim_descarga) - new Date(item.data_inicio_descarga)) / 60000)}</div>` : ''}
+
+                        <div style="text-align: center; margin-top: 15px;">
+                            ${actionButton}
+                        </div>
+                    </div>
+                `;
             });
+            
             return html;
         }
 
@@ -3120,127 +3789,274 @@
         }
 
         // --- Funções do Modal de QR Code ---
-        let modalState = { action: null, scannedValue: null, mainId: null, secondaryId: null, expectedCode: null };
+        let modalState = {
+            action: null,
+            scannedValue: null,
+            mainId: null,
+            secondaryId: null,
+            expectedCode: null
+        };
+
+        // Variável para controlar o estado do scanner
         let scannerIsRunning = false;
 
         async function openQrModal(action, mainId, code, secondaryId = null) {
-            Object.assign(modalState, { action, mainId, secondaryId, expectedCode: code, scannedValue: null });
-            
-            const titles = { 'iniciar': 'Iniciar Carregamento', 'finalizar': 'Finalizar Carregamento', 'iniciar_descarga': 'Iniciar Descarga', 'finalizar_descarga': 'Finalizar Descarga' };
-            const messages = {
-                'iniciar': `Escaneie o QR da Doca (${code})`, 'finalizar': `Escaneie o QR da Doca (${code})`,
-                'iniciar_descarga': `Escaneie o QR da Loja (${code})`, 'finalizar_descarga': `Escaneie o QR da Loja (${code})`
-            };
+            modalState.action = action;
+            modalState.mainId = mainId;
+            modalState.secondaryId = secondaryId;
+            modalState.expectedCode = code;
+            modalState.scannedValue = null;
 
-            document.getElementById('qrModalTitle').textContent = titles[action];
-            document.getElementById('qrModalMessage').textContent = messages[action];
-            document.getElementById('qr-result-display').style.display = 'none';
-            document.getElementById('confirmQrBtn').disabled = true;
-            document.getElementById('qr-reader').innerHTML = '';
+            const modalTitle = document.getElementById('qrModalTitle');
+            const modalMessage = document.getElementById('qrModalMessage');
+            const qrReader = document.getElementById('qr-reader');
+            const qrResultDisplay = document.getElementById('qr-result-display');
+            const confirmBtn = document.getElementById('confirmQrBtn');
+            const manualInputContainer = document.getElementById('manualInputContainer');
+
+            qrResultDisplay.style.display = 'none';
+            confirmBtn.disabled = true;
+            qrReader.innerHTML = '';
+            qrReader.style.display = 'block';
+
+            if (action === 'iniciar') {
+                modalTitle.textContent = 'Iniciar Carregamento';
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca (código: ${code}) para iniciar o carregamento.`;
+            } else if (action === 'finalizar') {
+                modalTitle.textContent = 'Finalizar Carregamento';
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Doca (código: ${code}) para finalizar o carregamento.`;
+            } else if (action === 'iniciar_descarga') {
+                modalTitle.textContent = 'Iniciar Descarga';
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Loja (código: ${code}) para iniciar a descarga.`;
+            } else if (action === 'finalizar_descarga') {
+                modalTitle.textContent = 'Finalizar Descarga';
+                modalMessage.textContent = `Por favor, escaneie o QR Code da Loja (código: ${code}) para finalizar a descarga.`;
+            }
+
             document.getElementById('qrModal').style.display = 'flex';
-            
-            if (html5QrCodeScanner) await stopScannerSafely();
+
+            // Limpar scanner anterior se existir
+            if (html5QrCodeScanner) {
+                await stopScannerSafely();
+            }
+
             html5QrCodeScanner = new Html5Qrcode("qr-reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
             try {
-                await html5QrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, ()=>{});
+                await html5QrCodeScanner.start({ facingMode: "environment" }, config, onScanSuccess, onScanError);
                 scannerIsRunning = true;
+                debugLog.add('Scanner de QR Code iniciado com sucesso.', 'info');
             } catch (error) {
-                document.getElementById('manualInputContainer').style.display = 'block';
+                debugLog.add(`Erro ao iniciar scanner: ${error}`, 'error');
+                qrReader.innerHTML = '<div style="color: red; padding: 20px;">Não foi possível acessar a câmera. Verifique as permissões.</div>';
+                manualInputContainer.style.display = 'block';
+                scannerIsRunning = false;
             }
         }
         
-        function onScanSuccess(decodedText) {
-            modalState.scannedValue = decodedText;
-            document.getElementById('scannedValue').textContent = decodedText;
-            document.getElementById('qr-result-display').style.display = 'block';
-            document.getElementById('confirmQrBtn').disabled = false;
-            stopScannerSafely();
+        function onScanSuccess(decodedText, decodedResult) {
+            if (modalState.scannedValue !== decodedText) {
+                modalState.scannedValue = decodedText;
+                
+                const scannedValueEl = document.getElementById('scannedValue');
+                scannedValueEl.textContent = decodedText;
+                document.getElementById('qr-reader').style.display = 'none';
+                document.getElementById('qr-result-display').style.display = 'block';
+                document.getElementById('confirmQrBtn').disabled = false;
+                
+                debugLog.add(`QR Code escaneado: ${decodedText}`, 'success');
+
+                // Parar o scanner com verificação de estado
+                stopScannerSafely();
+            }
+        }
+
+        function onScanError(errorMessage) {
+            // Silenciar erros repetitivos do scanner
         }
 
         async function stopScannerSafely() {
             if (html5QrCodeScanner && scannerIsRunning) {
-                try { await html5QrCodeScanner.stop(); } catch(e) {}
-                scannerIsRunning = false;
+                try {
+                    await html5QrCodeScanner.stop();
+                    scannerIsRunning = false;
+                    debugLog.add('Scanner parado com sucesso', 'info');
+                } catch (error) {
+                    debugLog.add(`Erro ao parar scanner: ${error}`, 'warning');
+                    scannerIsRunning = false;
+                }
             }
         }
 
         function closeQrModal() {
             document.getElementById('qrModal').style.display = 'none';
-            stopScannerSafely().then(() => { html5QrCodeScanner = null; });
+            
+            // Parar o scanner de forma segura
+            stopScannerSafely().then(() => {
+                if (html5QrCodeScanner) {
+                    html5QrCodeScanner.clear();
+                    html5QrCodeScanner = null;
+                }
+            }).catch(() => {
+                // Em caso de erro, apenas limpar
+                if (html5QrCodeScanner) {
+                    html5QrCodeScanner = null;
+                }
+                scannerIsRunning = false;
+            });
+            
+            modalState.action = null;
+            modalState.mainId = null;
+            modalState.secondaryId = null;
+            modalState.expectedCode = null;
+            modalState.scannedValue = null;
         }
 
         async function handleQrScan() {
-            const valueToProcess = modalState.scannedValue || document.getElementById('qrCodeInput').value.trim();
+            let valueToProcess = modalState.scannedValue;
+
             if (!valueToProcess) {
-                showNotification('Nenhum QR Code lido.', 'error');
-                return;
+                valueToProcess = document.getElementById('qrCodeInput').value.trim();
             }
-            if (valueToProcess.toLowerCase() !== modalState.expectedCode.toLowerCase()) {
-                showNotification(`QR Code incorreto! Esperado: "${modalState.expectedCode}"`, 'error');
+
+            if (!valueToProcess) {
+                showNotification('Nenhum QR Code escaneado ou valor inserido.', 'error');
                 return;
             }
 
-            const actions = {
-                'iniciar': startLoading, 'finalizar': finishLoading,
-                'iniciar_descarga': iniciarDescarga, 'finalizar_descarga': finalizarDescarga
-            };
-            await actions[modalState.action](modalState.mainId, modalState.secondaryId);
+            if (valueToProcess.toLowerCase() !== modalState.expectedCode.toLowerCase()) {
+                showNotification(`QR Code incorreto! Esperado: "${modalState.expectedCode}", Recebido: "${valueToProcess}". Por favor, escaneie o local correto.`, 'error');
+                debugLog.add(`Validação falhou - Esperado: ${modalState.expectedCode}, Recebido: ${valueToProcess}`, 'error');
+                return;
+            }
+
+            debugLog.add(`QR Code validado com sucesso: ${valueToProcess}`, 'success');
+
+            if (modalState.action === 'iniciar') {
+                await startLoading(modalState.mainId);
+            } else if (modalState.action === 'finalizar') {
+                await finishLoading(modalState.mainId);
+            } else if (modalState.action === 'iniciar_descarga') {
+                await iniciarDescarga(modalState.mainId, modalState.secondaryId);
+            } else if (modalState.action === 'finalizar_descarga') {
+                await finalizarDescarga(modalState.mainId, modalState.secondaryId);
+            }
+
             closeQrModal();
         }
 
         async function startLoading(expeditionId) {
             try {
+                const doca = docas.find(d => d.coddoca === modalState.expectedCode);
+                if (!doca) {
+                    throw new Error(`Doca com código "${modalState.expectedCode}" não encontrada no cache local.`);
+                }
+                const dataChegada = new Date().toISOString();
+
                 await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-                    data_chegada_veiculo: new Date().toISOString(),
+                    data_chegada_veiculo: dataChegada,
                     status: 'em_carregamento'
                 });
-                showNotification(`Carregamento iniciado!`, 'success');
+
+                try {
+                    await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'em_uso' });
+                    debugLog.add(`Status da doca atualizado para em_uso`, 'success');
+                } catch (docaError) {
+                    debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
+                }
+                
+                debugLog.add(`Carregamento iniciado para expedição ${expeditionId}. Doca: ${doca.nome} (${modalState.expectedCode})`, 'success');
+                showNotification(`Carregamento iniciado na Doca ${doca.nome}!`, 'success');
                 consultarExpedicoesPorPlaca();
-            } catch (error) { showNotification(`Erro: ${error.message}`, 'error'); }
+            } catch (error) {
+                debugLog.add(`Erro ao iniciar carregamento: ${error.message}`, 'error');
+                showNotification('Erro ao iniciar carregamento: ' + error.message, 'error');
+            }
         }
         
-        async function iniciarDescarga(itemId) {
+        // NOVO: Funções para controlar a descarga
+        async function iniciarDescarga(itemId, expeditionId) {
             try {
+                const dataInicio = new Date().toISOString();
+                debugLog.add(`Iniciando descarga do item ${itemId}`, 'info');
+
                 await supabaseRequest(`expedition_items?id=eq.${itemId}`, 'PATCH', {
                     status_descarga: 'em_descarga',
-                    data_inicio_descarga: new Date().toISOString()
+                    data_inicio_descarga: dataInicio
                 });
-                showNotification('Descarga iniciada!', 'success');
+                
+                showNotification('Descarga iniciada com sucesso!', 'success');
                 consultarExpedicoesPorPlaca();
-            } catch(error) { showNotification(`Erro: ${error.message}`, 'error'); }
+
+            } catch(error) {
+                debugLog.add(`Erro ao iniciar descarga: ${error.message}`, 'error');
+                showNotification('Erro ao iniciar descarga: ' + error.message, 'error');
+            }
         }
 
         async function finalizarDescarga(itemId, expeditionId) {
             try {
+                const dataFim = new Date().toISOString();
+                debugLog.add(`Finalizando descarga do item ${itemId}`, 'info');
+                
                 await supabaseRequest(`expedition_items?id=eq.${itemId}`, 'PATCH', {
                     status_descarga: 'descarregado',
-                    data_fim_descarga: new Date().toISOString()
+                    data_fim_descarga: dataFim
                 });
                 
-                const items = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
-                if (items.every(item => item.status_descarga === 'descarregado')) {
-                    await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', { status: 'entregue' });
-                    showNotification('Última entrega finalizada! Viagem concluída.', 'success');
+                // Verifica se todas as lojas da expedição foram descarregadas
+                const itemsResponse = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
+                const todosDescarregados = itemsResponse.every(item => item.status_descarga === 'descarregado');
+
+                if (todosDescarregados) {
+                    debugLog.add(`Todas as lojas da expedição ${expeditionId} foram descarregadas. Finalizando...`, 'info');
+                    await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                        status: 'entregue'
+                    });
+                     showNotification('Última entrega finalizada! Viagem concluída.', 'success');
                 } else {
-                    showNotification('Descarga da loja finalizada!', 'success');
+                     showNotification('Descarga da loja finalizada! Prossiga para a próxima entrega.', 'success');
                 }
+                
                 consultarExpedicoesPorPlaca();
-            } catch(error) { showNotification(`Erro: ${error.message}`, 'error'); }
+
+            } catch(error) {
+                debugLog.add(`Erro ao finalizar descarga: ${error.message}`, 'error');
+                showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
+            }
         }
+
 
         async function finishLoading(expeditionId) {
             try {
+                const doca = docas.find(d => d.coddoca === modalState.expectedCode);
+                if (!doca) {
+                    throw new Error(`Doca com código "${modalState.expectedCode}" não encontrada no cache local.`);
+                }
+                const dataSaida = new Date().toISOString();
+
                 await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-                    data_saida_veiculo: new Date().toISOString(),
+                    data_saida_veiculo: dataSaida,
                     status: 'aguardando_faturamento'
                 });
-                showNotification(`Carregamento finalizado!`, 'success');
+
+                try {
+                    await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'disponivel' });
+                    debugLog.add(`Status da doca atualizado para disponivel`, 'success');
+                } catch (docaError) {
+                    debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
+                }
+                
+                debugLog.add(`Carregamento finalizado para expedição ${expeditionId}.`, 'success');
+                showNotification(`Carregamento finalizado! Expedição aguardando faturamento.`, 'success');
                 consultarExpedicoesPorPlaca();
-            } catch (error) { showNotification(`Erro: ${error.message}`, 'error'); }
+            } catch (error) {
+                debugLog.add(`Erro ao finalizar carregamento: ${error.message}`, 'error');
+                showNotification('Erro ao finalizar carregamento: ' + error.message, 'error');
+            }
         }
 
-        // --- Funções do Modal de Edição ---
-        // (restante das funções de edição, configuração, etc. permanecem as mesmas)
         // --- Funções do Modal de Edição ---
         async function openEditModal(expeditionId) {
             try {
@@ -3396,26 +4212,73 @@
 
         // --- Funções de Configuração ---
         const correctPasswords = ['JPMASTER', 'ELIELSONR'];
-        document.getElementById('passwordForm')?.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const password = document.getElementById('passwordInput').value;
-            if (correctPasswords.includes(password.toUpperCase())) {
-                passwordAuthenticated = true;
-                showNotification('Acesso concedido!', 'success');
-                document.getElementById('passwordFormContainer').style.display = 'none';
-                document.getElementById('configuracoesContent').style.display = 'block';
-                updateSystemStatus();
-                updateDebugStats();
-            } else {
-                showAlert('passwordAlert', 'Senha incorreta.', 'error');
-                document.getElementById('passwordInput').value = '';
-            }
-        });
 
-        async function forceSyncData() { /* ... */ }
-        async function testConnection() { /* ... */ }
-        function clearCache() { /* ... */ }
-        function clearDebugLog() { debugLog.clear(); }
+        async function forceSyncData() {
+            debugLog.add('Iniciando sincronização forçada...', 'info');
+            showNotification('Sincronizando dados...', 'info');
+
+            try {
+                await loadSelectData();
+                loadAcompanhamento();
+                updateDebugStats();
+                updateSystemStatus();
+
+                debugLog.add('Sincronização concluída com sucesso', 'success');
+                showNotification('Dados sincronizados com sucesso!', 'success');
+            } catch (error) {
+                debugLog.add(`Erro na sincronização: ${error.message}`, 'error');
+                showNotification('Erro na sincronização: ' + error.message, 'error');
+            }
+        }
+
+        async function testConnection() {
+            debugLog.add('Testando conexão com Supabase...', 'info');
+
+            try {
+                const startTime = performance.now();
+                await supabaseRequest('filiais?select=nome&limit=1', 'GET', null, false);
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+
+                debugLog.add(`Conexão OK - Tempo de resposta: ${responseTime}ms`, 'success');
+                showNotification(`Conexão OK (${responseTime}ms)`, 'success');
+            } catch (error) {
+                debugLog.add(`Falha na conexão: ${error.message}`, 'error');
+                showNotification('Falha na conexão: ' + error.message, 'error');
+            }
+        }
+
+        function clearCache() {
+            lojas = [];
+            docas = [];
+            lideres = [];
+            veiculos = [];
+            motoristas = [];
+
+            const lojaSelects = document.querySelectorAll('.loja-select');
+            lojaSelects.forEach(select => {
+                select.innerHTML = '<option value="">Carregue os dados...</option>';
+            });
+
+            const docaSelect = document.getElementById('docaSelect');
+            if (docaSelect) {
+                docaSelect.innerHTML = '<option value="">Carregue os dados...</option>';
+            }
+
+            const liderSelect = document.getElementById('liderSelect');
+            if (liderSelect) {
+                liderSelect.innerHTML = '<option value="">Carregue os dados...</option>';
+            }
+
+            updateDebugStats();
+            debugLog.add('Cache limpo', 'info');
+            showNotification('Cache limpo!', 'success');
+        }
+
+        function clearDebugLog() {
+            debugLog.clear();
+        }
+
         function updateDebugStats() {
             document.getElementById('debugLojas').textContent = lojas.length;
             document.getElementById('debugDocas').textContent = docas.length;
@@ -3424,88 +4287,728 @@
         }
 
         async function updateSystemStatus() {
-             const status = document.getElementById('systemStatus');
+            const status = document.getElementById('systemStatus');
             if (!status) return;
-            status.textContent = `
-            FILIAL ATIVA: ${selectedFilial ? selectedFilial.nome : 'N/A'}
-            VERSÃO: 4.3 - Histórico de Performance
-            CACHE: ${lojas.length} lojas, ${docas.length} docas, ${lideres.length} líderes
-            ÚLTIMA ATUALIZAÇÃO: ${new Date().toLocaleTimeString()}
+
+            const systemInfo = `
+DESENVOLVEDOR: Juliano Patrick - JP Tech Solutions
+CONTATO: julianocorrea@bateforte.com.br
+
+FILIAL ATIVA: ${selectedFilial ? selectedFilial.nome : 'Nenhuma selecionada'}
+URL do Supabase: ${SUPABASE_URL}
+Data/Hora: ${new Date().toLocaleString('pt-BR')}
+
+SISTEMA MULTI-FILIAL ATIVO:
+✓ Controle por filial implementado
+✓ Filtros automáticos por filial
+✓ Timestamps automáticos no lançamento
+✓ Controle de alocação de veículos
+✓ Registro manual de chegada/saída na doca
+✓ Cálculos automáticos de tempo
+✓ Validação QR Code com coddoca
+✓ Interface responsiva para mobile
+✓ Roteirização e controle de descarga com QR Code
+
+CACHE LOCAL:
+• Lojas: ${lojas.length} carregadas
+• Docas: ${docas.length} carregadas
+• Líderes: ${lideres.length} carregados
+• Veículos: ${veiculos.length} carregados
+• Motoristas: ${motoristas.length} carregados
+
+STATUS: Sistema multi-filial funcionando normalmente
+VERSÃO: 4.2 - Roteirização com QR Code
+DESENVOLVIDO POR: JP Tech Solutions
+ÚLTIMA ATUALIZAÇÃO: ${new Date().toLocaleTimeString()}
             `;
+
+            status.textContent = systemInfo;
         }
 
         // Formulários de cadastro com filial
         function showAddForm(type) {
-             if (!selectedFilial) {
+            if (!selectedFilial) {
                 showNotification('Selecione uma filial primeiro!', 'error');
                 return;
             }
+
+            debugLog.add(`Abrindo formulário: ${type}`, 'info');
+
             const modal = document.getElementById('addFormModal');
             const title = document.getElementById('addFormTitle');
             const fieldsContainer = document.getElementById('addFormFields');
+
             modal.style.display = 'block';
-            let html = '';
-            
+
             if (type === 'loja') {
-                title.textContent = `Adicionar Nova Loja`;
-                html = `<div class="form-group"><label>Nome:</label><input type="text" id="add_nome" required></div>
-                        <div class="form-group"><label>Código:</label><input type="text" id="add_codigo" required></div>
-                        <div class="form-group"><label>Cidade:</label><input type="text" id="add_cidade" required></div>
-                        <div class="form-group"><label>Código QR:</label><input type="text" id="add_codlojaqr" required style="text-transform:uppercase;"></div>`;
-            } //... (outros types)
-
-            fieldsContainer.innerHTML = html + `<div class="form-group"><label>Filial:</label><input type="text" value="${selectedFilial.nome}" disabled></div>`;
+                title.textContent = `Adicionar Nova Loja - ${selectedFilial.nome}`;
+                fieldsContainer.innerHTML = `
+                    <div class="form-group">
+                        <label for="add_nome">Nome da Loja:</label>
+                        <input type="text" id="add_nome" required placeholder="Ex: Big Box Loja 88">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_codigo">Código da Loja:</label>
+                        <input type="text" id="add_codigo" required placeholder="Ex: BIG088">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_cidade">Cidade:</label>
+                        <input type="text" id="add_cidade" required placeholder="Ex: Cuiabá, Rondonópolis">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_codlojaqr">Código QR da Loja:</label>
+                        <input type="text" id="add_codlojaqr" required placeholder="Ex: LOJA_BIG088" style="text-transform: uppercase;" onkeyup="this.value = this.value.toUpperCase()">
+                    </div>
+                    <div class="form-group">
+                        <label>Filial:</label>
+                        <input type="text" value="${selectedFilial.nome}" disabled style="background: #f5f5f5;">
+                    </div>
+                `;
+            } else if (type === 'doca') {
+                title.textContent = `Adicionar Nova Doca - ${selectedFilial.nome}`;
+                fieldsContainer.innerHTML = `
+                    <div class="form-group">
+                        <label for="add_nome">Nome da Doca:</label>
+                        <input type="text" id="add_nome" required placeholder="Ex: Doca 1, Doca A, etc.">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_capacidade_pallets">Capacidade (Pallets):</label>
+                        <input type="number" id="add_capacidade_pallets" min="0" required placeholder="Ex: 30">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_coddoca">Código da Doca (QR Code):</label>
+                        <input type="text" id="add_coddoca" required placeholder="Ex: DOCA1, DOCA_A">
+                    </div>
+                    <div class="form-group">
+                        <label>Filial:</label>
+                        <input type="text" value="${selectedFilial.nome}" disabled style="background: #f5f5f5;">
+                    </div>
+                `;
+            } else if (type === 'lider') {
+                title.textContent = `Adicionar Novo Líder - ${selectedFilial.nome}`;
+                fieldsContainer.innerHTML = `
+                    <div class="form-group">
+                        <label for="add_nome">Nome do Líder:</label>
+                        <input type="text" id="add_nome" required placeholder="Ex: João Silva Santos">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_codigo_funcionario">Código Funcionário (Matrícula):</label>
+                        <input type="text" id="add_codigo_funcionario" required placeholder="Ex: LID001, 79105100">
+                    </div>
+                    <div class="form-group">
+                        <label>Filial:</label>
+                        <input type="text" value="${selectedFilial.nome}" disabled style="background: #f5f5f5;">
+                    </div>
+                `;
+            } else if (type === 'veiculo') {
+                title.textContent = `Adicionar Novo Veículo - ${selectedFilial.nome}`;
+                fieldsContainer.innerHTML = `
+                    <div class="form-group">
+                        <label for="add_placa">Placa do Veículo:</label>
+                        <input type="text" id="add_placa" required placeholder="Ex: ABC-1234" style="text-transform: uppercase;" onkeyup="this.value = this.value.toUpperCase()">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_modelo">Modelo:</label>
+                        <input type="text" id="add_modelo" required placeholder="Ex: Mercedes Actros 2651">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_capacidade_pallets">Capacidade (Pallets):</label>
+                        <input type="number" id="add_capacidade_pallets" min="1" required placeholder="Ex: 26">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_tipo">Tipo:</label>
+                        <select id="add_tipo" required>
+                            <option value="">Selecione o tipo</option>
+                            <option value="JJS">JJS</option>
+                            <option value="PERLOG">PERLOG</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filial:</label>
+                        <input type="text" value="${selectedFilial.nome}" disabled style="background: #f5f5f5;">
+                    </div>
+                `;
+            } else if (type === 'motorista') {
+                title.textContent = `Adicionar Novo Motorista - ${selectedFilial.nome}`;
+                fieldsContainer.innerHTML = `
+                    <div class="form-group">
+                        <label for="add_nome">Nome do Motorista:</label>
+                        <input type="text" id="add_nome" required placeholder="Ex: João Silva Pereira">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_produtivo">Produtivo (Matrícula):</label>
+                        <input type="text" id="add_produtivo" required placeholder="Ex: 45676912345">
+                    </div>
+                    <div class="form-group">
+                        <label>Filial:</label>
+                        <input type="text" value="${selectedFilial.nome}" disabled style="background: #f5f5f5;">
+                    </div>
+                `;
+            }
         }
-        function hideAddForm() { document.getElementById('addFormModal').style.display = 'none'; }
-        
-        document.getElementById('addForm')?.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const title = document.getElementById('addFormTitle').textContent;
-            if (title.includes('Loja')) await saveLoja();
-            // ... (outros saves)
-        });
 
+        function hideAddForm() {
+            debugLog.add('Fechando formulário', 'info');
+            document.getElementById('addFormModal').style.display = 'none';
+            document.getElementById('addFormAlert').innerHTML = '';
+        }
+
+        // Funções de salvamento com filial (removendo parâmetro false desnecessário)
         async function saveLoja() {
-             const nome = document.getElementById('add_nome').value.trim();
+            const nome = document.getElementById('add_nome').value.trim();
             const codigo = document.getElementById('add_codigo').value.trim();
             const cidade = document.getElementById('add_cidade').value.trim();
             const codlojaqr = document.getElementById('add_codlojaqr').value.trim().toUpperCase();
+
             if (!nome || !codigo || !cidade || !codlojaqr) {
-                showAlert('addFormAlert', 'Preencha todos os campos', 'error'); return;
+                showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
+                return;
             }
+
             try {
-                await supabaseRequest('lojas', 'POST', { nome, codigo, cidade, codlojaqr, ativo: true });
-                showNotification(`Loja "${nome}" criada!`, 'success');
-                await loadSelectData(); hideAddForm();
-            } catch (error) { showAlert('addFormAlert', `Erro: ${error.message}`, 'error'); }
+                debugLog.add(`Salvando nova loja: ${nome} (${codigo}) - QR: ${codlojaqr} - Filial: ${selectedFilial.nome}`, 'info');
+
+                const lojaData = {
+                    nome: nome,
+                    codigo: codigo,
+                    cidade: cidade,
+                    codlojaqr: codlojaqr,
+                    ativo: true
+                    // filial será adicionada automaticamente pela função supabaseRequest
+                };
+
+                await supabaseRequest('lojas', 'POST', lojaData);
+
+                debugLog.add(`Loja "${nome}" criada com sucesso`, 'success');
+                showAlert('addFormAlert', `Loja "${nome}" criada com sucesso para ${selectedFilial.nome}!`, 'success');
+                showNotification(`Nova loja "${nome}" adicionada à ${selectedFilial.nome}!`, 'success');
+
+                setTimeout(async () => {
+                    await loadSelectData();
+                    hideAddForm();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro ao salvar loja:', error);
+                debugLog.add(`Erro ao salvar loja: ${error.message}`, 'error');
+                showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
+            }
         }
-        
+
+        async function saveDoca() {
+            const nome = document.getElementById('add_nome').value.trim();
+            const capacidadePallets = parseInt(document.getElementById('add_capacidade_pallets').value);
+            const coddoca = document.getElementById('add_coddoca').value.trim();
+
+            if (!nome || !capacidadePallets || capacidadePallets < 0 || !coddoca) {
+                showAlert('addFormAlert', 'Por favor, preencha todos os campos corretamente', 'error');
+                return;
+            }
+
+            try {
+                debugLog.add(`Salvando nova doca: ${nome} (${capacidadePallets} pallets) - Código: ${coddoca} - Filial: ${selectedFilial.nome}`, 'info');
+
+                const docaData = {
+                    nome: nome,
+                    capacidade_pallets: capacidadePallets,
+                    coddoca: coddoca,
+                    ativo: true
+                    // filial será adicionada automaticamente pela função supabaseRequest
+                };
+
+                await supabaseRequest('docas', 'POST', docaData);
+
+                debugLog.add(`Doca "${nome}" criada com sucesso`, 'success');
+                showAlert('addFormAlert', `Doca "${nome}" criada com sucesso para ${selectedFilial.nome}!`, 'success');
+                showNotification(`Nova doca "${nome}" adicionada à ${selectedFilial.nome}!`, 'success');
+
+                setTimeout(async () => {
+                    await loadSelectData();
+                    hideAddForm();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro ao salvar doca:', error);
+                debugLog.add(`Erro ao salvar doca: ${error.message}`, 'error');
+                showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveLider() {
+            const nome = document.getElementById('add_nome').value.trim();
+            const codigoFuncionario = document.getElementById('add_codigo_funcionario').value.trim();
+
+            if (!nome || !codigoFuncionario) {
+                showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            try {
+                debugLog.add(`Salvando novo líder: ${nome} (${codigoFuncionario}) - Filial: ${selectedFilial.nome}`, 'info');
+
+                const liderData = {
+                    nome: nome,
+                    codigo_funcionario: codigoFuncionario,
+                    ativo: true
+                    // filial será adicionada automaticamente pela função supabaseRequest
+                };
+
+                await supabaseRequest('lideres', 'POST', liderData);
+
+                debugLog.add(`Líder "${nome}" criado com sucesso`, 'success');
+                showAlert('addFormAlert', `Líder "${nome}" criado com sucesso para ${selectedFilial.nome}!`, 'success');
+                showNotification(`Novo líder "${nome}" adicionado à ${selectedFilial.nome}!`, 'success');
+
+                setTimeout(async () => {
+                    await loadSelectData();
+                    hideAddForm();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro ao salvar líder:', error);
+                debugLog.add(`Erro ao salvar líder: ${error.message}`, 'error');
+                showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveVeiculo() {
+            const placa = document.getElementById('add_placa').value.trim().toUpperCase();
+            const modelo = document.getElementById('add_modelo').value.trim();
+            const capacidadePallets = parseInt(document.getElementById('add_capacidade_pallets').value);
+            const tipo = document.getElementById('add_tipo').value.trim();
+
+            if (!placa || !modelo || !capacidadePallets || !tipo) {
+                showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            if (capacidadePallets < 1) {
+                showAlert('addFormAlert', 'A capacidade deve ser maior que zero', 'error');
+                return;
+            }
+
+            if (tipo !== 'JJS' && tipo !== 'PERLOG') {
+                showAlert('addFormAlert', 'Tipo deve ser JJS ou PERLOG', 'error');
+                return;
+            }
+
+            try {
+                debugLog.add(`Salvando novo veículo: ${placa} - ${modelo} (${capacidadePallets} pallets) - Tipo: ${tipo} - Filial: ${selectedFilial.nome}`, 'info');
+
+                const veiculoData = {
+                    placa: placa,
+                    modelo: modelo,
+                    capacidade_pallets: capacidadePallets,
+                    tipo: tipo
+                    // filial será adicionada automaticamente pela função supabaseRequest
+                };
+
+                await supabaseRequest('veiculos', 'POST', veiculoData);
+
+                debugLog.add(`Veículo "${placa}" criado com sucesso`, 'success');
+                showAlert('addFormAlert', `Veículo "${placa}" criado com sucesso para ${selectedFilial.nome}!`, 'success');
+                showNotification(`Novo veículo "${placa}" adicionado à ${selectedFilial.nome}!`, 'success');
+
+                setTimeout(async () => {
+                    await loadSelectData();
+                    hideAddForm();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro ao salvar veículo:', error);
+                debugLog.add(`Erro ao salvar veículo: ${error.message}`, 'error');
+                showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveMotorista() {
+            const nome = document.getElementById('add_nome').value.trim();
+            const produtivo = document.getElementById('add_produtivo').value.trim();
+
+            if (!nome || !produtivo) {
+                showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            try {
+                debugLog.add(`Salvando novo motorista: ${nome} (${produtivo}) - Filial: ${selectedFilial.nome}`, 'info');
+
+                const motoristaData = {
+                    nome: nome,
+                    PRODUTIVO: produtivo
+                    // filial será adicionada automaticamente pela função supabaseRequest
+                };
+
+                await supabaseRequest('motoristas', 'POST', motoristaData);
+
+                debugLog.add(`Motorista "${nome}" criado com sucesso`, 'success');
+                showAlert('addFormAlert', `Motorista "${nome}" criado com sucesso para ${selectedFilial.nome}!`, 'success');
+                showNotification(`Novo motorista "${nome}" adicionado à ${selectedFilial.nome}!`, 'success');
+
+                setTimeout(async () => {
+                    await loadSelectData();
+                    hideAddForm();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro ao salvar motorista:', error);
+                debugLog.add(`Erro ao salvar motorista: ${error.message}`, 'error');
+                showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Event listener para o formulário de expedição
+            const expeditionForm = document.getElementById('expeditionForm');
+            if (expeditionForm) {
+                expeditionForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    if (!selectedFilial) {
+                        showAlert('operacaoAlert', 'Selecione uma filial primeiro!', 'error');
+                        return;
+                    }
+
+                    const formData = {
+                        docaId: document.getElementById('docaSelect').value,
+                        liderId: document.getElementById('liderSelect').value,
+                        observacoes: document.getElementById('observacoes').value
+                    };
+
+                    saveExpedition(formData);
+                });
+            }
+
+            // Event listener para formulário de senha
+            const passwordForm = document.getElementById('passwordForm');
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const password = document.getElementById('passwordInput').value;
+                    if (correctPasswords.includes(password.toUpperCase())) {
+                        passwordAuthenticated = true;
+                        showNotification('Acesso concedido!', 'success');
+                        document.getElementById('passwordFormContainer').style.display = 'none';
+                        document.getElementById('configuracoesContent').style.display = 'block';
+                        updateSystemStatus();
+                        updateDebugStats();
+                    } else {
+                        showAlert('passwordAlert', 'Senha incorreta.', 'error');
+                        document.getElementById('passwordInput').value = '';
+                    }
+                });
+            }
+
+            // Event listener para formulário de adição
+            const addForm = document.getElementById('addForm');
+            if (addForm) {
+                addForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const title = document.getElementById('addFormTitle').textContent;
+
+                    if (title.includes('Loja')) {
+                        await saveLoja();
+                    } else if (title.includes('Doca')) {
+                        await saveDoca();
+                    } else if (title.includes('Líder')) {
+                        await saveLider();
+                    } else if (title.includes('Veículo')) {
+                        await saveVeiculo();
+                    } else if (title.includes('Motorista')) {
+                        await saveMotorista();
+                    } else {
+                        showAlert('addFormAlert', 'Funcionalidade em desenvolvimento', 'warning');
+                    }
+                });
+            }
+
+            // Event listener para formulário de edição
+            const editForm = document.getElementById('editExpeditionForm');
+            if (editForm) {
+                editForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await saveEditedExpedition();
+                });
+            }
+        });
+
+        // Gerar relatório de tempos (atualizado para filial)
+        async function generateReport() {
+            if (!selectedFilial) {
+                showNotification('Selecione uma filial primeiro!', 'error');
+                return;
+            }
+
+            try {
+                debugLog.add(`Gerando relatório de tempos para filial: ${selectedFilial.nome}`, 'info');
+
+                const data = await supabaseRequest('expeditions');
+
+                const today = new Date();
+                const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+                const monthlyData = data.filter(exp => {
+                    const expDate = new Date(exp.data_hora);
+                    return expDate >= startOfMonth;
+                });
+
+                const temposAlocacao = [];
+                const temposCarregamento = [];
+
+                monthlyData.forEach(exp => {
+                    if (exp.data_alocacao_veiculo) {
+                        const criadoEm = new Date(exp.data_hora || exp.created_at);
+                        const alocadoEm = new Date(exp.data_alocacao_veiculo);
+                        temposAlocacao.push(Math.round((alocadoEm - criadoEm) / 60000));
+                    }
+
+                    if (exp.data_chegada_veiculo && exp.data_saida_veiculo) {
+                        const chegadaEm = new Date(exp.data_chegada_veiculo);
+                        const saidaEm = new Date(exp.data_saida_veiculo);
+                        temposCarregamento.push(Math.round((saidaEm - chegadaEm) / 60000));
+                    }
+                });
+
+                const tempoMedioAlocacao = temposAlocacao.length > 0
+                    ? Math.round(temposAlocacao.reduce((a, b) => a + b, 0) / temposAlocacao.length)
+                    : 0;
+
+                const tempoMedioCarregamento = temposCarregamento.length > 0
+                    ? Math.round(temposCarregamento.reduce((a, b) => a + b, 0) / temposCarregamento.length)
+                    : 0;
+
+                const reportText = `
+RELATÓRIO DE PERFORMANCE E TEMPOS
+FILIAL: ${selectedFilial.nome}
+${today.toLocaleDateString('pt-BR', {
+                    month: 'long',
+                    year: 'numeric'
+                }).toUpperCase()}
+
+RESUMO GERAL:
+• Total de expedições: ${monthlyData.length}
+• Entregues: ${monthlyData.filter(d => d.status === 'entregue').length}
+• Em andamento: ${monthlyData.filter(d => ['aguardando_veiculo', 'em_carregamento', 'carregado', 'saiu_para_entrega'].includes(d.status)).length}
+• Pendentes: ${monthlyData.filter(d => d.status === 'pendente').length}
+
+ANÁLISE DE TEMPOS:
+• Tempo médio para alocação: ${minutesToHHMM(tempoMedioAlocacao)}
+• Tempo médio de carregamento: ${minutesToHHMM(tempoMedioCarregamento)}
+• Expedições com alocação: ${temposAlocacao.length}
+• Expedições carregadas: ${temposCarregamento.length}
+
+PERFORMANCE:
+• Taxa de alocação: ${monthlyData.length > 0 ? ((temposAlocacao.length/monthlyData.length)*100).toFixed(1) : 0}%
+• Taxa de carregamento: ${temposAlocacao.length > 0 ? ((temposCarregamento.length/temposAlocacao.length)*100).toFixed(1) : 0}%
+
+Relatório gerado em: ${new Date().toLocaleString('pt-BR')}
+                `;
+
+                debugLog.add('Relatório de tempos gerado com sucesso', 'success');
+                showNotification(reportText, 'info');
+            } catch (error) {
+                console.error('Erro ao gerar relatório:', error);
+                debugLog.add(`Erro ao gerar relatório: ${error.message}`, 'error');
+                showNotification('Erro ao gerar relatório', 'error');
+            }
+        }
+
+        // Backup de dados (atualizado para filial)
+        async function backupData() {
+            if (!selectedFilial) {
+                showNotification('Selecione uma filial primeiro!', 'error');
+                return;
+            }
+
+            try {
+                debugLog.add(`Iniciando backup da filial: ${selectedFilial.nome}`, 'info');
+
+                const data = await supabaseRequest('expeditions');
+                
+                const backup = {
+                    timestamp: new Date().toISOString(),
+                    version: '4.0_multi_filial',
+                    filial: selectedFilial.nome,
+                    data: data
+                };
+
+                const blob = new Blob([JSON.stringify(backup, null, 2)], {
+                    type: 'application/json'
+                });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `backup_${selectedFilial.nome}_${new Date().toISOString().split('T')[0]}.json`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                debugLog.add(`Backup da filial ${selectedFilial.nome} realizado`, 'success');
+                showNotification(`Backup da filial ${selectedFilial.nome} realizado com sucesso!`, 'success');
+            } catch (error) {
+                console.error('Erro no backup:', error);
+                debugLog.add(`Erro no backup: ${error.message}`, 'error');
+                showNotification('Erro ao fazer backup', 'error');
+            }
+        }
+
+        // Ver detalhes com análise completa de tempos (atualizado para filial)
+        async function viewDetails(expeditionId) {
+            try {
+                debugLog.add(`Carregando detalhes da expedição ${expeditionId}`, 'info');
+
+                const data = await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'GET', null, false);
+                const expedition = data[0];
+
+                if (!expedition) {
+                    showNotification('Expedição não encontrada!', 'error');
+                    return;
+                }
+
+                const criadoEm = new Date(expedition.created_at || expedition.data_hora);
+                const alocadoEm = expedition.data_alocacao_veiculo ? new Date(expedition.data_alocacao_veiculo) : null;
+                const chegadaEm = expedition.data_chegada_veiculo ? new Date(expedition.data_chegada_veiculo) : null;
+                const saidaEm = expedition.data_saida_veiculo ? new Date(expedition.data_saida_veiculo) : null;
+
+                let analiseCompleta = `
+ANÁLISE COMPLETA DE TEMPOS - EXPEDIÇÃO
+FILIAL: ${expedition.filial || selectedFilial?.nome || 'N/A'}
+
+INFORMAÇÕES BÁSICAS:
+Criada em: ${criadoEm.toLocaleString('pt-BR')}
+Status: ${getStatusLabel(expedition.status)}
+
+TRANSPORTE ALOCADO:
+Veículo: ${expedition.veiculo_placa ? `${expedition.veiculo_placa} - ${expedition.veiculo_modelo}` : 'Não alocado'}
+Motorista: ${expedition.motorista_nome || 'Não alocado'}
+
+TIMELINE COMPLETA:
+`;
+
+                if (alocadoEm) {
+                    const minutosAlocar = Math.round((alocadoEm - criadoEm) / 60000);
+                    analiseCompleta += `
+• Alocação: ${alocadoEm.toLocaleString('pt-BR')}
+  ⏱️ Tempo para alocar: ${minutesToHHMM(minutosAlocar)}`;
+
+                    if (minutosAlocar <= 30) analiseCompleta += ' ✅ (Excelente)';
+                    else if (minutosAlocar <= 60) analiseCompleta += ' ⚠️ (Atenção)';
+                    else analiseCompleta += ' ❌ (Demorado)';
+                }
+
+                if (chegadaEm) {
+                    const minutosAteChegada = Math.round((chegadaEm - criadoEm) / 60000);
+                    const minutosAlocacaoChegada = alocadoEm ? Math.round((chegadaEm - alocadoEm) / 60000) : 0;
+
+                    analiseCompleta += `
+
+• Chegada na Doca: ${chegadaEm.toLocaleString('pt-BR')}
+  ⏱️ Tempo total (criação → chegada): ${minutesToHHMM(minutosAteChegada)}`;
+
+                    if (alocadoEm) {
+                        analiseCompleta += `
+  ⏱️ Tempo (alocação → chegada): ${minutesToHHMM(minutosAlocacaoChegada)}`;
+                    }
+                }
+
+                if (saidaEm) {
+                    const minutosCarregamento = Math.round((saidaEm - chegadaEm) / 60000);
+                    analiseCompleta += `
+
+• Saída da Doca: ${saidaEm.toLocaleString('pt-BR')}
+  ⏱️ Tempo de carregamento: ${minutesToHHMM(minutosCarregamento)}`;
+
+                    if (minutosCarregamento <= 45) analiseCompleta += ' ✅ (Rápido)';
+                    else if (minutosCarregamento <= 90) analiseCompleta += ' ⚠️ (Normal)';
+                    else analiseCompleta += ' ❌ (Lento)';
+                }
+
+                if (!alocadoEm) {
+                    const minutosAguardando = Math.round((new Date() - criadoEm) / 60000);
+                    analiseCompleta += `
+
+⏳ AGUARDANDO ALOCAÇÃO HÁ: ${minutesToHHMM(minutosAguardando)}`;
+
+                    if (minutosAguardando > 60) analiseCompleta += ' ⚠️ (Urgente!)';
+                    if (minutosAguardando > 120) analiseCompleta += ' ❌ (Crítico!)';
+                }
+
+                analiseCompleta += `
+
+OBSERVAÇÕES:
+${expedition.observacoes || 'Nenhuma'}
+                `;
+
+                showNotification(analiseCompleta, 'info');
+            } catch (error) {
+                console.error('Erro ao carregar detalhes:', error);
+                debugLog.add(`Erro ao carregar detalhes: ${error.message}`, 'error');
+                showNotification('Erro: ' + error.message, 'error');
+            }
+        }
+
         // Inicializar aplicação
         document.addEventListener('DOMContentLoaded', async function() {
-            debugLog.add('Sistema de Controle de Expedição v4.3 iniciado', 'info');
+            debugLog.add('Sistema de Controle de Expedição Multi-Filial iniciado', 'info');
+            debugLog.add(`URL: ${SUPABASE_URL}`, 'info');
+            debugLog.add('Funcionalidades ativas: Sistema Multi-Filial, Timestamps automáticos, Controle de doca, Análise de tempos, Filtros por data, Validação QR Code', 'info');
+
             const connected = await checkConnection();
             if (connected) {
                 await loadFiliais();
-                showNotification('Sistema carregado! Selecione uma filial.', 'success');
+                showNotification('Sistema multi-filial carregado! Selecione uma filial para continuar.', 'success');
+                debugLog.add('Sistema multi-filial totalmente carregado', 'success');
             } else {
                 showNotification('Erro na conexão com o banco', 'error');
+                debugLog.add('Sistema iniciado com erro de conexão', 'error');
             }
         });
-        
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { closeQrModal(); closeEditModal(); hideAddForm(); }
-        });
-        
-        setInterval(async () => {
-            if (selectedFilial && document.querySelector('.tab.active')?.onclick?.toString().includes("'acompanhamento'")) {
-                debugLog.add('Auto-atualizando acompanhamento...', 'info');
-                await loadAcompanhamento();
-            }
-        }, 300000);
 
-        console.log('✅ Sistema de Controle de Expedição v4.3 carregado!');
+        // Funções auxiliares adicionais
+        function showAlert(containerId, message, type = 'success') {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        // Funcionalidade de trocar filial no cabeçalho
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-danger') && e.target.textContent.includes('Trocar Filial')) {
+                trocarFilial();
+            }
+        });
+
+        // Controle de navegação por teclado para melhor UX
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                // Fechar modais com ESC
+                closeQrModal();
+                closeEditModal();
+                hideAddForm();
+            }
+        });
+
+        // Auto-atualização de dados a cada 5 minutos (opcional)
+        setInterval(async function() {
+            if (selectedFilial && document.querySelector('.tab.active')?.onclick) {
+                const activeTab = document.querySelector('.tab.active').onclick.toString().match(/'(\w+)'/)?.[1];
+                if (activeTab === 'acompanhamento') {
+                    debugLog.add('Auto-atualizando dados do acompanhamento...', 'info');
+                    await loadAcompanhamento();
+                }
+            }
+        }, 300000); // 5 minutos
+
+        console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.2 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
+        console.log('📧 Contato: julianocorrea@bateforte.com.br');
     </script>
 </body>
 </html>
-
