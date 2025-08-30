@@ -1824,18 +1824,21 @@
                         </div>
                         <div class="filter-group">
                             <label for="filtroStatus">Status:</label>
-                            <select id="filtroStatus" onchange="applyFilters()">
-                                <option value="">Todos os Status</option>
-                                <option value="pendente">Pendente</option>
-                                <option value="aguardando_veiculo">Aguardando Veículo</option>
-                                <option value="em_carregamento">Em Carregamento</option>
-                                <option value="carregado">Carregado</option>
-                                <option value="aguardando_faturamento">Aguardando Faturamento</option>
-                                <option value="faturamento_iniciado">Faturando</option>
-                                <option value="faturado">Faturado</option>
-                                <option value="saiu_para_entrega">Saiu para Entrega</option>
-                                <option value="cancelado">Cancelado</option>
-                            </select>
+                           <select id="filtroStatus" onchange="applyFilters()">
+    <option value="">Todos os Status</option>
+    <option value="pendente">Pendente</option>
+    <option value="aguardando_veiculo">Aguardando Veículo</option>
+    <option value="em_carregamento">Em Carregamento</option>
+    <option value="carregado">Carregado</option>
+    <option value="aguardando_faturamento">Aguardando Faturamento</option>
+    <option value="faturamento_iniciado">Faturando</option>
+    <option value="faturado">Faturado</option>
+    <option value="saiu_para_entrega">Saiu para Entrega</option>
+    
+    <option value="retornando_cd">Retornando CD</option> 
+    
+    <option value="cancelado">Cancelado</option>
+</select>
                         </div>
                         <div class="filter-group">
                             <label for="searchInput">Pesquisar:</label>
@@ -2461,7 +2464,6 @@
             } else if (tabName === 'motoristas') {
                 await loadMotoristaTab(); // Garante que a lista de status seja carregada
                 showSubTab('motoristas', 'consultaViagens'); // Abre a sub-aba padrão
-            }
             } else if (tabName === 'historico') {
                 loadHistorico();
                 showSubTab('historico', 'listaEntregas');
@@ -2478,7 +2480,7 @@
                 }
             }
         }
-        
+    }  
         // Função para mostrar sub-abas
         function showSubTab(tabName, subTabName) {
             const tabContent = document.getElementById(tabName);
@@ -3004,21 +3006,22 @@
         }
 
         // Obter label do status
-        function getStatusLabel(status) {
-            const labels = {
-                'pendente': 'Pendente',
-                'aguardando_veiculo': 'Aguard. Veículo',
-                'em_carregamento': 'Carregando',
-                'carregado': 'Carregado',
-                'aguardando_faturamento': 'Aguard. Faturamento',
-                'faturamento_iniciado': 'Faturando',
-                'faturado': 'Faturado',
-                'saiu_para_entrega': 'Saiu p/ Entrega',
-                'entregue': 'Entregue',
-                'cancelado': 'Cancelado'
-            };
-            return labels[status] || status;
-        }
+       function getStatusLabel(status) {
+            const labels = {
+                'pendente': 'Pendente',
+                'aguardando_veiculo': 'Aguard. Veículo',
+                'em_carregamento': 'Carregando',
+                'carregado': 'Carregado',
+                'aguardando_faturamento': 'Aguard. Faturamento',
+                'faturamento_iniciado': 'Faturando',
+                'faturado': 'Faturado',
+                'saiu_para_entrega': 'Saiu p/ Entrega',
+                'entregue': 'Entregue',
+                'retornando_cd': 'Retornando CD', // <-- INCLUA ESTA LINHA
+                'cancelado': 'Cancelado'
+            };
+            return labels[status] || status;
+        }
 
         // --- Funções da Aba de Faturamento ---
         async function loadFaturamento() {
@@ -4302,7 +4305,7 @@
             }
         }
 
-        aasync function finalizarDescarga(itemId, expeditionId) {
+        async function finalizarDescarga(itemId, expeditionId) {
             try {
                 const dataFim = new Date().toISOString();
                 debugLog.add(`Finalizando descarga do item ${itemId}`, 'info');
