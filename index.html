@@ -4730,67 +4730,7 @@ function renderHistorico(expeditions) {
         return;
     }
 
-    let html = '';
-    expeditions.forEach(exp => {
-        // Cálculos de tempo
-        const t_criacao = new Date(exp.data_hora);
-        const t_chegada = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
-        const t_saidaEntrega = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
-        
-        // NOVO: Cálculo do Tempo de Pátio
-        const tempoDePatio = t_chegada && t_saidaEntrega ? (t_saidaEntrega - t_chegada) / 60000 : null;
-
-        // Roteiro de entrega
-        let roteiroHtml = '<div style="margin-top:10px;">';
-        let ultimaData = t_saidaEntrega;
-        
-        if(exp.items && exp.items.length > 0) {
-             exp.items.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach((item, index) => {
-                const loja = lojas.find(l => l.id === item.loja_id);
-                const t_inicio_descarga = item.data_inicio_descarga ? new Date(item.data_inicio_descarga) : null;
-                const t_fim_descarga = item.data_fim_descarga ? new Date(item.data_fim_descarga) : null;
-
-                const tempoTransito = ultimaData && t_inicio_descarga ? (t_inicio_descarga - ultimaData) / 60000 : null;
-                const tempoEmLoja = t_fim_descarga && t_inicio_descarga ? (t_fim_descarga - t_inicio_descarga) / 60000 : null;
-                
-                roteiroHtml += `
-                    <div class="loja-descarga-card" style="padding: 10px; margin-bottom: 8px;">
-                        <strong style="font-size:0.9rem;">${index + 1}. ${loja.nome}</strong>
-                        ${tempoTransito !== null ? `<div class="time-display" style="font-size:0.7rem; padding: 4px 8px;"><strong>Trânsito:</strong> ${minutesToHHMM(tempoTransito)}</div>` : ''}
-                        ${tempoEmLoja !== null ? `<div class="time-display good" style="font-size:0.7rem; padding: 4px 8px;"><strong>Em Loja:</strong> ${minutesToHHMM(tempoEmLoja)}</div>` : ''}
-                    </div>
-                `;
-                
-                if (t_fim_descarga) ultimaData = t_fim_descarga;
-            });
-        }
-        roteiroHtml += '</div>'
-        
-        html += `
-            <div class="historico-card" style="padding: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                    <div>
-                        <h3 style="font-size:1.1rem;">Viagem de ${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</h3>
-                        <p style="color: #666; font-size: 0.8rem;">
-                            <strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} | 
-                            <strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'} |
-                            <strong>Lojas:</strong> ${exp.lojas_count}
-                        </p>
-                    </div>
-                    <div style="text-align: right;">
-                        <span class="status-badge status-entregue">Entregue</span>
-                        <div style="font-weight: bold; font-size:0.8rem; margin-top: 5px;">Ocupação: ${exp.ocupacao}%</div>
-                    </div>
-                </div>
-                
-                ${tempoDePatio !== null ? `<div class="time-display warning" style="margin-bottom:10px;"><strong>Tempo de Pátio:</strong> ${minutesToHHMM(tempoDePatio)}</div>` : ''}
-                
-                ${roteiroHtml}
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-}
+    
 
             let html = '';
             expeditions.forEach(exp => {
