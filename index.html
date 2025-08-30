@@ -652,8 +652,10 @@
         }
         /* NOVO: Estilo para o status de retorno ao CD */
         .status-retornando_cd {
-            background: linear-gradient(135deg, #0077B6, #00B4D8);
+            background: linear-gradient(135deg, #0077B6, #00B4D8, #90E0EF); /* Adicionei uma terceira cor para o efeito ficar melhor */
             color: white;
+            background-size: 200% 200%; /* Aumenta o tamanho do fundo para a animação ter espaço */
+            animation: animatedGradient 3s ease infinite; /* Aplica a animação que vamos criar */
         }
 
         .status-cancelado {
@@ -1333,7 +1335,17 @@
                 max-width: 350px;
             }
         }
-
+@keyframes animatedGradient {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
         /* Media Queries para Telas Muito Pequenas */
         @media (max-width: 480px) {
             body {
