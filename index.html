@@ -660,17 +660,34 @@
             background: linear-gradient(135deg, #495057, #6C757D);
             color: white;
         }
+/* ADICIONE ESTE BLOCO ABAIXO */
+.status-disponivel {
+    background: linear-gradient(135deg, #00D4AA, #00B4D8);
+    color: white;
+}
 
+.status-em_viagem {
+    background: linear-gradient(135deg, #F77F00, #FCBF49);
+    color: white;
+}
+
+.status-folga {
+    background: linear-gradient(135deg, #6C757D, #ADB5BD);
+    color: white;
+}
         /* Transport Cards Responsivos */
-        .transport-card, .historico-card {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 16px;
-            margin-bottom: 16px;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 119, 182, 0.1);
-            border: 1px solid rgba(0, 212, 170, 0.3);
-            transition: all 0.3s ease;
-        }
+       /* NOVO: Estilo compacto para a lista de status dos motoristas */
+.motorista-status-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 212, 170, 0.2);
+    box-shadow: 0 2px 5px rgba(0, 119, 182, 0.05);
+}
 
         .transport-card:hover, .historico-card:hover {
             transform: translateY(-2px);
@@ -1632,14 +1649,15 @@
 
            <div id="motoristas" class="tab-content">
                 <h2 style="text-align: center;">Painel de Motoristas</h2>
-                <div id="motoristasStatusList" style="margin-bottom: 30px;">
-                                    </div>
+               
                 <div class="sub-tabs">
                     <button class="sub-tab active" onclick="showSubTab('motoristas', 'consultaViagens')">Consulta de Viagens</button>
                     <button class="sub-tab" onclick="showSubTab('motoristas', 'relatoriosMotoristas')">Relatórios</button>
                 </div>
 
                 <div id="consultaViagens" class="sub-tab-content active">
+                     <div id="motoristasStatusList" style="margin-bottom: 30px;">
+                                    </div>
                     <h2 style="text-align: center;">Área do Motorista</h2>
 
                     <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
@@ -3004,23 +3022,26 @@
         }
 
         // Obter label do status
-       function getStatusLabel(status) {
-            const labels = {
-                'pendente': 'Pendente',
-                'aguardando_veiculo': 'Aguard. Veículo',
-                'em_carregamento': 'Carregando',
-                'carregado': 'Carregado',
-                'aguardando_faturamento': 'Aguard. Faturamento',
-                'faturamento_iniciado': 'Faturando',
-                'faturado': 'Faturado',
-                'saiu_para_entrega': 'Saiu p/ Entrega',
-                'entregue': 'Entregue',
-                'retornando_cd': 'Retornando CD', // <-- INCLUA ESTA LINHA
-                'cancelado': 'Cancelado'
-            };
-            return labels[status] || status;
-        }
-
+       function getStatusLabel(status) { 
+    const labels = { 
+        'pendente': 'Pendente', 
+        'aguardando_veiculo': 'Aguard. Veículo', 
+        'em_carregamento': 'Carregando', 
+        'carregado': 'Carregado', 
+        'aguardando_faturamento': 'Aguard. Faturamento', 
+        'faturamento_iniciado': 'Faturando', 
+        'faturado': 'Faturado', 
+        'saiu_para_entrega': 'Saiu p/ Entrega', 
+        'entregue': 'Entregue', 
+        'retornando_cd': 'Retornando CD',
+        'cancelado': 'Cancelado',
+        // ADICIONE ESTAS 3 LINHAS ABAIXO
+        'disponivel': 'Disponível',
+        'em_viagem': 'Em Viagem',
+        'folga': 'Folga'
+    }; 
+    return labels[status] || status; 
+}
         // --- Funções da Aba de Faturamento ---
         async function loadFaturamento() {
             if (!selectedFilial) {
@@ -3849,15 +3870,18 @@
                     }
                 }
 
-                html += `
-                    <div class="transport-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                        <div>
-                            <strong style="font-size: 1.1rem; color: var(--dark);">${m.nome}</strong>
-                        </div>
-                        <span class="${statusClass}">${statusLabel}</span>
-                        ${actionButton}
-                    </div>
-                `;
+                // SUBSTITUA PELO SEGUINTE CÓDIGO:
+html += `
+    <div class="motorista-status-item">
+        <div>
+            <strong style="font-size: 1rem; color: var(--dark);">${m.nome}</strong>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="${statusClass}">${statusLabel}</span>
+            ${actionButton}
+        </div>
+    </div>
+`;
             });
             container.innerHTML = html;
         }
