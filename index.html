@@ -3262,8 +3262,8 @@
                 const expeditions = await supabaseRequest("expeditions?status=in.(pendente,aguardando_veiculo,em_carregamento)&order=data_hora.desc");
                 const items = await supabaseRequest('expedition_items');
                 
-                const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
-                const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
+                const availableVehicles = veiculos.filter(v => v.status === 'DISPONIVEL').length;
+                const availableDrivers = motoristas.filter(m => m.status === 'DISPONIVEL').length;
                 document.getElementById('availableVehicles').textContent = availableVehicles;
                 document.getElementById('availableDrivers').textContent = availableDrivers;
 
@@ -3377,7 +3377,7 @@
                                 <label>Veículo:</label>
                                 <select id="veiculo_${exp.id}">
                                     <option value="">Selecione um veículo</option>
-                                    ${veiculosList.filter(v => v.status === 'disponivel').map(v => {
+                                    ${veiculosList.filter(v => v.status === 'DISPONIVEL').map(v => {
                                         const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
                                         const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
                                         return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
@@ -3390,7 +3390,7 @@
                                 <label>Motorista:</label>
                                 <select id="motorista_${exp.id}">
                                     <option value="">Selecione um motorista</option>
-                                    ${motoristasList.filter(m => m.status === 'disponivel').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
+                                    ${motoristasList.filter(m => m.status === 'DISPONIVEL').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
                                 </select>
                             </div>
                             <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar Agora</button>
@@ -3530,13 +3530,13 @@
                 const secondaryOperations = [];
 
                 secondaryOperations.push(
-                    supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
+                    supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'OCUPADO' }, 10000, false)
                         .then(() => debugLog.add('Status do veículo atualizado', 'success'))
                         .catch(error => debugLog.add(`Aviso: Erro ao atualizar veículo: ${error.message}`, 'warning'))
                 );
 
                 secondaryOperations.push(
-                    supabaseRequestWithTimeout(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
+                    supabaseRequestWithTimeout(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'OCUPADO' }, 10000, false)
                         .then(() => debugLog.add('Status do motorista atualizado', 'success'))
                         .catch(error => debugLog.add(`Aviso: Erro ao atualizar motorista: ${error.message}`, 'warning'))
                 );
@@ -3661,7 +3661,7 @@
 
                 if (expedition.veiculo_id) {
                     secondaryOperations.push(
-                        supabaseRequestWithTimeout(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
+                        supabaseRequestWithTimeout(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', { status: 'DISPONIVEL' }, 10000, false)
                             .then(() => debugLog.add(`Veículo anterior liberado: ${expedition.veiculo_id}`, 'success'))
                             .catch(error => debugLog.add(`Aviso: Erro ao liberar veículo anterior: ${error.message}`, 'warning'))
                     );
@@ -3669,20 +3669,20 @@
 
                 if (expedition.motorista_id) {
                     secondaryOperations.push(
-                        supabaseRequestWithTimeout(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
+                        supabaseRequestWithTimeout(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', { status: 'DISPONIVEL' }, 10000, false)
                             .then(() => debugLog.add(`Motorista anterior liberado: ${expedition.motorista_id}`, 'success'))
                             .catch(error => debugLog.add(`Aviso: Erro ao liberar motorista anterior: ${error.message}`, 'warning'))
                     );
                 }
 
                 secondaryOperations.push(
-                    supabaseRequestWithTimeout(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
+                    supabaseRequestWithTimeout(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', { status: 'OCUPADO' }, 10000, false)
                         .then(() => debugLog.add('Novo veículo alocado', 'success'))
                         .catch(error => debugLog.add(`Aviso: Erro ao alocar novo veículo: ${error.message}`, 'warning'))
                 );
 
                 secondaryOperations.push(
-                    supabaseRequestWithTimeout(`motoristas?id=eq.${newMotoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
+                    supabaseRequestWithTimeout(`motoristas?id=eq.${newMotoristaId}`, 'PATCH', { status: 'OCUPADO' }, 10000, false)
                         .then(() => debugLog.add('Novo motorista alocado', 'success'))
                         .catch(error => debugLog.add(`Aviso: Erro ao alocar novo motorista: ${error.message}`, 'warning'))
                 );
@@ -4689,7 +4689,7 @@
             document.getElementById('debugLojas').textContent = lojas.length;
             document.getElementById('debugDocas').textContent = docas.length;
             document.getElementById('debugLideres').textContent = lideres.length;
-            document.getElementById('debugVeiculos').textContent = veiculos.filter(v => v.status === 'disponivel').length;
+            document.getElementById('debugVeiculos').textContent = veiculos.filter(v => v.status === 'DISPONIVEL').length;
         }
 
         async function updateSystemStatus() {
@@ -4833,9 +4833,9 @@ DESENVOLVIDO POR: JP Tech Solutions
                      <div class="form-group">
                         <label for="add_status">Status:</label>
                         <select id="add_status" required>
-                            <option value="disponivel">Disponível</option>
-                            <option value="em_uso">Em Uso</option>
-                            <option value="manutencao">Manutenção</option>
+                            <option value="DISPONIVEL">Disponível</option>
+                            <option value="OCUPADO">Ocupado</option>
+                            <option value="MANUTENCAO">Manutenção</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -4857,9 +4857,9 @@ DESENVOLVIDO POR: JP Tech Solutions
                     <div class="form-group">
                         <label for="add_status">Status:</label>
                         <select id="add_status" required>
-                            <option value="disponivel">Disponível</option>
-                            <option value="em_viagem">Em Viagem</option>
-                            <option value="folga">Folga</option>
+                            <option value="DISPONIVEL">Disponível</option>
+                            <option value="OCUPADO">Ocupado</option>
+                            <option value="FOLGA">Folga</option>
                         </select>
                     </div>
                     <div class="form-group">
