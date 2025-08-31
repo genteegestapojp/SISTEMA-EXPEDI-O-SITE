@@ -1941,8 +1941,13 @@
                 </div>
 
                 <div id="configuracoesContent" style="display: none;">
-                    <h2 style="text-align: center;">Configurações do Sistema</h2>
+<div class="sub-tabs">
+    <button class="sub-tab active" onclick="showSubTab('configuracoes', 'geral')">Geral</button>
+    <button class="sub-tab" onclick="showSubTab('configuracoes', 'transporteConfig')">Transporte</button>
+</div>
 
+<div id="geral" class="sub-tab-content active">
+    <h2 style="text-align: center;">Configurações Gerais</h2>
                     <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
                         <h3 style="text-align: center;">Sincronização e Diagnóstico</h3>
                         <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
@@ -2009,6 +2014,27 @@
                             Sistema iniciado...<br>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+            </div> <div id="transporteConfig" class="sub-tab-content">
+            <h2 style="text-align: center;">Gerenciamento de Veículos</h2>
+            <div class="table-container">
+                <div class="table-wrapper">
+                    <table id="veiculosConfigTable">
+                        <thead>
+                            <tr>
+                                <th>Placa</th>
+                                <th>Modelo</th>
+                                <th>Tipo</th>
+                                <th>Capacidade (Pallets)</th>
+                                <th>Status Atual</th>
+                                <th>Alterar Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="veiculosConfigBody">
+                            </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -2522,23 +2548,28 @@
             }
         }
         // Função para mostrar sub-abas
-        function showSubTab(tabName, subTabName) {
-            const tabContent = document.getElementById(tabName);
-            tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-            tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
+        // Função para mostrar sub-abas
+function showSubTab(tabName, subTabName) {
+    const tabContent = document.getElementById(tabName);
+    tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+    tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
 
-            tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`).classList.add('active');
-            tabContent.querySelector(`#${subTabName}`).classList.add('active');
-            debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
+    tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`).classList.add('active');
+    tabContent.querySelector(`#${subTabName}`).classList.add('active');
+    debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
 
-            // Lógica adicional ao abrir sub-abas de relatórios
-            if (subTabName === 'indicadores') {
-                applyHistoricoFilters(); // Gera os indicadores da aba histórico
-            }
-            if (subTabName === 'relatoriosMotoristas') {
-                generateMotoristaReports(); // Gera os relatórios da aba motoristas
-            }
-        }
+    // Lógica adicional ao abrir sub-abas de relatórios
+    if (subTabName === 'indicadores') {
+        applyHistoricoFilters(); // Gera os indicadores da aba histórico
+    }
+    if (subTabName === 'relatoriosMotoristas') {
+        generateMotoristaReports(); // Gera os relatórios da aba motoristas
+    }
+    // NOVO TRECHO ADICIONADO AQUI
+    if (tabName === 'configuracoes' && subTabName === 'transporteConfig') {
+        renderVeiculosConfig();
+    }
+}
 
         // Definir filtros de data padrão
         function setDefaultDateFilters() {
@@ -4768,7 +4799,7 @@ function renderHistorico(expeditions) {
                     <div class="historico-card" style="padding: 16px;">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                             <div>
-                                <h3 style="font-size:1.1rem;">Viagem de ${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</h3>
+                                <h3 style="font-size:1.1rem;">Viagem de ${new Date(exp.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</h3>
                                 <p style="color: #666; font-size: 0.8rem;">
                                     <strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} | 
                                     <strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'} |
@@ -4776,9 +4807,10 @@ function renderHistorico(expeditions) {
                                 </p>
                             </div>
                              <div style="text-align: right;">
-                                <span class="status-badge status-entregue">Entregue</span>
-                                <div style="font-weight: bold; font-size:0.8rem; margin-top: 5px;">Ocupação: ${exp.ocupacao}%</div>
-                            </div>
+    <span class="status-badge status-entregue">Entregue</span>
+    <div style="font-weight: bold; font-size:0.8rem; margin-top: 5px;">Ocupação: ${exp.ocupacao}%</div>
+    <button class="btn btn-danger btn-small" style="margin-top: 10px; padding: 6px 10px;" onclick="deleteHistoricoExpedition('${exp.id}')">Excluir</button>
+</div>
                         </div>
                         ${roteiroHtml}
                     </div>
@@ -6020,7 +6052,82 @@ async function finalizarDescargaImobilizado(motoristaId, veiculoId) {
                 delete chartInstances[canvasId];
             }
         }
+// Função para carregar e renderizar la tabela de configuração de veículos
+async function renderVeiculosConfig() {
+    const tbody = document.getElementById('veiculosConfigBody');
+    if (!tbody) return;
 
+    tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando veículos...</td></tr>';
+
+    // Garante que a lista de veículos está atualizada
+    if (veiculos.length === 0) {
+        await loadSelectData();
+    }
+
+    const html = veiculos.map(v => `
+        <tr>
+            <td>${v.placa}</td>
+            <td>${v.modelo}</td>
+            <td>${v.tipo}</td>
+            <td>${v.capacidade_pallets}</td>
+            <td><span class="status-badge status-${v.status.replace(/ /g, '_')}">${getStatusLabel(v.status)}</span></td>
+            <td>
+                <select class="form-group-select" onchange="updateVeiculoStatus('${v.id}', this.value)" style="padding: 8px 12px; border-radius: 6px;">
+                    <option value="disponivel" ${v.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+                    <option value="em_uso" ${v.status === 'em_uso' ? 'selected' : ''}>Em Uso</option>
+                    <option value="manutencao" ${v.status === 'manutencao' ? 'selected' : ''}>Manutenção</option>
+                </select>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.innerHTML = html;
+}
+
+// Função para atualizar o status de um veículo
+async function updateVeiculoStatus(veiculoId, novoStatus) {
+    try {
+        debugLog.add(`Alterando status do veículo ${veiculoId} para ${novoStatus}`, 'info');
+        await supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: novoStatus }, false);
+        showNotification(`Status do veículo atualizado para ${getStatusLabel(novoStatus)}!`, 'success');
+
+        // Recarrega os dados para refletir a mudança em todo o sistema
+        await loadSelectData();
+        await renderVeiculosConfig(); // Re-renderiza a tabela de configuração
+
+    } catch (error) {
+        console.error('Erro ao atualizar status do veículo:', error);
+        debugLog.add(`Erro ao atualizar status do veículo: ${error.message}`, 'error');
+        showNotification('Erro ao atualizar status: ' + error.message, 'error');
+    }
+}
+        // Função para deletar uma expedição do histórico
+async function deleteHistoricoExpedition(expeditionId) {
+    if (!await showConfirmationModal('Tem certeza que deseja EXCLUIR PERMANENTEMENTE esta expedição do histórico? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+
+    try {
+        debugLog.add(`Iniciando exclusão da expedição do histórico: ${expeditionId}`, 'info');
+
+        // Deleta primeiro os itens da expedição (chave estrangeira)
+        await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'DELETE', null, false);
+
+        // Agora deleta a expedição principal
+        await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE', null, false);
+
+        debugLog.add('Expedição do histórico excluída com sucesso', 'success');
+        showNotification('Expedição excluída do histórico!', 'success');
+
+        // Recarrega os dados do histórico para refletir a exclusão
+        loadHistorico();
+
+    } catch (error) {
+        console.error('Erro ao excluir expedição do histórico:', error);
+        debugLog.add(`Erro ao excluir do histórico: ${error.message}`, 'error');
+        showNotification('Erro ao excluir: ' + error.message, 'error');
+    }
+}
 
         console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.3 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
