@@ -1948,6 +1948,7 @@
         <div class="sub-tabs">
             <button class="sub-tab active" onclick="showSubTab('configuracoes', 'geral')">Geral</button>
             <button class="sub-tab" onclick="showSubTab('configuracoes', 'transporteConfig')">Transporte</button>
+            <button class="sub-tab" onclick="showSubTab('configuracoes', 'motoristasConfig')">Motoristas</button> </div>
         </div>
 
         <div id="geral" class="sub-tab-content active">
@@ -2021,6 +2022,25 @@
                         <tbody id="veiculosConfigBody">
                             </tbody>
                     </table>
+                    <div id="motoristasConfig" class="sub-tab-content">
+    <h2 style="text-align: center;">Gerenciamento de Motoristas</h2>
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table id="motoristasConfigTable">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Produtivo (Matrícula)</th>
+                        <th>Status Atual</th>
+                        <th>Alterar Status</th>
+                    </tr>
+                </thead>
+                <tbody id="motoristasConfigBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
                 </div>
             </div>
         </div>
@@ -2600,6 +2620,9 @@ function showSubTab(tabName, subTabName) {
     if (tabName === 'configuracoes' && subTabName === 'transporteConfig') {
         renderVeiculosConfig();
     }
+    if (tabName === 'configuracoes' && subTabName === 'motoristasConfig') {
+    renderMotoristasConfig();
+}
 }
 
         // Definir filtros de data padrão
@@ -5142,10 +5165,10 @@ DESENVOLVIDO POR: JP Tech Solutions
                     <div class="form-group">
                         <label for="add_status">Status:</label>
                         <select id="add_status" required>
-                            <option value="disponivel">Disponível</option>
-                            <option value="em_viagem">Em Viagem</option>
-                            <option value="folga">Folga</option>
-                        </select>
+    <option value="disponivel">Disponível</option>
+    <option value="em_viagem">Ocupado (Em Viagem)</option>
+    <option value="folga">Folga</option>
+</select>
                     </div>
                     <div class="form-group">
                         <label>Filial:</label>
@@ -6297,7 +6320,56 @@ async function deleteHistoricoExpedition(expeditionId) {
         showNotification('Erro ao excluir: ' + error.message, 'error');
     }
 }
+// Função para carregar e renderizar a tabela de configuração de motoristas
+async function renderMotoristasConfig() {
+    const tbody = document.getElementById('motoristasConfigBody');
+    if (!tbody) return;
 
+    tbody.innerHTML = '<tr><td colspan="4" class="loading"><div class="spinner"></div>Carregando motoristas...</td></tr>';
+
+    if (motoristas.length === 0) {
+        await loadSelectData();
+    }
+
+    const html = motoristas.map(m => `
+        <tr>
+            <td>${m.nome}</td>
+            <td>${m.PRODUTIVO || 'N/A'}</td>
+            <td><span class="status-badge status-${m.status.replace(/ /g, '_')}">${getStatusLabel(m.status)}</span></td>
+            <td>
+                <select class="form-group-select" onchange="updateMotoristaStatus('${m.id}', this.value)" style="padding: 8px 12px; border-radius: 6px;">
+                    <option value="disponivel" ${m.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+                    <option value="em_viagem" ${m.status === 'em_viagem' ? 'selected' : ''}>Ocupado (Em Viagem)</option>
+                    <option value="folga" ${m.status === 'folga' ? 'selected' : ''}>Folga</option>
+                </select>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.innerHTML = html;
+}
+
+// Função para atualizar o status de um motorista
+async function updateMotoristaStatus(motoristaId, novoStatus) {
+    try {
+        debugLog.add(`Alterando status do motorista ${motoristaId} para ${novoStatus}`, 'info');
+        await supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: novoStatus }, false);
+        showNotification(`Status do motorista atualizado para ${getStatusLabel(novoStatus)}!`, 'success');
+
+        // Recarrega os dados para refletir a mudança em todo o sistema
+        await loadSelectData(); 
+        await renderMotoristasConfig(); 
+
+        // Atualiza outras listas que dependem do status do motorista
+        loadTransportList();
+        renderMotoristasStatusList();
+
+    } catch (error) {
+        console.error('Erro ao atualizar status do motorista:', error);
+        debugLog.add(`Erro ao atualizar status do motorista: ${error.message}`, 'error');
+        showNotification('Erro ao atualizar status: ' + error.message, 'error');
+    }
+}
         console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.3 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
         console.log('📧 Contato: julianocorrea@bateforte.com.br');
