@@ -5479,15 +5479,14 @@ DESENVOLVIDO POR: JP Tech Solutions
                 });
             }
 
-           // Event listener para formulário de senha
-      // CÓDIGO CORRIGIDO E COMPLETO PARA O LOGIN
+        // COLE ESTE BLOCO INTEIRO NO LUGAR DA SUA FUNÇÃO DE LOGIN ATUAL
 
 // Event listener para formulário de senha
 const passwordForm = document.getElementById('passwordForm');
 if (passwordForm) {
     passwordForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-
+        
         const nome = document.getElementById('userInput').value.trim();
         const senha = document.getElementById('passwordInput').value;
 
@@ -5499,10 +5498,11 @@ if (passwordForm) {
         try {
             // Montamos a URL para a nossa função personalizada
             const endpoint = `acessos?select=nome,tipo_acesso&nome=eq.${nome}&senha=eq.${senha}`;
-
+            
             // Usamos a nossa função supabaseRequest
             const result = await supabaseRequest(endpoint, 'GET', null, false);
 
+            // Se o array de resultado estiver vazio, o login falhou.
             if (!result || result.length === 0) {
                 showAlert('passwordAlert', 'Nome de usuário ou senha incorretos.', 'error');
                 debugLog.add(`Tentativa de login falhou para o usuário: ${nome}`, 'error');
@@ -5510,20 +5510,24 @@ if (passwordForm) {
                 return;
             }
 
+            // Se deu certo, pegamos o primeiro usuário do resultado
             const user = result[0];
 
+            // Armazena os dados do usuário na variável global
             currentUser = {
                 nome: user.nome,
                 tipo_acesso: user.tipo_acesso
             };
 
+            // Libera o acesso à área de configurações
             showNotification('Acesso concedido!', 'success');
             document.getElementById('passwordFormContainer').style.display = 'none';
             document.getElementById('configuracoesContent').style.display = 'block';
-            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').value = ''; 
             updateSystemStatus();
             updateDebugStats();
-
+            
+            // Registra a ação de login no histórico
             await logAction('LOGIN', `Usuário '${currentUser.nome}' acessou as configurações.`);
 
         } catch (err) {
