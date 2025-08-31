@@ -5480,94 +5480,67 @@ DESENVOLVIDO POR: JP Tech Solutions
             }
 
            // Event listener para formulário de senha
-      const passwordForm = document.getElementById('passwordForm');
-      if (passwordForm) {
-          passwordForm.addEventListener('submit', async function(e) { // Adicionado 'async'
-              e.preventDefault();
-              
-              // Pegamos os dois valores do formulário
-              const nome = document.getElementById('userInput').value.trim();
-              const senha = document.getElementById('passwordInput').value;
+      // CÓDIGO CORRIGIDO E COMPLETO PARA O LOGIN
 
-              if (!nome || !senha) {
-                  showAlert('passwordAlert', 'Nome e senha são obrigatórios.', 'error');
-                  return;
-              }
+// Event listener para formulário de senha
+const passwordForm = document.getElementById('passwordForm');
+if (passwordForm) {
+    passwordForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-              // CÓDIGO CORRIGIDO
+        const nome = document.getElementById('userInput').value.trim();
+        const senha = document.getElementById('passwordInput').value;
 
-try {
-    // Montamos a URL para a nossa função personalizada
-    const endpoint = `acessos?select=nome,tipo_acesso&nome=eq.${nome}&senha=eq.${senha}`;
+        if (!nome || !senha) {
+            showAlert('passwordAlert', 'Nome e senha são obrigatórios.', 'error');
+            return;
+        }
 
-    // Usamos a nossa função supabaseRequest
-    const result = await supabaseRequest(endpoint, 'GET', null, false); // 'false' para não filtrar por filial
+        try {
+            // Montamos a URL para a nossa função personalizada
+            const endpoint = `acessos?select=nome,tipo_acesso&nome=eq.${nome}&senha=eq.${senha}`;
 
-    // Nossa função retorna um array. Se o array estiver vazio, o login falhou.
-    if (!result || result.length === 0) {
-        showAlert('passwordAlert', 'Nome de usuário ou senha incorretos.', 'error');
-        debugLog.add(`Tentativa de login falhou para o usuário: ${nome}`, 'error');
-        document.getElementById('passwordInput').value = ''; // Limpa a senha
-        return;
-    }
+            // Usamos a nossa função supabaseRequest
+            const result = await supabaseRequest(endpoint, 'GET', null, false);
 
-    // Se deu certo, pegamos o primeiro usuário do resultado
-    const user = result[0];
+            if (!result || result.length === 0) {
+                showAlert('passwordAlert', 'Nome de usuário ou senha incorretos.', 'error');
+                debugLog.add(`Tentativa de login falhou para o usuário: ${nome}`, 'error');
+                document.getElementById('passwordInput').value = '';
+                return;
+            }
 
-    // Armazena os dados do usuário
-    currentUser = {
-        nome: user.nome,
-        tipo_acesso: user.tipo_acesso
-    };
+            const user = result[0];
 
-    // Libera o acesso
-    showNotification('Acesso concedido!', 'success');
-    document.getElementById('passwordFormContainer').style.display = 'none';
-    document.getElementById('configuracoesContent').style.display = 'block';
-    document.getElementById('passwordInput').value = ''; 
-    updateSystemStatus();
-    updateDebugStats();
+            currentUser = {
+                nome: user.nome,
+                tipo_acesso: user.tipo_acesso
+            };
 
-    // Registra o login no histórico
-    await logAction('LOGIN', `Usuário '${currentUser.nome}' acessou as configurações.`);
+            showNotification('Acesso concedido!', 'success');
+            document.getElementById('passwordFormContainer').style.display = 'none';
+            document.getElementById('configuracoesContent').style.display = 'block';
+            document.getElementById('passwordInput').value = '';
+            updateSystemStatus();
+            updateDebugStats();
 
-} catch (err) {
-    showAlert('passwordAlert', 'Erro ao verificar credenciais. Verifique a conexão.', 'error');
-    console.error(err);
+            await logAction('LOGIN', `Usuário '${currentUser.nome}' acessou as configurações.`);
+
+        } catch (err) {
+            showAlert('passwordAlert', 'Erro ao verificar credenciais. Verifique a conexão.', 'error');
+            console.error(err);
+        }
+    });
 }
-                  // Se encontrou, armazena os dados do usuário
-                  currentUser = {
-                      nome: data.nome,
-                      tipo_acesso: data.tipo_acesso
-                  };
 
-                  // Libera o acesso
-                  showNotification('Acesso concedido!', 'success');
-                  document.getElementById('passwordFormContainer').style.display = 'none';
-                  document.getElementById('configuracoesContent').style.display = 'block';
-                  document.getElementById('passwordInput').value = ''; // Limpa o campo de senha
-                  updateSystemStatus();
-                  updateDebugStats();
-
-                  // Registra o login no histórico
-                  await logAction('LOGIN', `Usuário '${currentUser.nome}' acessou as configurações.`);
-
-              } catch (err) {
-                  showAlert('passwordAlert', 'Erro ao verificar credenciais. Verifique a conexão.', 'error');
-                  console.error(err);
-              }
-          });
-      }
-
-      /*
-      * NOTA DE SEGURANÇA IMPORTANTE, JP!
-      * * O método que implementamos (.eq('senha', senha)) envia a senha em texto puro.
-      * Para um ambiente de produção real, o ideal é usar o sistema de autenticação
-      * do próprio Supabase (Supabase Auth), que armazena as senhas de forma criptografada.
-      * Para o seu sistema interno e como aprendizado, o método atual funciona, mas 
-      * tenha essa boa prática em mente para projetos futuros!
-      */
-
+/*
+* NOTA DE SEGURANÇA IMPORTANTE, JP!
+* O método que implementamos (.eq('senha', senha)) envia a senha em texto puro.
+* Para um ambiente de produção real, o ideal é usar o sistema de autenticação
+* do próprio Supabase (Supabase Auth), que armazena as senhas de forma criptografada.
+* Para o seu sistema interno e como aprendizado, o método atual funciona, mas 
+* tenha essa boa prática em mente para projetos futuros!
+*/
            // Event listener para formulário de adição
       const addForm = document.getElementById('addForm');
       if (addForm) {
