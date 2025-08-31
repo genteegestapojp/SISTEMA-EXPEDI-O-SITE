@@ -499,6 +499,10 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(114, 9, 183, 0.4);
         }
+        /* NOVO: Estilo para o card de tempo de ociosidade */
+        .time-stat-card.ociosidade {
+            background: linear-gradient(135deg, #023047, #0077B6);
+        }
 
         .time-stat-card .stat-number {
             font-size: 1.4rem;
@@ -1819,112 +1823,104 @@
             </div>
 
             <div id="acompanhamento" class="tab-content">
-                <h2 style="text-align: center;">Acompanhamento com Controle de Tempos</h2>
+                <div class="sub-tabs">
+                    <button class="sub-tab active" onclick="showSubTab('acompanhamento', 'visaoGeral')">Visão Geral</button>
+                    <button class="sub-tab" onclick="showSubTab('acompanhamento', 'frotaOciosidade')">Frota</button>
+                </div>
 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalExpedicoes">0</div>
-                        <div class="stat-label">Total de Expedições</div>
-                    </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #D62828, #F77F00);">
-                        <div class="stat-number" id="pendentesCount">0</div>
-                        <div class="stat-label">Pendentes</div>
-                    </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
-                        <div class="stat-number" id="emAndamentoCount">0</div>
-                        <div class="stat-label">Em Andamento</div>
-                    </div>
-                </div>
+                                <div id="visaoGeral" class="sub-tab-content active">
+                    <h2 style="text-align: center;">Acompanhamento com Controle de Tempos</h2>
 
-                <div class="time-stats-grid">
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioAlocar">-</div>
-                        <div class="stat-label">Tempo Médio<br>Alocar Placa (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioChegada">-</div>
-                        <div class="stat-label">Tempo Médio<br>Chegada Doca (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioCarregamento">-</div>
-                        <div class="stat-label">Tempo Médio<br>Carregamento (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioTotal">-</div>
-                        <div class="stat-label">Tempo Médio<br>Total (HH:mm)</div>
-                    </div>
-                </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalExpedicoes">0</div>
+                            <div class="stat-label">Total de Expedições</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #D62828, #F77F00);">
+                            <div class="stat-number" id="pendentesCount">0</div>
+                            <div class="stat-label">Pendentes</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+                            <div class="stat-number" id="emAndamentoCount">0</div>
+                            <div class="stat-label">Em Andamento</div>
+                        </div>
+                    </div>
 
-                <div class="filters-section">
-                    <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label for="filtroDataInicio">Data Início:</label>
-                            <input type="date" id="filtroDataInicio" onchange="applyFilters()">
-                        </div>
-                        <div class="filter-group">
-                            <label for="filtroDataFim">Data Fim:</label>
-                            <input type="date" id="filtroDataFim" onchange="applyFilters()">
-                        </div>
-                        <div class="filter-group">
-                            <label for="filtroStatus">Status:</label>
-                           <select id="filtroStatus" onchange="applyFilters()">
-    <option value="">Todos os Status</option>
-    <option value="pendente">Pendente</option>
-    <option value="aguardando_veiculo">Aguardando Veículo</option>
-    <option value="em_carregamento">Em Carregamento</option>
-    <option value="carregado">Carregado</option>
-    <option value="aguardando_faturamento">Aguardando Faturamento</option>
-    <option value="faturamento_iniciado">Faturando</option>
-    <option value="faturado">Faturado</option>
-    <option value="saiu_para_entrega">Saiu para Entrega</option>
-    
-    <option value="retornando_cd">Retornando CD</option> 
-    
-    <option value="cancelado">Cancelado</option>
-</select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="searchInput">Pesquisar:</label>
-                            <input type="text" id="searchInput" placeholder="Buscar por loja, doca, líder..." onkeyup="applyFilters()">
-                        </div>
-                    </div>
-                    <div style="text-align: right; margin-top: 10px;">
-                        <button class="btn btn-primary btn-small" onclick="clearFilters()">Limpar Filtros</button>
-                    </div>
-                </div>
+                    <div class="time-stats-grid">
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioAlocar">-</div>
+                            <div class="stat-label">Tempo Médio<br>Alocar Placa (HH:mm)</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioChegada">-</div>
+                            <div class="stat-label">Tempo Médio<br>Chegada Doca (HH:mm)</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioCarregamento">-</div>
+                            <div class="stat-label">Tempo Médio<br>Carregamento (HH:mm)</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioTotal">-</div>
+                            <div class="stat-label">Tempo Médio<br>Total (HH:mm)</div>
+                        </div>
+                    </div>
 
-                <div class="table-container">
-                    <div class="table-wrapper">
-                        <table id="acompanhamentoTable">
-                            <thead>
-                                <tr>
-                                    <th>Data/Hora</th>
-                                    <th>Lojas e Cargas</th>
-                                    <th>Pallets</th>
-                                    <th>RollTrainers</th>
-                                    <th>Doca</th>
-                                    <th>Líder</th>
-                                    <th>Status</th>
-                                    <th>Veículo</th>
-                                    <th>Ocupação</th>
-                                    <th>Motorista</th>
-                                    <th>Análise Tempos</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="acompanhamentoBody">
-                                <tr>
-                                    <td colspan="12" class="loading">
-                                        <div class="spinner"></div>
-                                        Carregando dados...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                    <div class="filters-section">
+                        <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="filtroDataInicio">Data Início:</label>
+                                <input type="date" id="filtroDataInicio" onchange="applyFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroDataFim">Data Fim:</label>
+                                <input type="date" id="filtroDataFim" onchange="applyFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroStatus">Status:</label>
+                                <select id="filtroStatus" onchange="applyFilters()">
+                                    <option value="">Todos os Status</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="aguardando_veiculo">Aguardando Veículo</option>
+                                    <option value="em_carregamento">Em Carregamento</option>
+                                    <option value="carregado">Carregado</option>
+                                    <option value="aguardando_faturamento">Aguardando Faturamento</option>
+                                    <option value="faturamento_iniciado">Faturando</option>
+                                    <option value="faturado">Faturado</option>
+                                    <option value="saiu_para_entrega">Saiu para Entrega</option>
+                                    <option value="retornando_cd">Retornando CD</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="searchInput">Pesquisar:</label>
+                                <input type="text" id="searchInput" placeholder="Buscar por loja, doca, líder..." onkeyup="applyFilters()">
+                            </div>
+                        </div>
+                        <div style="text-align: right; margin-top: 10px;">
+                            <button class="btn btn-primary btn-small" onclick="clearFilters()">Limpar Filtros</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-wrapper">
+                            <table id="acompanhamentoTable">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Lojas e Cargas</th>
+                                        <th>Pallets</th>
+                                        <th>RollTrainers</th>
+                                        <th>Doca</th>
+                                        <th>Líder</th>
+                                        <th>Status</th>
+                                        <th>Veículo</th>
+                                        <th>Ocupação</th>
+                                        <th>Motorista</th>
+                                        <th>Análise Tempos</th>
+                                        <th>Ações</th>
+                                    </tr>
+                  _html
 
             <<div id="configuracoes" class="tab-content">
     <h2 style="text-align: center;">Acesso Restrito</h2>
@@ -2561,8 +2557,12 @@
             } else if (tabName === 'faturamento') {
                 loadFaturamento();
             } else if (tabName === 'acompanhamento') {
+                // Lógica para a nova estrutura de sub-abas
+                showSubTab('acompanhamento', 'visaoGeral'); // Mostra a visão geral por padrão
                 loadAcompanhamento();
+                renderFrotaStatus(); // Pré-carrega os dados da outra aba
                 setDefaultDateFilters();
+            } else if (tabName === 'motoristas') {
             } else if (tabName === 'motoristas') {
                 await loadMotoristaTab(); // Garante que a lista de status seja carregada
                 showSubTab('motoristas', 'consultaViagens'); // Abre a sub-aba padrão
@@ -2943,7 +2943,84 @@ function showSubTab(tabName, subTabName) {
             const mins = Math.round(minutes % 60);
             return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
         }
+// NOVO: Função para calcular o tempo de ociosidade de um veículo
+        function calcularOciosidade(veiculo) {
+            if (veiculo.status !== 'disponivel' || !veiculo.status_alterado_em) {
+                return 0; // Se não está disponível ou não tem timestamp, ociosidade atual é zero
+            }
 
+            const agora = new Date();
+            // Assume-se que o browser do cliente está no fuso de Cuiabá (-04:00)
+            // Para uma solução mais robusta, seria necessário tratar fusos horários com bibliotecas como date-fns-tz
+
+            const inicioDia = new Date(agora);
+            inicioDia.setHours(6, 0, 0, 0); // 06:00 de hoje
+
+            const fimDia = new Date(agora);
+            fimDia.setHours(22, 0, 0, 0); // 22:00 de hoje
+
+            // Se estiver fora do horário de operação, a ociosidade atual é zero
+            if (agora < inicioDia || agora > fimDia) {
+                return 0;
+            }
+
+            const statusAlterado = new Date(veiculo.status_alterado_em);
+
+            // O início do período de ociosidade é o maior entre 06:00 e a hora que o status mudou
+            const inicioOciosidade = statusAlterado > inicioDia ? statusAlterado : inicioDia;
+
+            // O tempo ocioso é a diferença entre agora e o início do período de ociosidade
+            const minutosOciosos = (agora - inicioOciosidade) / 60000;
+
+            return Math.max(0, minutosOciosos); // Garante que não retorne um valor negativo
+        }
+        // NOVO: Função para renderizar a nova sub-aba de status da frota
+        async function renderFrotaStatus() {
+            const container = document.getElementById('frotaOciosidade');
+            if (!container) return;
+
+            // Garante que temos os dados mais recentes dos veículos
+            await loadSelectData();
+
+            let totalMinutosOciosos = 0;
+            let veiculosOciososCount = 0;
+            let veiculosHtml = '';
+
+            veiculos.forEach(v => {
+                const minutosOciosos = calcularOciosidade(v);
+                if (minutosOciosos > 0) {
+                    totalMinutosOciosos += minutosOciosos;
+                    veiculosOciososCount++;
+                }
+
+                veiculosHtml += `
+                    <div class="transport-card" style="padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4>${v.placa} - ${v.modelo}</h4>
+                            <span class="status-badge status-${v.status.replace(/ /g, '_')}">${getStatusLabel(v.status)}</span>
+                        </div>
+                        <div class="time-display ${minutosOciosos > 120 ? 'danger' : minutosOciosos > 60 ? 'warning' : 'good'}" style="margin-top: 15px;">
+                            <strong>Tempo Ocioso Hoje:</strong> 
+                            <span style="font-size: 1.2rem; font-weight: 700;">${minutesToHHMM(minutosOciosos)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const mediaOciosidade = veiculosOciososCount > 0 ? totalMinutosOciosos / veiculosOciososCount : 0;
+            
+            let headerHtml = `
+                <h2 style="text-align: center;">Status e Ociosidade da Frota</h2>
+                <div class="time-stats-grid">
+                    <div class="time-stat-card ociosidade">
+                        <div class="stat-number" id="tempoMedioOciosidade">${minutesToHHMM(mediaOciosidade)}</div>
+                        <div class="stat-label">Tempo Médio<br>Ociosidade (HH:mm)</div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = headerHtml + veiculosHtml;
+        }
         // Atualizar estatísticas de tempo
         function updateTimeStats(expeditions) {
             const temposAlocacao = [];
@@ -5844,180 +5921,187 @@ ${expedition.observacoes || 'Nenhuma'}
 
  // Nova função com a lógica de status
 async function marcarRetornoCD(motoristaId, veiculoId) {
-    try {
-        const motorista = motoristas.find(m => m.id === motoristaId);
-        if (!motorista) throw new Error('Motorista não encontrado!');
+    try {
+        const motorista = motoristas.find(m => m.id === motoristaId);
+        if (!motorista) throw new Error('Motorista não encontrado!');
 
-        let novoStatusMotorista, novoStatusVeiculo, notificationMessage;
+        const agora = new Date().toISOString();
+        let novoStatusMotorista, novoStatusVeiculo, notificationMessage;
 
-        if (motorista.status === 'retornando_com_imobilizado') {
-            novoStatusMotorista = 'descarregando_imobilizado';
-            novoStatusVeiculo = 'descarregando_imobilizado'; // Atualiza o veículo também
-            notificationMessage = 'Retorno com imobilizado registrado. Inicie a descarga.';
-            debugLog.add(`Motorista ${motoristaId} chegou com imobilizado. Status alterado para 'descarregando_imobilizado'.`, 'info');
-        } else { // Status é 'retornando_cd'
-            novoStatusMotorista = 'disponivel';
-            novoStatusVeiculo = 'disponivel';
-            notificationMessage = 'Retorno ao CD registrado. Motorista e veículo disponíveis!';
-            debugLog.add(`Motorista ${motoristaId} chegou. Status alterado para 'disponivel'.`, 'info');
-        }
+        if (motorista.status === 'retornando_com_imobilizado') {
+            novoStatusMotorista = 'descarregando_imobilizado';
+            novoStatusVeiculo = 'descarregando_imobilizado';
+            notificationMessage = 'Retorno com imobilizado registrado. Inicie a descarga.';
+            debugLog.add(`Motorista ${motoristaId} chegou com imobilizado. Status alterado para 'descarregando_imobilizado'.`, 'info');
+        } else {
+            novoStatusMotorista = 'disponivel';
+            novoStatusVeiculo = 'disponivel';
+            notificationMessage = 'Retorno ao CD registrado. Motorista e veículo disponíveis!';
+            debugLog.add(`Motorista ${motoristaId} chegou. Status alterado para 'disponivel'.`, 'info');
+        }
 
-        await Promise.all([
-            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: novoStatusMotorista }, false),
-            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: novoStatusVeiculo }, false)
-        ]);
-        
-        showNotification(notificationMessage, 'success');
+        await Promise.all([
+            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: novoStatusMotorista }, false),
+            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: novoStatusVeiculo, status_alterado_em: agora }, false)
+        ]);
+        
+        showNotification(notificationMessage, 'success');
 
-        await loadSelectData();
-        await renderMotoristasStatusList(); // Usar a função que redesenha a lista
+        await loadSelectData();
+        await renderMotoristasStatusList();
+        renderFrotaStatus();
 
-    } catch (error) {
-        debugLog.add(`Erro ao marcar retorno ao CD: ${error.message}`, 'error');
-        showNotification('Erro ao marcar retorno: ' + error.message, 'error');
-    }
+    } catch (error) {
+        debugLog.add(`Erro ao marcar retorno ao CD: ${error.message}`, 'error');
+        showNotification('Erro ao marcar retorno: ' + error.message, 'error');
+    }
 }
-// ADICIONE ESTA NOVA FUNÇÃO
+
 async function finalizarDescargaImobilizado(motoristaId, veiculoId) {
-    try {
-        debugLog.add(`Finalizando descarga de imobilizado para motorista ${motoristaId} e veículo ${veiculoId}`, 'info');
+    try {
+        debugLog.add(`Finalizando descarga de imobilizado para motorista ${motoristaId} e veículo ${veiculoId}`, 'info');
+        const agora = new Date().toISOString();
 
-        await Promise.all([
-            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'disponivel' }, false),
-            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'disponivel' }, false)
-        ]);
+        await Promise.all([
+            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'disponivel' }, false),
+            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'disponivel', status_alterado_em: agora }, false)
+        ]);
 
-        showNotification('Descarga de imobilizado finalizada. Motorista e veículo disponíveis!', 'success');
+        showNotification('Descarga de imobilizado finalizada. Motorista e veículo disponíveis!', 'success');
 
-        await loadSelectData();
-        await renderMotoristasStatusList();
+        await loadSelectData();
+        await renderMotoristasStatusList();
+        renderFrotaStatus();
 
-    } catch (error) {
-        debugLog.add(`Erro ao finalizar descarga de imobilizado: ${error.message}`, 'error');
-        showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
-    }
+    } catch (error) {
+        debugLog.add(`Erro ao finalizar descarga de imobilizado: ${error.message}`, 'error');
+        showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
+    }
 }
-        // Funcionalidade de trocar filial no cabeçalho
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.btn-danger') && e.target.textContent.includes('Trocar Filial')) {
-                trocarFilial();
-            }
-        });
-
-        // Controle de navegação por teclado para melhor UX
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                // Fechar modais com ESC
-                closeQrModal();
-                closeEditModal();
-                hideAddForm();
-            }
-        });
-
-        // Auto-atualização de dados a cada 5 minutos (opcional)
-        setInterval(async function() {
-            if (selectedFilial && document.querySelector('.tab.active')?.onclick) {
-                const activeTab = document.querySelector('.tab.active').onclick.toString().match(/'(\w+)'/)?.[1];
-                if (activeTab === 'acompanhamento') {
-                    debugLog.add('Auto-atualizando dados do acompanhamento...', 'info');
-                    await loadAcompanhamento();
-                }
-            }
-        }, 300000); // 5 minutos
-        
-        // --- NOVAS FUNÇÕES PARA GRÁFICOS E INDICADORES ---
 
         function generateHistoricoIndicators(data) {
-            const summaryContainer = document.getElementById('indicadoresSummary');
-            if (data.length === 0) {
-                summaryContainer.innerHTML = '<div class="alert alert-info">Sem dados para exibir indicadores.</div>';
-                destroyChart('lojasRankingChart');
-                destroyChart('entregasChart');
-                return;
-            }
+            const summaryContainer = document.getElementById('indicadoresSummary');
+            const historicoTimeGrid = document.getElementById('historicoTimeGrid'); // Usar o novo ID
 
-            let totalViagens = data.length;
-            let totalEntregas = 0;
-            let temposDeViagem = [];
-            let temposInternos = [];
-            let temposEmTransito = [];
-            let temposEmLoja = [];
-            let lojasData = {};
-            let entregasFort = 0;
-            let entregasComper = 0;
+            if (data.length === 0) {
+                if(summaryContainer) summaryContainer.innerHTML = '<div class="alert alert-info">Sem dados para exibir indicadores.</div>';
+                if(historicoTimeGrid) historicoTimeGrid.innerHTML = '';
+                destroyChart('lojasRankingChart');
+                destroyChart('entregasChart');
+                return;
+            }
 
-            data.forEach(exp => {
-                totalEntregas += exp.items.length;
-                
-                const t0_criacao = new Date(exp.data_hora);
-                const t6_saidaEntrega = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
-                
-                let t_ultimaDescarga = null;
-                exp.items.forEach(item => {
-                    if (item.data_fim_descarga) {
-                        const t_fim = new Date(item.data_fim_descarga);
-                        if (!t_ultimaDescarga || t_fim > t_ultimaDescarga) {
-                            t_ultimaDescarga = t_fim;
-                        }
-                    }
-                });
+            // --- INÍCIO: Cálculos de tempo (lógica similar a updateTimeStats) ---
+            const temposAlocacao = [];
+            const temposChegada = [];
+            const temposCarregamento = [];
+            const temposTotal = [];
+            // --- FIM: Cálculos de tempo ---
 
-                if (t6_saidaEntrega && t_ultimaDescarga) {
-                    temposDeViagem.push((t_ultimaDescarga - t0_criacao) / 60000);
-                }
-                
-                if(t6_saidaEntrega) {
-                    temposInternos.push((t6_saidaEntrega - t0_criacao) / 60000);
-                }
+            let totalViagens = data.length;
+            let totalEntregas = 0;
+            let temposDeViagem = [];
+            let temposInternos = [];
+            let temposEmTransito = [];
+            let temposEmLoja = [];
+            let lojasData = {};
+            let entregasFort = 0;
+            let entregasComper = 0;
 
-                let ultimaData = t6_saidaEntrega;
-                let totalTransitoViagem = 0;
-                let totalLojaViagem = 0;
+            data.forEach(exp => {
+                totalEntregas += exp.items.length;
+                
+                // --- INÍCIO: Lógica de cálculo de tempo para os cards ---
+                const criadoEm = new Date(exp.data_hora || exp.created_at);
+                const alocadoEm = exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo) : null;
+                const chegadaEm = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
+                const saidaEm = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
 
-                exp.items.forEach(item => {
-                    const loja = lojas.find(l => l.id === item.loja_id);
-                    const t_chegada = item.data_inicio_descarga ? new Date(item.data_inicio_descarga) : null;
-                    const t_saida = item.data_fim_descarga ? new Date(item.data_fim_descarga) : null;
+                if (alocadoEm) temposAlocacao.push(Math.round((alocadoEm - criadoEm) / 60000));
+                if (chegadaEm) temposChegada.push(Math.round((chegadaEm - criadoEm) / 60000));
+                if (chegadaEm && saidaEm) temposCarregamento.push(Math.round((saidaEm - chegadaEm) / 60000));
+                if (saidaEm) temposTotal.push(Math.round((saidaEm - criadoEm) / 60000));
+                // --- FIM: Lógica de cálculo de tempo para os cards ---
 
-                    const tempoTransito = ultimaData && t_chegada ? (t_chegada - ultimaData) / 60000 : 0;
-                    const tempoEmLoja = t_saida && t_chegada ? (t_saida - t_chegada) / 60000 : 0;
+                const t0_criacao = new Date(exp.data_hora);
+                const t6_saidaEntrega = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
+                
+                let t_ultimaDescarga = null;
+                exp.items.forEach(item => {
+                    if (item.data_fim_descarga) {
+                        const t_fim = new Date(item.data_fim_descarga);
+                        if (!t_ultimaDescarga || t_fim > t_ultimaDescarga) {
+                            t_ultimaDescarga = t_fim;
+                        }
+                    }
+                });
 
-                    totalTransitoViagem += tempoTransito;
-                    totalLojaViagem += tempoEmLoja;
-                    
-                    if (loja) {
-                        if (!lojasData[loja.id]) {
-                            lojasData[loja.id] = { nome: `${loja.nome} (${loja.codigo})`, tempos: [], entregas: 0 };
-                        }
-                        if(tempoEmLoja > 0) lojasData[loja.id].tempos.push(tempoEmLoja);
-                        lojasData[loja.id].entregas++;
-                        
-                        if (loja.nome.toLowerCase().includes('fort')) entregasFort++;
-                        else if (loja.nome.toLowerCase().includes('comper')) entregasComper++;
-                    }
+                if (t6_saidaEntrega && t_ultimaDescarga) {
+                    temposDeViagem.push((t_ultimaDescarga - t0_criacao) / 60000);
+                }
+                
+                if(t6_saidaEntrega) {
+                    temposInternos.push((t6_saidaEntrega - t0_criacao) / 60000);
+                }
 
-                    if (t_saida) ultimaData = t_saida;
-                });
-                
-                if (totalTransitoViagem > 0) temposEmTransito.push(totalTransitoViagem);
-                if (totalLojaViagem > 0) temposEmLoja.push(totalLojaViagem);
-            });
+                let ultimaData = t6_saidaEntrega;
+                let totalTransitoViagem = 0;
+                let totalLojaViagem = 0;
 
-            const calcularMedia = (arr) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-            
-            summaryContainer.innerHTML = `
-                <div class="time-stat-card"><div class="stat-number">${totalViagens}</div><div class="stat-label">Total de Viagens</div></div>
-                <div class="time-stat-card"><div class="stat-number">${totalEntregas}</div><div class="stat-label">Total de Entregas</div></div>
-                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposDeViagem))}</div><div class="stat-label">Tempo Médio Total</div></div>
-                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposInternos))}</div><div class="stat-label">Tempo Médio Interno</div></div>
-                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposEmTransito))}</div><div class="stat-label">Tempo Médio em Trânsito</div></div>
-                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposEmLoja))}</div><div class="stat-label">Tempo Médio em Loja</div></div>
-            `;
-            
-            renderLojasRankingChart(lojasData);
-            renderEntregasChart(entregasFort, entregasComper);
-        }
+                exp.items.forEach(item => {
+                    const loja = lojas.find(l => l.id === item.loja_id);
+                    const t_chegada = item.data_inicio_descarga ? new Date(item.data_inicio_descarga) : null;
+                    const t_saida = item.data_fim_descarga ? new Date(item.data_fim_descarga) : null;
 
+                    const tempoTransito = ultimaData && t_chegada ? (t_chegada - ultimaData) / 60000 : 0;
+                    const tempoEmLoja = t_saida && t_chegada ? (t_saida - t_chegada) / 60000 : 0;
+
+                    totalTransitoViagem += tempoTransito;
+                    totalLojaViagem += tempoEmLoja;
+                    
+                    if (loja) {
+                        if (!lojasData[loja.id]) {
+                            lojasData[loja.id] = { nome: `${loja.nome} (${loja.codigo})`, tempos: [], entregas: 0 };
+                        }
+                        if(tempoEmLoja > 0) lojasData[loja.id].tempos.push(tempoEmLoja);
+                        lojasData[loja.id].entregas++;
+                        
+                        if (loja.nome.toLowerCase().includes('fort')) entregasFort++;
+                        else if (loja.nome.toLowerCase().includes('comper')) entregasComper++;
+                    }
+
+                    if (t_saida) ultimaData = t_saida;
+                });
+                
+                if (totalTransitoViagem > 0) temposEmTransito.push(totalTransitoViagem);
+                if (totalLojaViagem > 0) temposEmLoja.push(totalLojaViagem);
+            });
+
+            const calcularMedia = (arr) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+            
+            // --- INÍCIO: Renderização dos cards de tempo ---
+            if (summaryContainer) {
+                summaryContainer.innerHTML = `
+                    <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposAlocacao))}</div><div class="stat-label">Tempo Médio<br>Alocar Placa</div></div>
+                    <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposChegada))}</div><div class="stat-label">Tempo Médio<br>Chegada Doca</div></div>
+                    <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposCarregamento))}</div><div class="stat-label">Tempo Médio<br>Carregamento</div></div>
+                    <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposTotal))}</div><div class="stat-label">Tempo Médio<br>Total Interno</div></div>
+                `;
+            }
+            if (historicoTimeGrid) { // Para o novo resumo de viagem
+                historicoTimeGrid.innerHTML = `
+                    <div class="time-stat-card"><div class="stat-number">${totalViagens}</div><div class="stat-label">Total de Viagens</div></div>
+                    <div class="time-stat-card"><div class="stat-number">${totalEntregas}</div><div class="stat-label">Total de Entregas</div></div>
+                    <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposDeViagem))}</div><div class="stat-label">Tempo Médio Viagem</div></div>
+                    <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposEmTransito))}</div><div class="stat-label">Tempo Médio em Trânsito</div></div>
+                    <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposEmLoja))}</div><div class="stat-label">Tempo Médio em Loja</div></div>
+                `;
+            }
+            // --- FIM: Renderização dos cards de tempo ---
+            
+            renderLojasRankingChart(lojasData);
+            renderEntregasChart(entregasFort, entregasComper);
+        }
         function renderLojasRankingChart(lojasData) {
             const ranking = Object.values(lojasData)
                 .map(loja => ({
@@ -6272,25 +6356,26 @@ async function renderVeiculosConfig() {
 
 // Função para atualizar o status de um veículo
 async function updateVeiculoStatus(veiculoId, novoStatus) {
-    try {
-        debugLog.add(`Alterando status do veículo ${veiculoId} para ${novoStatus}`, 'info');
-        await supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: novoStatus }, false);
-        showNotification(`Status do veículo atualizado para ${getStatusLabel(novoStatus)}!`, 'success');
+    try {
+        debugLog.add(`Alterando status do veículo ${veiculoId} para ${novoStatus}`, 'info');
+        // NOVO: Adiciona o timestamp da alteração
+        await supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { 
+            status: novoStatus,
+            status_alterado_em: new Date().toISOString() 
+        }, false);
+        showNotification(`Status do veículo atualizado para ${getStatusLabel(novoStatus)}!`, 'success');
 
-        // Recarrega os dados para refletir a mudança em todo o sistema
-        await loadSelectData(); 
-        await renderVeiculosConfig(); // Re-renderiza a tabela de configuração ATUAL
+        await loadSelectData();
+        await renderVeiculosConfig();
+        loadTransportList();
+        renderMotoristasStatusList();
+        renderFrotaStatus(); // Atualiza a nova aba de ociosidade
 
-        // ---- ADICIONE AS DUAS LINHAS ABAIXO ----
-        loadTransportList();
-        renderMotoristasStatusList();
-        // -----------------------------------------
-
-    } catch (error) {
-        console.error('Erro ao atualizar status do veículo:', error);
-        debugLog.add(`Erro ao atualizar status do veículo: ${error.message}`, 'error');
-        showNotification('Erro ao atualizar status: ' + error.message, 'error');
-    }
+    } catch (error) {
+        console.error('Erro ao atualizar status do veículo:', error);
+        debugLog.add(`Erro ao atualizar status do veículo: ${error.message}`, 'error');
+        showNotification('Erro ao atualizar status: ' + error.message, 'error');
+    }
 }
         // Função para deletar uma expedição do histórico
 async function deleteHistoricoExpedition(expeditionId) {
