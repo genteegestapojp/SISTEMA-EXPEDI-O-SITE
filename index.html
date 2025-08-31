@@ -1952,17 +1952,7 @@
 
         <div id="geral" class="sub-tab-content active">
             <h2 style="text-align: center;">Configurações Gerais</h2>
-            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
-                <h3 style="text-align: center;">Sincronização e Diagnóstico</h3>
-                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
-    <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
-    <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
-    <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
-    <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
-    <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
-    <button class="btn btn-warning btn-small" onclick="showAddForm('acesso')">+ Adicionar Acesso</button>
-</div>
-            </div>
+            
             <div class="stats-grid" style="text-align: center;">
                 <div class="stat-card">
                     <div class="stat-number" id="debugLojas">0</div>
@@ -1982,15 +1972,16 @@
                 </div>
             </div>
             <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
-                <h3 style="text-align: center;">Gerenciar Cadastros</h3>
-                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
-                    <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
-                    <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
-                    <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
-                    <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
-                    <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
-                </div>
-            </div>
+    <h3 style="text-align: center;">Gerenciar Cadastros</h3>
+    <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
+        <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
+        <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
+        <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
+        <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
+        <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
+        <button class="btn btn-warning btn-small" onclick="showAddForm('acesso')">+ Adicionar Acesso</button>
+    </div>
+</div>
             <div id="addFormModal">
                 <h3 id="addFormTitle">Adicionar Item</h3>
                 <form id="addForm">
