@@ -1925,99 +1925,88 @@
             </div>
 
             <div id="configuracoes" class="tab-content">
-                <h2 style="text-align: center;">Acesso Restrito</h2>
-                <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
-                    <p style="text-align: center; color: var(--dark); margin-bottom: 20px;">Por favor, insira a senha para acessar as configurações.</p>
-                    <form id="passwordForm">
-                        <div class="form-group">
-                            <label for="passwordInput">Senha:</label>
-                            <input type="password" id="passwordInput" required placeholder="Digite a senha...">
-                        </div>
-                        <div style="margin-top: 20px;">
-                            <button type="submit" class="btn btn-primary btn-small">Acessar</button>
-                        </div>
-                    </form>
-                    <div id="passwordAlert" style="text-align: center; margin-top: 15px;"></div>
-                </div>
+    <h2 style="text-align: center;">Acesso Restrito</h2>
+    <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
+        <p style="text-align: center; color: var(--dark); margin-bottom: 20px;">Por favor, insira a senha para acessar as configurações.</p>
+        <form id="passwordForm">
+            <div class="form-group">
+                <label for="passwordInput">Senha:</label>
+                <input type="password" id="passwordInput" required placeholder="Digite a senha...">
+            </div>
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn btn-primary btn-small">Acessar</button>
+            </div>
+        </form>
+        <div id="passwordAlert" style="text-align: center; margin-top: 15px;"></div>
+    </div>
 
-                <div id="configuracoesContent" style="display: none;">
-<div class="sub-tabs">
-    <button class="sub-tab active" onclick="showSubTab('configuracoes', 'geral')">Geral</button>
-    <button class="sub-tab" onclick="showSubTab('configuracoes', 'transporteConfig')">Transporte</button>
-</div>
+    <div id="configuracoesContent" style="display: none;">
+        <div class="sub-tabs">
+            <button class="sub-tab active" onclick="showSubTab('configuracoes', 'geral')">Geral</button>
+            <button class="sub-tab" onclick="showSubTab('configuracoes', 'transporteConfig')">Transporte</button>
+        </div>
 
-<div id="geral" class="sub-tab-content active">
-    <h2 style="text-align: center;">Configurações Gerais</h2>
-                    <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
-                        <h3 style="text-align: center;">Sincronização e Diagnóstico</h3>
-                        <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
-                            <button class="btn btn-primary btn-small" onclick="forceSyncData()">Forçar Sincronização</button>
-                            <button class="btn btn-success btn-small" onclick="testConnection()">Testar Conexão</button>
-                            <button class="btn btn-primary btn-small" onclick="clearCache()">Limpar Cache</button>
-                            <button class="btn btn-danger btn-small" onclick="clearDebugLog()">Limpar Log</button>
-                        </div>
-                    </div>
-
-                    <div class="stats-grid" style="text-align: center;">
-                        <div class="stat-card">
-                            <div class="stat-number" id="debugLojas">0</div>
-                            <div class="stat-label">Lojas Carregadas</div>
-                        </div>
-                        <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
-                            <div class="stat-number" id="debugDocas">0</div>
-                            <div class="stat-label">Docas Carregadas</div>
-                        </div>
-                        <div class="stat-card" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
-                            <div class="stat-number" id="debugLideres">0</div>
-                            <div class="stat-label">Líderes Carregados</div>
-                        </div>
-                        <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #023047);">
-                            <div class="stat-number" id="debugVeiculos">0</div>
-                            <div class="stat-label">Veículos Disponíveis</div>
-                        </div>
-                    </div>
-
-                    <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
-                        <h3 style="text-align: center;">Gerenciar Cadastros</h3>
-                        <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
-                            <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
-                            <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
-                            <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
-                            <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
-                            <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
-                        </div>
-                    </div>
-
-                    <div id="addFormModal">
-                        <h3 id="addFormTitle">Adicionar Item</h3>
-                        <form id="addForm">
-                            <div id="addFormFields" class="form-grid">
-                            </div>
-                            <div style="margin-top: 20px;">
-                                <button type="submit" class="btn btn-success">Salvar</button>
-                                <button type="button" class="btn btn-danger" onclick="hideAddForm()">Cancelar</button>
-                            </div>
-                        </form>
-                        <div id="addFormAlert"></div>
-                    </div>
-
-                    <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
-                        <h3 style="text-align: center;">Status do Sistema</h3>
-                        <div id="systemStatus">
-                            Carregando informações do sistema...
-                        </div>
-                    </div>
-
-                    <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; text-align: left;">
-                        <h3 style="text-align: center;">Log do Sistema</h3>
-                        <div id="debugLog">
-                            Sistema iniciado...<br>
-                        </div>
-                    </div>
+        <div id="geral" class="sub-tab-content active">
+            <h2 style="text-align: center;">Configurações Gerais</h2>
+            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                <h3 style="text-align: center;">Sincronização e Diagnóstico</h3>
+                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
+                    <button class="btn btn-primary btn-small" onclick="forceSyncData()">Forçar Sincronização</button>
+                    <button class="btn btn-success btn-small" onclick="testConnection()">Testar Conexão</button>
+                    <button class="btn btn-primary btn-small" onclick="clearCache()">Limpar Cache</button>
+                    <button class="btn btn-danger btn-small" onclick="clearDebugLog()">Limpar Log</button>
                 </div>
             </div>
+            <div class="stats-grid" style="text-align: center;">
+                <div class="stat-card">
+                    <div class="stat-number" id="debugLojas">0</div>
+                    <div class="stat-label">Lojas Carregadas</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+                    <div class="stat-number" id="debugDocas">0</div>
+                    <div class="stat-label">Docas Carregadas</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
+                    <div class="stat-number" id="debugLideres">0</div>
+                    <div class="stat-label">Líderes Carregados</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #023047);">
+                    <div class="stat-number" id="debugVeiculos">0</div>
+                    <div class="stat-label">Veículos Disponíveis</div>
+                </div>
+            </div>
+            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                <h3 style="text-align: center;">Gerenciar Cadastros</h3>
+                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
+                    <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
+                    <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
+                    <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
+                    <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
+                    <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
+                </div>
+            </div>
+            <div id="addFormModal">
+                <h3 id="addFormTitle">Adicionar Item</h3>
+                <form id="addForm">
+                    <div id="addFormFields" class="form-grid"></div>
+                    <div style="margin-top: 20px;">
+                        <button type="submit" class="btn btn-success">Salvar</button>
+                        <button type="button" class="btn btn-danger" onclick="hideAddForm()">Cancelar</button>
+                    </div>
+                </form>
+                <div id="addFormAlert"></div>
+            </div>
+            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                <h3 style="text-align: center;">Status do Sistema</h3>
+                <div id="systemStatus">Carregando informações do sistema...</div>
+            </div>
+            <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; text-align: left;">
+                <h3 style="text-align: center;">Log do Sistema</h3>
+                <div id="debugLog">Sistema iniciado...<br></div>
+            </div>
         </div>
-            </div> <div id="transporteConfig" class="sub-tab-content">
+
+        <div id="transporteConfig" class="sub-tab-content">
             <h2 style="text-align: center;">Gerenciamento de Veículos</h2>
             <div class="table-container">
                 <div class="table-wrapper">
@@ -2038,6 +2027,8 @@
                 </div>
             </div>
         </div>
+
+    </div> </div> ```
     </div>
 
     <div style="background: var(--dark); color: white; text-align: center; padding: 16px; margin-top: 20px; border-radius: 8px;">
