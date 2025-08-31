@@ -6099,8 +6099,13 @@ async function updateVeiculoStatus(veiculoId, novoStatus) {
         showNotification(`Status do veículo atualizado para ${getStatusLabel(novoStatus)}!`, 'success');
 
         // Recarrega os dados para refletir a mudança em todo o sistema
-        await loadSelectData();
-        await renderVeiculosConfig(); // Re-renderiza a tabela de configuração
+        await loadSelectData(); 
+        await renderVeiculosConfig(); // Re-renderiza a tabela de configuração ATUAL
+
+        // ---- ADICIONE AS DUAS LINHAS ABAIXO ----
+        loadTransportList();
+        renderMotoristasStatusList();
+        // -----------------------------------------
 
     } catch (error) {
         console.error('Erro ao atualizar status do veículo:', error);
