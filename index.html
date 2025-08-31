@@ -3641,125 +3641,123 @@ async function showYesNoModal(message) {
         }
 
         // Alocar transporte
-        async function allocateTransport(expeditionId) {
-            if (allocatingTransports.has(expeditionId)) {
-                showNotification('Aguarde! Alocação já está sendo processada...', 'warning');
-                return;
-            }
+      async function allocateTransport(expeditionId) {
+          if (allocatingTransports.has(expeditionId)) {
+              showNotification('Aguarde! Alocação já está sendo processada...', 'warning');
+              return;
+          }
 
-            const veiculoSelect = document.getElementById(`veiculo_${expeditionId}`);
-            const motoristaSelect = document.getElementById(`motorista_${expeditionId}`);
-            const allocateButton = document.querySelector(`button[onclick="allocateTransport('${expeditionId}')"]`);
+          const veiculoSelect = document.getElementById(`veiculo_${expeditionId}`);
+          const motoristaSelect = document.getElementById(`motorista_${expeditionId}`);
+          const allocateButton = document.querySelector(`button[onclick="allocateTransport('${expeditionId}')"]`);
 
-            if (!veiculoSelect || !motoristaSelect) {
-                showNotification('Erro: Elementos do formulário não encontrados', 'error');
-                return;
-            }
+          if (!veiculoSelect || !motoristaSelect) {
+              showNotification('Erro: Elementos do formulário não encontrados', 'error');
+              return;
+          }
 
-            const veiculoId = veiculoSelect.value;
-            const motoristaId = motoristaSelect.value;
+          const veiculoId = veiculoSelect.value;
+          const motoristaId = motoristaSelect.value;
 
-            if (!veiculoId || !motoristaId) {
-                showNotification('Por favor, selecione um veículo e um motorista!', 'error');
-                return;
-            }
+          if (!veiculoId || !motoristaId) {
+              showNotification('Por favor, selecione um veículo e um motorista!', 'error');
+              return;
+          }
 
-            allocatingTransports.add(expeditionId);
-            
-            if (allocateButton) {
-                allocateButton.disabled = true;
-                allocateButton.textContent = 'Alocando...';
-                allocateButton.style.opacity = '0.6';
-            }
+          allocatingTransports.add(expeditionId);
+          
+          if (allocateButton) {
+              allocateButton.disabled = true;
+              allocateButton.textContent = 'Alocando...';
+              allocateButton.style.opacity = '0.6';
+          }
 
-            veiculoSelect.disabled = true;
-            motoristaSelect.disabled = true;
+          veiculoSelect.disabled = true;
+          motoristaSelect.disabled = true;
 
-            try {
-                const selectedVehicle = veiculos.find(v => v.id === veiculoId);
-                const expedition = allExpeditions.find(e => e.id === expeditionId);
-                
-                if (!selectedVehicle || !expedition) {
-                    throw new Error('Veículo ou expedição não encontrados');
-                }
+          try {
+              const selectedVehicle = veiculos.find(v => v.id === veiculoId);
+              const expedition = allExpeditions.find(e => e.id === expeditionId);
+              
+              if (!selectedVehicle || !expedition) {
+                  throw new Error('Veículo ou expedição não encontrados');
+              }
 
-                const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
-                
-                if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
-                    throw new Error(`Veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`);
-                }
+              const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
+              
+              if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
+                  throw new Error(`Veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`);
+              }
 
-                const dataAlocacao = new Date().toISOString();
-                debugLog.add(`Iniciando alocação de transporte para expedição ${expeditionId}`, 'info');
+              const dataAlocacao = new Date().toISOString();
+              debugLog.add(`Iniciando alocação de transporte para expedição ${expeditionId}`, 'info');
 
-                const expeditionUpdateData = {
-                    veiculo_id: veiculoId,
-                    motorista_id: motoristaId,
-                    status: 'aguardando_veiculo',
-                    data_alocacao_veiculo: dataAlocacao
-                };
+              const expeditionUpdateData = {
+                  veiculo_id: veiculoId,
+                  motorista_id: motoristaId,
+                  status: 'aguardando_veiculo',
+                  data_alocacao_veiculo: dataAlocacao
+              };
 
-                await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdateData, 30000, false);
-                await logAction('ALOCAÇÃO TRANSPORTE', `Expedição ID ${expeditionId} alocada ao veículo ID ${veiculoId} e motorista ID ${motoristaId}.`);
+              await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdateData, 30000, false);
+              debugLog.add('Expedição atualizada com sucesso', 'success');
+              
+              await logAction('ALOCAÇÃO TRANSPORTE', `Expedição ID ${expeditionId} alocada ao veículo ID ${veiculoId} e motorista ID ${motoristaId}.`);
 
-const secondaryOperations = [];
-                debugLog.add('Expedição atualizada com sucesso', 'success');
+              const secondaryOperations = [];
 
-                const secondaryOperations = [];
+              secondaryOperations.push(
+                  supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
+                      .then(() => debugLog.add('Status do veículo atualizado', 'success'))
+                      .catch(error => debugLog.add(`Aviso: Erro ao atualizar veículo: ${error.message}`, 'warning'))
+              );
 
-                secondaryOperations.push(
-                    supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
-                        .then(() => debugLog.add('Status do veículo atualizado', 'success'))
-                        .catch(error => debugLog.add(`Aviso: Erro ao atualizar veículo: ${error.message}`, 'warning'))
-                );
+              secondaryOperations.push(
+                  supabaseRequestWithTimeout(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
+                      .then(() => debugLog.add('Status do motorista atualizado', 'success'))
+                      .catch(error => debugLog.add(`Aviso: Erro ao atualizar motorista: ${error.message}`, 'warning'))
+              );
 
-                secondaryOperations.push(
-                    supabaseRequestWithTimeout(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
-                        .then(() => debugLog.add('Status do motorista atualizado', 'success'))
-                        .catch(error => debugLog.add(`Aviso: Erro ao atualizar motorista: ${error.message}`, 'warning'))
-                );
+              await Promise.allSettled(secondaryOperations.map(op => 
+                  Promise.race([op, new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('Timeout secundário')), 10000)
+                  )])
+              ));
 
-                await Promise.allSettled(secondaryOperations.map(op => 
-                    Promise.race([op, new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Timeout secundário')), 10000)
-                    )])
-                ));
+              debugLog.add(`Transporte alocado com sucesso às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}`, 'success');
+              showNotification(`Transporte alocado às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}!`, 'success');
 
-                debugLog.add(`Transporte alocado com sucesso às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}`, 'success');
-                showNotification(`Transporte alocado às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}!`, 'success');
+              try {
+                  await Promise.all([
+                      loadSelectData(),
+                      loadTransportList()
+                  ]);
+              } catch (reloadError) {
+                  debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
+                  setTimeout(loadTransportList, 2000);
+              }
 
-                try {
-                    await Promise.all([
-                        loadSelectData(),
-                        loadTransportList()
-                    ]);
-                } catch (reloadError) {
-                    debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
-                    setTimeout(loadTransportList, 2000);
-                }
+          } catch (error) {
+              console.error('Erro ao alocar transporte:', error);
+              debugLog.add(`Erro ao alocar transporte: ${error.message}`, 'error');
+              showNotification(`Erro: ${error.message}`, 'error');
+              setTimeout(() => {
+                  loadTransportList();
+              }, 2000);
 
-            } catch (error) {
-                console.error('Erro ao alocar transporte:', error);
-                debugLog.add(`Erro ao alocar transporte: ${error.message}`, 'error');
-                showNotification(`Erro: ${error.message}`, 'error');
-                setTimeout(() => {
-                    loadTransportList();
-                }, 2000);
-
-            } finally {
-                allocatingTransports.delete(expeditionId);
-                
-                if (allocateButton) {
-                    allocateButton.disabled = false;
-                    allocateButton.textContent = 'Alocar Agora';
-                    allocateButton.style.opacity = '1';
-                }
-                
-                if (veiculoSelect) veiculoSelect.disabled = false;
-                if (motoristaSelect) motoristaSelect.disabled = false;
-            }
-        }
-
+          } finally {
+              allocatingTransports.delete(expeditionId);
+              
+              if (allocateButton) {
+                  allocateButton.disabled = false;
+                  allocateButton.textContent = 'Alocar Agora';
+                  allocateButton.style.opacity = '1';
+              }
+              
+              if (veiculoSelect) veiculoSelect.disabled = false;
+              if (motoristaSelect) motoristaSelect.disabled = false;
+          }
+      }
         // Realocar transporte
         // Realocar transporte
          async function reallocateTransport(expeditionId) {
