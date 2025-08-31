@@ -5494,21 +5494,47 @@ DESENVOLVIDO POR: JP Tech Solutions
                   return;
               }
 
-              try {
-                  // Consulta a tabela 'acessos' no banco
-                  const { data, error } = await supabase
-                      .from('acessos')
-                      .select('nome, tipo_acesso')
-                      .eq('nome', nome)
-                      .eq('senha', senha) // IMPORTANTE: Veja a nota de segurança abaixo
-                      .single(); // Espera um único resultado
+              // CÓDIGO CORRIGIDO
 
-                  if (error || !data) {
-                      showAlert('passwordAlert', 'Nome de usuário ou senha incorretos.', 'error');
-                      debugLog.add(`Tentativa de login falhou para o usuário: ${nome}`, 'error');
-                      return;
-                  }
+try {
+    // Montamos a URL para a nossa função personalizada
+    const endpoint = `acessos?select=nome,tipo_acesso&nome=eq.${nome}&senha=eq.${senha}`;
 
+    // Usamos a nossa função supabaseRequest
+    const result = await supabaseRequest(endpoint, 'GET', null, false); // 'false' para não filtrar por filial
+
+    // Nossa função retorna um array. Se o array estiver vazio, o login falhou.
+    if (!result || result.length === 0) {
+        showAlert('passwordAlert', 'Nome de usuário ou senha incorretos.', 'error');
+        debugLog.add(`Tentativa de login falhou para o usuário: ${nome}`, 'error');
+        document.getElementById('passwordInput').value = ''; // Limpa a senha
+        return;
+    }
+
+    // Se deu certo, pegamos o primeiro usuário do resultado
+    const user = result[0];
+
+    // Armazena os dados do usuário
+    currentUser = {
+        nome: user.nome,
+        tipo_acesso: user.tipo_acesso
+    };
+
+    // Libera o acesso
+    showNotification('Acesso concedido!', 'success');
+    document.getElementById('passwordFormContainer').style.display = 'none';
+    document.getElementById('configuracoesContent').style.display = 'block';
+    document.getElementById('passwordInput').value = ''; 
+    updateSystemStatus();
+    updateDebugStats();
+
+    // Registra o login no histórico
+    await logAction('LOGIN', `Usuário '${currentUser.nome}' acessou as configurações.`);
+
+} catch (err) {
+    showAlert('passwordAlert', 'Erro ao verificar credenciais. Verifique a conexão.', 'error');
+    console.error(err);
+}
                   // Se encontrou, armazena os dados do usuário
                   currentUser = {
                       nome: data.nome,
