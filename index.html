@@ -1929,14 +1929,18 @@
     <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
         <p style="text-align: center; color: var(--dark); margin-bottom: 20px;">Por favor, insira a senha para acessar as configurações.</p>
         <form id="passwordForm">
-            <div class="form-group">
-                <label for="passwordInput">Senha:</label>
-                <input type="password" id="passwordInput" required placeholder="Digite a senha...">
-            </div>
-            <div style="margin-top: 20px;">
-                <button type="submit" class="btn btn-primary btn-small">Acessar</button>
-            </div>
-        </form>
+        <div class="form-group">
+            <label for="userInput">Nome de Usuário:</label>
+            <input type="text" id="userInput" required placeholder="Digite seu nome de usuário...">
+        </div>
+        <div class="form-group">
+            <label for="passwordInput">Senha:</label>
+            <input type="password" id="passwordInput" required placeholder="Digite a senha...">
+        </div>
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-primary btn-small">Acessar</button>
+        </div>
+    </form>
         <div id="passwordAlert" style="text-align: center; margin-top: 15px;"></div>
     </div>
 
@@ -1951,11 +1955,13 @@
             <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
                 <h3 style="text-align: center;">Sincronização e Diagnóstico</h3>
                 <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
-                    <button class="btn btn-primary btn-small" onclick="forceSyncData()">Forçar Sincronização</button>
-                    <button class="btn btn-success btn-small" onclick="testConnection()">Testar Conexão</button>
-                    <button class="btn btn-primary btn-small" onclick="clearCache()">Limpar Cache</button>
-                    <button class="btn btn-danger btn-small" onclick="clearDebugLog()">Limpar Log</button>
-                </div>
+    <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
+    <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
+    <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
+    <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
+    <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
+    <button class="btn btn-warning btn-small" onclick="showAddForm('acesso')">+ Adicionar Acesso</button>
+</div>
             </div>
             <div class="stats-grid" style="text-align: center;">
                 <div class="stat-card">
@@ -2134,11 +2140,13 @@
         let filiais = [];
         
         // Variáveis para filtros
-        let allExpeditions = [];
-        let filteredExpeditions = [];
-        let allHistorico = [];
-        let filteredHistorico = [];
-        let passwordAuthenticated = false;
+      let allExpeditions = [];
+      let filteredExpeditions = [];
+      let allHistorico = [];
+      let filteredHistorico = [];
+
+      // NOVO: Objeto para armazenar dados do usuário logado
+      let currentUser = null; // Substitui o antigo 'passwordAuthenticated'
 
         // Estado da filial selecionada
         let selectedFilial = null;
@@ -2227,6 +2235,33 @@
                 throw error;
             }
         }
+        async function logAction(acao, detalhes = null) {
+          if (!currentUser) {
+              console.warn('Tentativa de log sem usuário autenticado.');
+              return; // Não faz nada se ninguém estiver logado nas configs
+          }
+
+          try {
+              const logData = {
+                  usuario_nome: currentUser.nome,
+                  filial: selectedFilial ? selectedFilial.nome : 'N/A',
+                  acao: acao.toUpperCase(), // Ex: 'EDIÇÃO EXPEDIÇÃO'
+                  detalhes: detalhes
+              };
+
+              // Usamos o supabaseRequest sem 'await' para não travar a interface
+              // A ação é registrada em segundo plano.
+              supabaseRequest('historico_acessos', 'POST', logData, false); 
+              debugLog.add(`Ação registrada: ${acao}`, 'log');
+
+          } catch (error) {
+              console.error('Erro ao registrar ação no histórico:', error);
+              debugLog.add(`Falha ao registrar ação: ${error.message}`, 'error');
+          }
+      }
+
+      // Função para mostrar notificações
+      function showNotification(message, type = 'info') {
 
         // Função para mostrar notificações
         function showNotification(message, type = 'info') {
@@ -2526,9 +2561,9 @@
             } else if (tabName === 'historico') {
                 loadHistorico();
                 showSubTab('historico', 'listaEntregas');
-            } else if (tabName === 'configuracoes') { // <- Chave '}' removida daqui e movida para o final
-                if (passwordAuthenticated) {
-                    document.getElementById('passwordFormContainer').style.display = 'none';
+          } else if (tabName === 'configuracoes') {
+            if (currentUser) { // ALTERADO: Verifica se o objeto currentUser existe
+                document.getElementById('passwordFormContainer').style.display = 'none';
                     document.getElementById('configuracoesContent').style.display = 'block';
                     updateSystemStatus();
                     updateDebugStats();
@@ -3665,6 +3700,9 @@ async function showYesNoModal(message) {
                 };
 
                 await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdateData, 30000, false);
+                await logAction('ALOCAÇÃO TRANSPORTE', `Expedição ID ${expeditionId} alocada ao veículo ID ${veiculoId} e motorista ID ${motoristaId}.`);
+
+const secondaryOperations = [];
                 debugLog.add('Expedição atualizada com sucesso', 'success');
 
                 const secondaryOperations = [];
@@ -4662,6 +4700,7 @@ async function finalizarDescarga(itemId, expeditionId) {
                 await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
                     status: newStatus,
                     observacoes: observacoes || null
+                    
                 });
                 
                 await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'DELETE');
@@ -4689,6 +4728,10 @@ async function finalizarDescarga(itemId, expeditionId) {
                 if (itemsData.length > 0) {
                     const itemsPromises = itemsData.map(item => supabaseRequest('expedition_items', 'POST', item));
                     await Promise.all(itemsPromises);
+                    await logAction('EDIÇÃO EXPEDIÇÃO', `Expedição ID ${expeditionId} alterada para status '${newStatus}'.`);
+
+debugLog.add('Expedição editada com sucesso', 'success');
+showNotification('Expedição atualizada com sucesso!', 'success');
                 }
                 
                 debugLog.add('Expedição editada com sucesso', 'success');
@@ -4872,8 +4915,7 @@ function renderHistorico(expeditions) {
         }
 
 
-        // --- Funções de Configuração ---
-        const correctPasswords = ['JPMASTER', 'ELIELSONR'];
+    
 
         async function forceSyncData() {
             debugLog.add('Iniciando sincronização forçada...', 'info');
@@ -5124,6 +5166,44 @@ DESENVOLVIDO POR: JP Tech Solutions
                     </div>
                 `;
             }
+            else if (type === 'acesso') {
+        title.textContent = `Adicionar Novo Acesso - ${selectedFilial.nome}`;
+
+        // Lógica de permissão: Só mestres podem criar outros mestres
+        let tipoAcessoHtml = '';
+        if (currentUser && currentUser.tipo_acesso === 'ALL') {
+            // Se for master, mostra um dropdown para escolher
+            tipoAcessoHtml = `
+                <div class="form-group">
+                    <label for="add_tipo_acesso">Tipo de Acesso:</label>
+                    <select id="add_tipo_acesso" required>
+                        <option value="ALL">ALL (Master - Acesso Total)</option>
+                        <option value="${selectedFilial.nome}">${selectedFilial.nome} (Acesso apenas a esta filial)</option>
+                    </select>
+                </div>
+            `;
+        } else {
+            // Se não for master, o acesso é travado na filial atual
+            tipoAcessoHtml = `
+                <div class="form-group">
+                    <label for="add_tipo_acesso">Tipo de Acesso:</label>
+                    <input type="text" id="add_tipo_acesso" value="${selectedFilial.nome}" disabled style="background: #f5f5f5;">
+                </div>
+            `;
+        }
+
+        fieldsContainer.innerHTML = `
+            <div class="form-group">
+                <label for="add_nome">Nome de Usuário:</label>
+                <input type="text" id="add_nome" required placeholder="Ex: joao.silva">
+            </div>
+            <div class="form-group">
+                <label for="add_senha">Senha:</label>
+                <input type="password" id="add_senha" required placeholder="Crie uma senha forte">
+            </div>
+            ${tipoAcessoHtml}
+        `;
+    }
         }
 
         function hideAddForm() {
@@ -5173,6 +5253,45 @@ DESENVOLVIDO POR: JP Tech Solutions
                 showAlert('addFormAlert', `Erro: ${error.message}`, 'error');
             }
         }
+                // NOVO: Função para salvar um novo acesso
+      async function saveAcesso() {
+          const nome = document.getElementById('add_nome').value.trim();
+          const senha = document.getElementById('add_senha').value;
+          const tipo_acesso = document.getElementById('add_tipo_acesso').value;
+
+          if (!nome || !senha || !tipo_acesso) {
+              showAlert('addFormAlert', 'Por favor, preencha todos os campos', 'error');
+              return;
+          }
+
+          try {
+              debugLog.add(`Criando novo usuário: ${nome} com acesso '${tipo_acesso}'`, 'info');
+
+              const acessoData = {
+                  nome: nome,
+                  senha: senha, // Lembre-se da nota de segurança sobre senhas!
+                  tipo_acesso: tipo_acesso
+              };
+
+              await supabaseRequest('acessos', 'POST', acessoData, false);
+
+              // Registra a criação do usuário no histórico
+              await logAction('CRIAÇÃO USUÁRIO', `Usuário '${nome}' foi criado com tipo de acesso '${tipo_acesso}'.`);
+
+              debugLog.add(`Usuário "${nome}" criado com sucesso`, 'success');
+              showAlert('addFormAlert', `Usuário "${nome}" criado com sucesso!`, 'success');
+              showNotification(`Novo usuário "${nome}" adicionado!`, 'success');
+
+              setTimeout(() => {
+                  hideAddForm();
+              }, 2000);
+
+          } catch (error) {
+              console.error('Erro ao salvar acesso:', error);
+              debugLog.add(`Erro ao salvar acesso: ${error.message}`, 'error');
+              showAlert('addFormAlert', `Erro: ${error.message}. Verifique se o nome de usuário já existe.`, 'error');
+          }
+      }
 
         async function saveDoca() {
             const nome = document.getElementById('add_nome').value.trim();
@@ -5364,49 +5483,97 @@ DESENVOLVIDO POR: JP Tech Solutions
                 });
             }
 
-            // Event listener para formulário de senha
-            const passwordForm = document.getElementById('passwordForm');
-            if (passwordForm) {
-                passwordForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const password = document.getElementById('passwordInput').value;
-                    if (correctPasswords.includes(password.toUpperCase())) {
-                        passwordAuthenticated = true;
-                        showNotification('Acesso concedido!', 'success');
-                        document.getElementById('passwordFormContainer').style.display = 'none';
-                        document.getElementById('configuracoesContent').style.display = 'block';
-                        updateSystemStatus();
-                        updateDebugStats();
-                    } else {
-                        showAlert('passwordAlert', 'Senha incorreta.', 'error');
-                        document.getElementById('passwordInput').value = '';
-                    }
-                });
-            }
+           // Event listener para formulário de senha
+      const passwordForm = document.getElementById('passwordForm');
+      if (passwordForm) {
+          passwordForm.addEventListener('submit', async function(e) { // Adicionado 'async'
+              e.preventDefault();
+              
+              // Pegamos os dois valores do formulário
+              const nome = document.getElementById('userInput').value.trim();
+              const senha = document.getElementById('passwordInput').value;
 
-            // Event listener para formulário de adição
-            const addForm = document.getElementById('addForm');
-            if (addForm) {
-                addForm.addEventListener('submit', async function(e) {
-                    e.preventDefault();
+              if (!nome || !senha) {
+                  showAlert('passwordAlert', 'Nome e senha são obrigatórios.', 'error');
+                  return;
+              }
 
-                    const title = document.getElementById('addFormTitle').textContent;
+              try {
+                  // Consulta a tabela 'acessos' no banco
+                  const { data, error } = await supabase
+                      .from('acessos')
+                      .select('nome, tipo_acesso')
+                      .eq('nome', nome)
+                      .eq('senha', senha) // IMPORTANTE: Veja a nota de segurança abaixo
+                      .single(); // Espera um único resultado
 
-                    if (title.includes('Loja')) {
-                        await saveLoja();
-                    } else if (title.includes('Doca')) {
-                        await saveDoca();
-                    } else if (title.includes('Líder')) {
-                        await saveLider();
-                    } else if (title.includes('Veículo')) {
-                        await saveVeiculo();
-                    } else if (title.includes('Motorista')) {
-                        await saveMotorista();
-                    } else {
-                        showAlert('addFormAlert', 'Funcionalidade em desenvolvimento', 'warning');
-                    }
-                });
-            }
+                  if (error || !data) {
+                      showAlert('passwordAlert', 'Nome de usuário ou senha incorretos.', 'error');
+                      debugLog.add(`Tentativa de login falhou para o usuário: ${nome}`, 'error');
+                      return;
+                  }
+
+                  // Se encontrou, armazena os dados do usuário
+                  currentUser = {
+                      nome: data.nome,
+                      tipo_acesso: data.tipo_acesso
+                  };
+
+                  // Libera o acesso
+                  showNotification('Acesso concedido!', 'success');
+                  document.getElementById('passwordFormContainer').style.display = 'none';
+                  document.getElementById('configuracoesContent').style.display = 'block';
+                  document.getElementById('passwordInput').value = ''; // Limpa o campo de senha
+                  updateSystemStatus();
+                  updateDebugStats();
+
+                  // Registra o login no histórico
+                  await logAction('LOGIN', `Usuário '${currentUser.nome}' acessou as configurações.`);
+
+              } catch (err) {
+                  showAlert('passwordAlert', 'Erro ao verificar credenciais. Verifique a conexão.', 'error');
+                  console.error(err);
+              }
+          });
+      }
+
+      /*
+      * NOTA DE SEGURANÇA IMPORTANTE, JP!
+      * * O método que implementamos (.eq('senha', senha)) envia a senha em texto puro.
+      * Para um ambiente de produção real, o ideal é usar o sistema de autenticação
+      * do próprio Supabase (Supabase Auth), que armazena as senhas de forma criptografada.
+      * Para o seu sistema interno e como aprendizado, o método atual funciona, mas 
+      * tenha essa boa prática em mente para projetos futuros!
+      */
+
+           // Event listener para formulário de adição
+      const addForm = document.getElementById('addForm');
+      if (addForm) {
+          addForm.addEventListener('submit', async function(e) {
+              e.preventDefault();
+              const title = document.getElementById('addFormTitle').textContent;
+
+              if (title.includes('Loja')) {
+                  await saveLoja();
+              } else if (title.includes('Doca')) {
+                  await saveDoca();
+              } else if (title.includes('Líder')) {
+                  await saveLider();
+              } else if (title.includes('Veículo')) {
+                  await saveVeiculo();
+              } else if (title.includes('Motorista')) {
+                  await saveMotorista();
+              } 
+              // ADICIONE ESTE BLOCO
+              else if (title.includes('Acesso')) {
+                  await saveAcesso();
+              } 
+              // ----------------
+              else {
+                  showAlert('addFormAlert', 'Funcionalidade em desenvolvimento', 'warning');
+              }
+          });
+      }
 
             // Event listener para formulário de edição
             const editForm = document.getElementById('editExpeditionForm');
