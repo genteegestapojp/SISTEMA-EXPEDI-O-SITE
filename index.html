@@ -2548,24 +2548,40 @@
             }
         }
         // Função para mostrar sub-abas
-        // Função para mostrar sub-abas
+// Função para mostrar sub-abas (VERSÃO CORRIGIDA)
 function showSubTab(tabName, subTabName) {
     const tabContent = document.getElementById(tabName);
+    if (!tabContent) return; // Segurança extra
+
+    // Limpa todas as sub-abas e conteúdos
     tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
     tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
 
-    tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`).classList.add('active');
-    tabContent.querySelector(`#${subTabName}`).classList.add('active');
+    // Procura pelo botão da sub-aba e pelo conteúdo a ser exibido
+    const subTabButton = tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`);
+    const subTabContentToShow = tabContent.querySelector(`#${subTabName}`);
+
+    // --- INÍCIO DA CORREÇÃO ---
+    // Apenas adiciona a classe 'active' se o botão da sub-aba existir
+    if (subTabButton) {
+        subTabButton.classList.add('active');
+    }
+    // --- FIM DA CORREÇÃO ---
+
+    // Mostra o conteúdo da sub-aba
+    if (subTabContentToShow) {
+        subTabContentToShow.classList.add('active');
+    }
+
     debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
 
-    // Lógica adicional ao abrir sub-abas de relatórios
+    // Lógica adicional para carregar dados específicos da sub-aba
     if (subTabName === 'indicadores') {
-        applyHistoricoFilters(); // Gera os indicadores da aba histórico
+        applyHistoricoFilters();
     }
     if (subTabName === 'relatoriosMotoristas') {
-        generateMotoristaReports(); // Gera os relatórios da aba motoristas
+        generateMotoristaReports();
     }
-    // NOVO TRECHO ADICIONADO AQUI
     if (tabName === 'configuracoes' && subTabName === 'transporteConfig') {
         renderVeiculosConfig();
     }
