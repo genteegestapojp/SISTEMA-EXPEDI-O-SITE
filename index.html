@@ -1712,10 +1712,11 @@
             </div>
         </div>
     </div>
-    <div id="motoristasStatusList" style="margin-bottom: 30px;">
-    </div>
+   
     <div id="relatoriosMotoristas" class="sub-tab-content">
         <h2 style="text-align: center;">Relatórios de Desempenho</h2>
+         <div id="motoristasStatusList" style="margin-bottom: 30px;">
+    </div>
         <div class="filters-section">
             <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros</h3>
             <div class="filters-grid">
@@ -3487,133 +3488,133 @@ async function showYesNoModal(message) {
             }
         }
 
-        // Renderizar lista de transporte
-        function renderTransportList(expeditionsList, veiculosList, motoristasList) {
-            const container = document.getElementById('transporteList');
+        // SUBSTITUA SUA FUNÇÃO ANTIGA POR ESTA VERSÃO CORRIGIDA
+function renderTransportList(expeditionsList, veiculosList, motoristasList) {
+    const container = document.getElementById('transporteList');
 
-            if (expeditionsList.length === 0) {
-                container.innerHTML = '<div class="alert alert-success">Nenhuma expedição pendente de alocação!</div>';
-                return;
-            }
+    if (expeditionsList.length === 0) {
+        container.innerHTML = '<div class="alert alert-success">Nenhuma expedição pendente de alocação!</div>';
+        return;
+    }
 
-            let html = '';
-            expeditionsList.forEach(exp => {
-                const temVeiculo = exp.veiculo_id || exp.veiculo_placa;
-                const temMotorista = exp.motorista_id || exp.motorista_nome;
+    let html = '';
+    expeditionsList.forEach(exp => {
+        const temVeiculo = exp.veiculo_id || exp.veiculo_placa;
+        const temMotorista = exp.motorista_id || exp.motorista_nome;
 
-                const podeAlterarTransporte = !['em_carregamento', 'carregado', 'saiu_para_entrega', 'entregue'].includes(exp.status);
+        const podeAlterarTransporte = !['em_carregamento', 'carregado', 'saiu_para_entrega', 'entregue'].includes(exp.status);
 
-                const criadaEm = new Date(exp.data_hora || exp.created_at);
-                const agora = new Date();
-                const tempoEspera = Math.round((agora - criadaEm) / 60000);
-                const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
+        const criadaEm = new Date(exp.data_hora || exp.created_at);
+        const agora = new Date();
+        const tempoEspera = Math.round((agora - criadaEm) / 60000);
+        const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
 
-                const lojasInfo = exp.lojas_info || 'N/A';
-                const totalPallets = exp.total_pallets || 0;
-                const totalRolltrainers = exp.total_rolltrainers || 0;
-                const quantidadeLojas = exp.lojas_count || 0;
+        const lojasInfo = exp.lojas_info || 'N/A';
+        const totalPallets = exp.total_pallets || 0;
+        const totalRolltrainers = exp.total_rolltrainers || 0;
+        const quantidadeLojas = exp.lojas_count || 0;
 
-                const cargaTotalNecessaria = totalPallets + (totalRolltrainers / 2);
+        const cargaTotalNecessaria = totalPallets + (totalRolltrainers / 2);
 
-                html += `
-                    <div class="transport-card">
-                        <h3>Expedição - ${quantidadeLojas} loja${quantidadeLojas > 1 ? 's' : ''}</h3>
-                        <div style="color: var(--secondary); font-weight: 600; margin-bottom: 10px;">${lojasInfo}</div>
+        html += `
+            <div class="transport-card">
+                <h3>Expedição - ${quantidadeLojas} loja${quantidadeLojas > 1 ? 's' : ''}</h3>
+                <div style="color: var(--secondary); font-weight: 600; margin-bottom: 10px;">${lojasInfo}</div>
 
-                        <div class="time-display ${tempoEspera > 60 ? 'warning' : tempoEspera > 120 ? 'danger' : 'good'}">
-                            <strong>Aguardando há:</strong> ${tempoEsperaTexto} (desde ${criadaEm.toLocaleString('pt-BR')})
+                <div class="time-display ${tempoEspera > 60 ? 'warning' : tempoEspera > 120 ? 'danger' : 'good'}">
+                    <strong>Aguardando há:</strong> ${tempoEsperaTexto} (desde ${criadaEm.toLocaleString('pt-BR')})
+                </div>
+
+                <div class="transport-grid">
+                    <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${totalPallets}</span></div>
+                    <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${totalRolltrainers}</span></div>
+                    <div><strong>Carga (Pallets):</strong> ${Math.ceil(cargaTotalNecessaria)}</div>
+                    <div><strong>Doca:</strong> ${exp.doca_nome || 'N/A'}</div>
+                    <div><strong>Líder:</strong> ${exp.lider_nome || 'N/A'}</div>
+                    <div><strong>Status:</strong> <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></div>
+                </div>
+
+                ${temVeiculo && temMotorista ? `
+                <div style="background: rgba(0, 212, 170, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid rgba(0, 212, 170, 0.3);">
+                    <h4 style="color: var(--dark); margin-bottom: 15px;">Transporte Alocado:</h4>
+                    <div class="transport-grid">
+                        <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
+                        <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
+                        <div><strong>Alocado em:</strong> ${exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo).toLocaleString('pt-BR') : 'N/A'}</div>
+                    </div>
+                </div>
+                ${podeAlterarTransporte ? `
+                    <div style="text-align: center;">
+                        <button class="btn btn-primary" onclick="showReallocateForm('${exp.id}')">Alterar Transporte</button>
+                    </div>
+                ` : `
+                    <div style="text-align: center; padding: 12px; background: rgba(247, 127, 0, 0.1); border-radius: 8px; border: 1px solid #F77F00;">
+                        <span style="color: #F77F00; font-weight: 600; font-size: 0.9rem;">
+                            🔒 Transporte não pode ser alterado - Carga em ${getStatusLabel(exp.status)}
+                        </span>
+                    </div>
+                `}
+                ` : `
+                <div class="transport-actions">
+                    <div class="form-group">
+                        <label>Veículo:</label>
+                        <select id="veiculo_${exp.id}">
+                            <option value="">Selecione um veículo</option>
+                            ${veiculosList.filter(v => v.status === 'disponivel').map(v => {
+                                const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
+                                const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
+                                return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
+                                            ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                        </option>`;
+                            }).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Motorista:</label>
+                        <select id="motorista_${exp.id}">
+                            <option value="">Selecione um motorista</option>
+                            ${motoristasList.filter(m => m.status === 'disponivel').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar Agora</button>
+                </div>
+                `}
+
+                <div id="reallocate_${exp.id}" style="display: none; background: rgba(247, 127, 0, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #F77F00;">
+                    <h4 style="color: var(--dark); margin-bottom: 15px;">Alterar Transporte:</h4>
+                    <div class="transport-actions">
+                        <div class="form-group">
+                            <label>Novo Veículo:</label>
+                            <select id="new_veiculo_${exp.id}">
+                                <option value="">Selecione um veículo</option>
+                                ${veiculosList.map(v => {
+                                    const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
+                                    const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
+                                    return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
+                                                ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
+                                            </option>`;
+                                }).join('')}
+                            </select>
                         </div>
-
-                        <div class="transport-grid">
-                            <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${totalPallets}</span></div>
-                            <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${totalRolltrainers}</span></div>
-                            <div><strong>Carga (Pallets):</strong> ${Math.ceil(cargaTotalNecessaria)}</div>
-                            <div><strong>Doca:</strong> ${exp.doca_nome || 'N/A'}</div>
-                            <div><strong>Líder:</strong> ${exp.lider_nome || 'N/A'}</div>
-                            <div><strong>Status:</strong> <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></div>
+                        <div class="form-group">
+                            <label>Novo Motorista:</label>
+                            <select id="new_motorista_${exp.id}">
+                                <option value="">Selecione um motorista</option>
+                                ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
+                            </select>
                         </div>
-
-                        ${temVeiculo && temMotorista ? `
-                        <div style="background: rgba(0, 212, 170, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid rgba(0, 212, 170, 0.3);">
-                            <h4 style="color: var(--dark); margin-bottom: 15px;">Transporte Alocado:</h4>
-                            <div class="transport-grid">
-                                <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
-                                <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
-                                <div><strong>Alocado em:</strong> ${exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo).toLocaleString('pt-BR') : 'N/A'}</div>
-                            </div>
-                        </div>
-                        ${podeAlterarTransporte ? `
-                            <div style="text-align: center;">
-                                <button class="btn btn-primary" onclick="showReallocateForm('${exp.id}')">Alterar Transporte</button>
-                            </div>
-                        ` : `
-                            <div style="text-align: center; padding: 12px; background: rgba(247, 127, 0, 0.1); border-radius: 8px; border: 1px solid #F77F00;">
-                                <span style="color: #F77F00; font-weight: 600; font-size: 0.9rem;">
-                                    🔒 Transporte não pode ser alterado - Carga em ${getStatusLabel(exp.status)}
-                                </span>
-                            </div>
-                        `}
-                        ` : `
-                        <div class="transport-actions">
-                            <div class="form-group">
-                                <label>Veículo:</label>
-                                <select id="veiculo_${exp.id}">
-                                    <option value="">Selecione um veículo</option>
-                                    ${veiculosList.filter(v => v.status === 'disponivel').map(v => {
-                                        const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
-                                        const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
-                                        return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                    ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                                </option>`;
-                                    }).join('')}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Motorista:</label>
-                                <select id="motorista_${exp.id}">
-                                    <option value="">Selecione um motorista</option>
-                                    ${motoristasList.filter(m => m.status === 'disponivel').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
-                                </select>
-                            </div>
-                            <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar Agora</button>
-                        </div>
-                        `}
-
-                        <div id="reallocate_${exp.id}" style="display: none; background: rgba(247, 127, 0, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #F77F00;">
-                            <h4 style="color: var(--dark); margin-bottom: 15px;">Alterar Transporte:</h4>
-                            <div class="transport-actions">
-                                <div class="form-group">
-                                    <label>Novo Veículo:</label>
-                                    <select id="new_veiculo_${exp.id}">
-                                        <option value="">Selecione um veículo</option>
-                                        ${veiculosList.map(v => {
-                                            const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
-                                            const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
-                                            return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                        ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                                    </option>`;
-                                        }).join('')}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Novo Motorista:</label>
-                                    <select id="new_motorista_${exp.id}">
-                                        <option value="">Selecione um motorista</option>
-                                        ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div>
-                                    <button class="btn btn-success" onclick="reallocateTransport('${exp.id}')">Confirmar Alteração</button>
-                                    <button class="btn btn-danger" onclick="hideReallocateForm('${exp.id}')" style="margin-left: 10px;">Cancelar</button>
-                                </div>
-                            </div>
+                        <div>
+                            <button class="btn btn-success" onclick="reallocateTransport('${exp.id}')">Confirmar Alteração</button>
+                            <button class="btn btn-danger" onclick="hideReallocateForm('${exp.id}')" style="margin-left: 10px;">Cancelar</button>
                         </div>
                     </div>
-                `;
-            });
+                </div>
+            </div>
+        `;
+    });
 
-            container.innerHTML = html;
-        }
+    container.innerHTML = html;
+}
 
         // Mostrar/ocultar formulários de realocação
         function showReallocateForm(expeditionId) {
