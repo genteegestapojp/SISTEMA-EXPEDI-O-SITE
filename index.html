@@ -1678,75 +1678,75 @@
         <button class="sub-tab active" onclick="showSubTab('motoristas', 'consultaViagens')">Consulta de Viagens</button>
         <button class="sub-tab" onclick="showSubTab('motoristas', 'relatoriosMotoristas')">Relatórios</button>
     </div> <div id="consultaViagens" class="sub-tab-content active">
-                     
-                    <h2 style="text-align: center;">Área do Motorista</h2>
 
-                    <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
-                        <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
-                        <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar suas atividades</p>
+        <h2 style="text-align: center;">Área do Motorista</h2>
 
-                        <div style="display: flex; gap: 15px; justify-content: center; align-items: end; flex-wrap: wrap;">
-                            <div class="form-group" style="min-width: 200px; margin-bottom: 0;">
-                                <label for="placaMotorista" style="text-align: left;">Selecione a Placa do Veículo:</label>
-                                <select id="placaMotorista">
-                                    <option value="">Carregando veículos...</option>
-                                </select>
-                            </div>
-                            <button class="btn btn-primary" onclick="consultarExpedicoesPorPlaca()" style="height: 54px;">
-                                Consultar Expedições
-                            </button>
-                        </div>
-                    </div>
+        <div class="transport-card" style="max-width: 600px; margin: 40px auto;">
+            <h3 style="color: var(--dark); margin-bottom: 20px; font-size: 1.4rem;">Consultar Expedições por Placa</h3>
+            <p style="color: #666; margin-bottom: 25px;">Insira a placa do seu veículo para visualizar suas atividades</p>
 
-                    <div id="resultadosMotorista" style="display: none;">
-                        <h3 style="color: var(--dark); margin-bottom: 20px;">Suas Expedições</h3>
-                        <div id="listaExpedicoesMotorista"></div>
-                    </div>
-
-                    <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
-                        <div class="alert alert-warning">
-                            <h4 style="color: #F77F00; margin-bottom: 15px;"><span class="feature-icon clipboard warning"></span>Nenhuma Expedição Encontrada</h4>
-                            <p style="color: #F77F00; margin: 0;">
-                                Não foram encontradas expedições ativas para a placa informada.
-                            </p>
-                        </div>
-                    </div>
+            <div style="display: flex; gap: 15px; justify-content: center; align-items: end; flex-wrap: wrap;">
+                <div class="form-group" style="min-width: 200px; margin-bottom: 0;">
+                    <label for="placaMotorista" style="text-align: left;">Selecione a Placa do Veículo:</label>
+                    <select id="placaMotorista">
+                        <option value="">Carregando veículos...</option>
+                    </select>
                 </div>
-<div id="motoristasStatusList" style="margin-bottom: 30px;">
-                                    </div>
-                <div id="relatoriosMotoristas" class="sub-tab-content">
-                    <h2 style="text-align: center;">Relatórios de Desempenho</h2>
-                    <div class="filters-section">
-                        <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros</h3>
-                        <div class="filters-grid">
-                            <div class="filter-group">
-                                <label for="relatorioMotoristaDataInicio">Data Início:</label>
-                                <input type="date" id="relatorioMotoristaDataInicio">
-                            </div>
-                            <div class="filter-group">
-                                <label for="relatorioMotoristaDataFim">Data Fim:</label>
-                                <input type="date" id="relatorioMotoristaDataFim">
-                            </div>
-                        </div>
-                        <div style="text-align: right; margin-top: 10px;">
-                             <button class="btn btn-primary btn-small" onclick="generateMotoristaReports()">Gerar Relatório</button>
-                        </div>
-                    </div>
-                    
-                    <div class="stats-grid" id="motoristaReportSummary" style="display:none;">
-                        <div class="stat-card"><div class="stat-number" id="totalMotoristas">0</div><div class="stat-label">Motoristas Ativos</div></div>
-                        <div class="stat-card"><div class="stat-number" id="totalViagensMotoristas">0</div><div class="stat-label">Viagens Realizadas</div></div>
-                        <div class="stat-card"><div class="stat-number" id="totalEntregasMotoristas">0</div><div class="stat-label">Total de Entregas</div></div>
-                        <div class="stat-card"><div class="stat-number" id="produtividadeFrota">0%</div><div class="stat-label">Produtividade da Frota</div></div>
-                    </div>
+                <button class="btn btn-primary" onclick="consultarExpedicoesPorPlaca()" style="height: 54px;">
+                    Consultar Expedições
+                </button>
+            </div>
+        </div>
 
-                    <div id="motoristaChartsContainer" class="charts-container" style="margin: 20px 0;">
-                        <canvas id="motoristasRankingChart"></canvas>
-                    </div>
+        <div id="resultadosMotorista" style="display: none;">
+            <h3 style="color: var(--dark); margin-bottom: 20px;">Suas Expedições</h3>
+            <div id="listaExpedicoesMotorista"></div>
+        </div>
 
-                    <div id="motoristaTableContainer" class="table-container"></div>
+        <div id="semResultados" style="display: none; text-align: center; padding: 40px;">
+            <div class="alert alert-warning">
+                <h4 style="color: #F77F00; margin-bottom: 15px;"><span class="feature-icon clipboard warning"></span>Nenhuma Expedição Encontrada</h4>
+                <p style="color: #F77F00; margin: 0;">
+                    Não foram encontradas expedições ativas para a placa informada.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div id="motoristasStatusList" style="margin-bottom: 30px;">
+    </div>
+    <div id="relatoriosMotoristas" class="sub-tab-content">
+        <h2 style="text-align: center;">Relatórios de Desempenho</h2>
+        <div class="filters-section">
+            <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros</h3>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="relatorioMotoristaDataInicio">Data Início:</label>
+                    <input type="date" id="relatorioMotoristaDataInicio">
+                </div>
+                <div class="filter-group">
+                    <label for="relatorioMotoristaDataFim">Data Fim:</label>
+                    <input type="date" id="relatorioMotoristaDataFim">
                 </div>
             </div>
+            <div style="text-align: right; margin-top: 10px;">
+                <button class="btn btn-primary btn-small" onclick="generateMotoristaReports()">Gerar Relatório</button>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="motoristaReportSummary" style="display:none;">
+            <div class="stat-card"><div class="stat-number" id="totalMotoristas">0</div><div class="stat-label">Motoristas Ativos</div></div>
+            <div class="stat-card"><div class="stat-number" id="totalViagensMotoristas">0</div><div class="stat-label">Viagens Realizadas</div></div>
+            <div class="stat-card"><div class="stat-number" id="totalEntregasMotoristas">0</div><div class="stat-label">Total de Entregas</div></div>
+            <div class="stat-card"><div class="stat-number" id="produtividadeFrota">0%</div><div class="stat-label">Produtividade da Frota</div></div>
+        </div>
+
+        <div id="motoristaChartsContainer" class="charts-container" style="margin: 20px 0;">
+            <canvas id="motoristasRankingChart"></canvas>
+        </div>
+
+        <div id="motoristaTableContainer" class="table-container"></div>
+    </div>
+</div>
             
             <div id="historico" class="tab-content">
                 <h2 style="text-align: center;">Histórico de Entregas</h2>
@@ -1922,23 +1922,23 @@
                 </div>
             </div>
 
-            <div id="configuracoes" class="tab-content">
+            <<div id="configuracoes" class="tab-content">
     <h2 style="text-align: center;">Acesso Restrito</h2>
     <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
         <p style="text-align: center; color: var(--dark); margin-bottom: 20px;">Por favor, insira a senha para acessar as configurações.</p>
         <form id="passwordForm">
-        <div class="form-group">
-            <label for="userInput">Nome de Usuário:</label>
-            <input type="text" id="userInput" required placeholder="Digite seu nome de usuário...">
-        </div>
-        <div class="form-group">
-            <label for="passwordInput">Senha:</label>
-            <input type="password" id="passwordInput" required placeholder="Digite a senha...">
-        </div>
-        <div style="margin-top: 20px;">
-            <button type="submit" class="btn btn-primary btn-small">Acessar</button>
-        </div>
-    </form>
+            <div class="form-group">
+                <label for="userInput">Nome de Usuário:</label>
+                <input type="text" id="userInput" required placeholder="Digite seu nome de usuário...">
+            </div>
+            <div class="form-group">
+                <label for="passwordInput">Senha:</label>
+                <input type="password" id="passwordInput" required placeholder="Digite a senha...">
+            </div>
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn btn-primary btn-small">Acessar</button>
+            </div>
+        </form>
         <div id="passwordAlert" style="text-align: center; margin-top: 15px;"></div>
     </div>
 
@@ -1947,9 +1947,10 @@
             <button class="sub-tab active" onclick="showSubTab('configuracoes', 'geral')">Geral</button>
             <button class="sub-tab" onclick="showSubTab('configuracoes', 'transporteConfig')">Transporte</button>
             <button class="sub-tab" onclick="showSubTab('configuracoes', 'motoristasConfig')">Motoristas</button>
+        </div>
+
         <div id="geral" class="sub-tab-content active">
             <h2 style="text-align: center;">Configurações Gerais</h2>
-            
             <div class="stats-grid" style="text-align: center;">
                 <div class="stat-card">
                     <div class="stat-number" id="debugLojas">0</div>
@@ -1969,16 +1970,16 @@
                 </div>
             </div>
             <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
-    <h3 style="text-align: center;">Gerenciar Cadastros</h3>
-    <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
-        <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
-        <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
-        <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
-        <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
-        <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
-        <button class="btn btn-warning btn-small" onclick="showAddForm('acesso')">+ Adicionar Acesso</button>
-    </div>
-</div>
+                <h3 style="text-align: center;">Gerenciar Cadastros</h3>
+                <div class="extra-buttons" style="margin-top: 15px; text-align: center;">
+                    <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Adicionar Loja</button>
+                    <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Adicionar Doca</button>
+                    <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Adicionar Líder</button>
+                    <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Adicionar Veículo</button>
+                    <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Adicionar Motorista</button>
+                    <button class="btn btn-warning btn-small" onclick="showAddForm('acesso')">+ Adicionar Acesso</button>
+                </div>
+            </div>
             <div id="addFormModal">
                 <h3 id="addFormTitle">Adicionar Item</h3>
                 <form id="addForm">
@@ -2015,30 +2016,31 @@
                                 <th>Alterar Status</th>
                             </tr>
                         </thead>
-                        <tbody id="veiculosConfigBody">
-                           </tbody>
-                </table>
+                        <tbody id="veiculosConfigBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div> <div id="motoristasConfig" class="sub-tab-content">
-    <h2 style="text-align: center;">Gerenciamento de Motoristas</h2>
-    <div class="table-container">
-        <div class="table-wrapper">
-            <table id="motoristasConfigTable">
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Produtivo (Matrícula)</th>
-                        <th>Status Atual</th>
-                        <th>Alterar Status</th>
-                    </tr>
-                </thead>
-                <tbody id="motoristasConfigBody">
-                    </tbody>
-            </table>
+
+        <div id="motoristasConfig" class="sub-tab-content">
+            <h2 style="text-align: center;">Gerenciamento de Motoristas</h2>
+            <div class="table-container">
+                <div class="table-wrapper">
+                    <table id="motoristasConfigTable">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Produtivo (Matrícula)</th>
+                                <th>Status Atual</th>
+                                <th>Alterar Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="motoristasConfigBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
+    </div> </div> 
        
 
     <div style="background: var(--dark); color: white; text-align: center; padding: 16px; margin-top: 20px; border-radius: 8px;">
