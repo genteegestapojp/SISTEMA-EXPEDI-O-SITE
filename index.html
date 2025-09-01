@@ -2667,7 +2667,7 @@
         }
 
         // Mostrar abas (só funciona se filial estiver selecionada)
-        aasync function showTab(tabName) {
+        async function showTab(tabName) {
             if (!selectedFilial) {
                 showNotification('Selecione uma filial primeiro!', 'error');
                 return;
@@ -2686,17 +2686,15 @@
             } else if (tabName === 'faturamento') {
                 loadFaturamento();
             } else if (tabName === 'acompanhamento') {
-                loadAcompanhamento();
-                setDefaultDateFilters();
-                showSubTab('acompanhamento', 'expedicoesEmAndamento'); // Nova sub-aba padrão
+                showSubTab('acompanhamento', 'expedicoesEmAndamento');
             } else if (tabName === 'motoristas') {
-                await loadMotoristaTab(); // Garante que a lista de status seja carregada
-                showSubTab('motoristas', 'consultaViagens'); // Abre a sub-aba padrão
+                await loadMotoristaTab();
+                showSubTab('motoristas', 'consultaViagens');
             } else if (tabName === 'historico') {
                 loadHistorico();
                 showSubTab('historico', 'listaEntregas');
             } else if (tabName === 'configuracoes') {
-                if (currentUser) { // ALTERADO: Verifica se o objeto currentUser existe
+                if (currentUser) {
                     document.getElementById('passwordFormContainer').style.display = 'none';
                     document.getElementById('configuracoesContent').style.display = 'block';
                     updateSystemStatus();
@@ -2705,46 +2703,6 @@
                     document.getElementById('passwordFormContainer').style.display = 'block';
                     document.getElementById('configuracoesContent').style.display = 'none';
                 }
-            }
-        }
-        // Função para mostrar sub-abas
-// Função para mostrar sub-abas (VERSÃO CORRIGIDA)
-// Função para mostrar sub-abas (VERSÃO ATUALIZADA)
-        function showSubTab(tabName, subTabName) {
-            const tabContent = document.getElementById(tabName);
-            if (!tabContent) return; 
-
-            tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-            tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
-
-            const subTabButton = tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`);
-            const subTabContentToShow = tabContent.querySelector(`#${subTabName}`);
-
-            if (subTabButton) {
-                subTabButton.classList.add('active');
-            }
-            if (subTabContentToShow) {
-                subTabContentToShow.classList.add('active');
-            }
-
-            debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
-
-            // Lógica para carregar dados específicos de cada sub-aba
-            if (subTabName === 'expedicoesEmAndamento') {
-                loadAcompanhamento();
-                setDefaultDateFilters();
-            } else if (subTabName === 'frota') {
-                loadFrotaData();
-            } else if (subTabName === 'listaEntregas') {
-                loadHistorico();
-            } else if (subTabName === 'indicadores') {
-                applyHistoricoFilters();
-            } else if (subTabName === 'relatoriosMotoristas') {
-                generateMotoristaReports();
-            } else if (subTabName === 'transporteConfig') {
-                renderVeiculosConfig();
-            } else if (subTabName === 'motoristasConfig') {
-                renderMotoristasConfig();
             }
         }
 
