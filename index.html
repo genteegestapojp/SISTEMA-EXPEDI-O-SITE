@@ -217,11 +217,11 @@
         /* Sub-abas */
         .sub-tabs {
             display: flex;
+            flex-wrap: wrap; /* Permite quebrar a linha em telas menores */
             justify-content: center;
             margin-bottom: 20px;
             border-bottom: 2px solid rgba(0, 212, 170, 0.2);
         }
-
         .sub-tab {
             padding: 10px 20px;
             cursor: pointer;
@@ -1804,7 +1804,31 @@
                         </div>
                     </div>
                     <div id="indicadoresSummary" class="time-stats-grid">
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioAlocarHistorico">-</div>
+                            <div class="stat-label">Tempo Médio<br>Alocar Placa</div>
                         </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioChegadaHistorico">-</div>
+                            <div class="stat-label">Tempo Médio<br>Chegada Doca</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioCarregamentoHistorico">-</div>
+                            <div class="stat-label">Tempo Médio<br>Carregamento</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioTotalHistorico">-</div>
+                            <div class="stat-label">Tempo Médio<br>Total Viagem</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioTransitoHistorico">-</div>
+                            <div class="stat-label">Tempo Médio<br>em Trânsito</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioLojaHistorico">-</div>
+                            <div class="stat-label">Tempo Médio<br>em Loja</div>
+                        </div>
+                    </div>
                     <div class="charts-container">
                         <div id="chartContainerLojas">
                              <h4 style="text-align:center; color: var(--dark);">Ranking de Lojas por Tempo de Descarga</h4>
@@ -1820,108 +1844,158 @@
 
             <div id="acompanhamento" class="tab-content">
                 <h2 style="text-align: center;">Acompanhamento com Controle de Tempos</h2>
+                <div class="sub-tabs">
+                    <button class="sub-tab active" onclick="showSubTab('acompanhamento', 'expedicoesEmAndamento')">Expedições</button>
+                    <button class="sub-tab" onclick="showSubTab('acompanhamento', 'frota')">Frota</button>
+                </div>
 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalExpedicoes">0</div>
-                        <div class="stat-label">Total de Expedições</div>
+                <div id="expedicoesEmAndamento" class="sub-tab-content active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalExpedicoes">0</div>
+                            <div class="stat-label">Total de Expedições</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #D62828, #F77F00);">
+                            <div class="stat-number" id="pendentesCount">0</div>
+                            <div class="stat-label">Pendentes</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+                            <div class="stat-number" id="emAndamentoCount">0</div>
+                            <div class="stat-label">Em Andamento</div>
+                        </div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #D62828, #F77F00);">
-                        <div class="stat-number" id="pendentesCount">0</div>
-                        <div class="stat-label">Pendentes</div>
+
+                    <div class="time-stats-grid">
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioAlocar">-</div>
+                            <div class="stat-label">Tempo Médio<br>Alocar Placa (HH:mm)</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioChegada">-</div>
+                            <div class="stat-label">Tempo Médio<br>Chegada Doca (HH:mm)</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioCarregamento">-</div>
+                            <div class="stat-label">Tempo Médio<br>Carregamento (HH:mm)</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoMedioTotal">-</div>
+                            <div class="stat-label">Tempo Médio<br>Total (HH:mm)</div>
+                        </div>
                     </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
-                        <div class="stat-number" id="emAndamentoCount">0</div>
-                        <div class="stat-label">Em Andamento</div>
+
+                    <div class="filters-section">
+                        <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="filtroDataInicio">Data Início:</label>
+                                <input type="date" id="filtroDataInicio" onchange="applyFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroDataFim">Data Fim:</label>
+                                <input type="date" id="filtroDataFim" onchange="applyFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroStatus">Status:</label>
+                                <select id="filtroStatus" onchange="applyFilters()">
+                                    <option value="">Todos os Status</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="aguardando_veiculo">Aguardando Veículo</option>
+                                    <option value="em_carregamento">Em Carregamento</option>
+                                    <option value="carregado">Carregado</option>
+                                    <option value="aguardando_faturamento">Aguardando Faturamento</option>
+                                    <option value="faturamento_iniciado">Faturando</option>
+                                    <option value="faturado">Faturado</option>
+                                    <option value="saiu_para_entrega">Saiu para Entrega</option>
+                                    <option value="retornando_cd">Retornando CD</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="searchInput">Pesquisar:</label>
+                                <input type="text" id="searchInput" placeholder="Buscar por loja, doca, líder..." onkeyup="applyFilters()">
+                            </div>
+                        </div>
+                        <div style="text-align: right; margin-top: 10px;">
+                            <button class="btn btn-primary btn-small" onclick="clearFilters()">Limpar Filtros</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-wrapper">
+                            <table id="acompanhamentoTable">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Lojas e Cargas</th>
+                                        <th>Pallets</th>
+                                        <th>RollTrainers</th>
+                                        <th>Doca</th>
+                                        <th>Líder</th>
+                                        <th>Status</th>
+                                        <th>Veículo</th>
+                                        <th>Ocupação</th>
+                                        <th>Motorista</th>
+                                        <th>Análise Tempos</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="acompanhamentoBody">
+                                    <tr>
+                                        <td colspan="12" class="loading">
+                                            <div class="spinner"></div>
+                                            Carregando dados...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div class="time-stats-grid">
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioAlocar">-</div>
-                        <div class="stat-label">Tempo Médio<br>Alocar Placa (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioChegada">-</div>
-                        <div class="stat-label">Tempo Médio<br>Chegada Doca (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioCarregamento">-</div>
-                        <div class="stat-label">Tempo Médio<br>Carregamento (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioTotal">-</div>
-                        <div class="stat-label">Tempo Médio<br>Total (HH:mm)</div>
-                    </div>
-                </div>
-
-                <div class="filters-section">
-                    <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label for="filtroDataInicio">Data Início:</label>
-                            <input type="date" id="filtroDataInicio" onchange="applyFilters()">
+                <div id="frota" class="sub-tab-content">
+                    <h2 style="text-align: center;">Análise de Produtividade da Frota</h2>
+                    <div id="frotaSummary" class="time-stats-grid">
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="totalOciosidade">-</div>
+                            <div class="stat-label">Ociosidade Média da Frota</div>
                         </div>
-                        <div class="filter-group">
-                            <label for="filtroDataFim">Data Fim:</label>
-                            <input type="date" id="filtroDataFim" onchange="applyFilters()">
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="frotaAtiva">0</div>
+                            <div class="stat-label">Veículos Ativos Hoje</div>
                         </div>
-                        <div class="filter-group">
-                            <label for="filtroStatus">Status:</label>
-                           <select id="filtroStatus" onchange="applyFilters()">
-    <option value="">Todos os Status</option>
-    <option value="pendente">Pendente</option>
-    <option value="aguardando_veiculo">Aguardando Veículo</option>
-    <option value="em_carregamento">Em Carregamento</option>
-    <option value="carregado">Carregado</option>
-    <option value="aguardando_faturamento">Aguardando Faturamento</option>
-    <option value="faturamento_iniciado">Faturando</option>
-    <option value="faturado">Faturado</option>
-    <option value="saiu_para_entrega">Saiu para Entrega</option>
-    
-    <option value="retornando_cd">Retornando CD</option> 
-    
-    <option value="cancelado">Cancelado</option>
-</select>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="frotaOciosa">0</div>
+                            <div class="stat-label">Veículos Ociosos Agora</div>
                         </div>
-                        <div class="filter-group">
-                            <label for="searchInput">Pesquisar:</label>
-                            <input type="text" id="searchInput" placeholder="Buscar por loja, doca, líder..." onkeyup="applyFilters()">
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoTotalOciosoDia">-</div>
+                            <div class="stat-label">Tempo Total Ocioso (Hoje)</div>
                         </div>
                     </div>
-                    <div style="text-align: right; margin-top: 10px;">
-                        <button class="btn btn-primary btn-small" onclick="clearFilters()">Limpar Filtros</button>
-                    </div>
-                </div>
-
-                <div class="table-container">
-                    <div class="table-wrapper">
-                        <table id="acompanhamentoTable">
-                            <thead>
-                                <tr>
-                                    <th>Data/Hora</th>
-                                    <th>Lojas e Cargas</th>
-                                    <th>Pallets</th>
-                                    <th>RollTrainers</th>
-                                    <th>Doca</th>
-                                    <th>Líder</th>
-                                    <th>Status</th>
-                                    <th>Veículo</th>
-                                    <th>Ocupação</th>
-                                    <th>Motorista</th>
-                                    <th>Análise Tempos</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="acompanhamentoBody">
-                                <tr>
-                                    <td colspan="12" class="loading">
-                                        <div class="spinner"></div>
-                                        Carregando dados...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <h3 style="text-align: center; margin: 20px 0;">Ociosidade por Veículo (Hoje)</h3>
+                    <div class="table-container">
+                        <div class="table-wrapper">
+                            <table id="ociosidadeTable">
+                                <thead>
+                                    <tr>
+                                        <th>Veículo (Placa)</th>
+                                        <th>Status Atual</th>
+                                        <th>Início da Ociosidade</th>
+                                        <th>Tempo Ocioso Atual</th>
+                                        <th>Última Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ociosidadeBody">
+                                    <tr>
+                                        <td colspan="5" class="loading">
+                                            <div class="spinner"></div>
+                                            Calculando ociosidade...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2542,7 +2616,7 @@
         }
 
         // Mostrar abas (só funciona se filial estiver selecionada)
-        async function showTab(tabName) {
+        aasync function showTab(tabName) {
             if (!selectedFilial) {
                 showNotification('Selecione uma filial primeiro!', 'error');
                 return;
@@ -2556,73 +2630,72 @@
 
             debugLog.add(`Navegando para aba: ${tabName}`, 'info');
 
-           if (tabName === 'transporte') {
-                loadTransportList();
-            } else if (tabName === 'faturamento') {
-                loadFaturamento();
-            } else if (tabName === 'acompanhamento') {
-                loadAcompanhamento();
-                setDefaultDateFilters();
-            } else if (tabName === 'motoristas') {
-                await loadMotoristaTab(); // Garante que a lista de status seja carregada
-                showSubTab('motoristas', 'consultaViagens'); // Abre a sub-aba padrão
-            } else if (tabName === 'historico') {
-                loadHistorico();
-                showSubTab('historico', 'listaEntregas');
-          } else if (tabName === 'configuracoes') {
-            if (currentUser) { // ALTERADO: Verifica se o objeto currentUser existe
-                document.getElementById('passwordFormContainer').style.display = 'none';
-                    document.getElementById('configuracoesContent').style.display = 'block';
-                    updateSystemStatus();
-                    updateDebugStats();
-                } else {
-                    document.getElementById('passwordFormContainer').style.display = 'block';
-                    document.getElementById('configuracoesContent').style.display = 'none';
-                }
-            }
-        }
+            if (tabName === 'transporte') {
+                loadTransportList();
+            } else if (tabName === 'faturamento') {
+                loadFaturamento();
+            } else if (tabName === 'acompanhamento') {
+                loadAcompanhamento();
+                setDefaultDateFilters();
+                showSubTab('acompanhamento', 'expedicoesEmAndamento'); // Nova sub-aba padrão
+            } else if (tabName === 'motoristas') {
+                await loadMotoristaTab(); // Garante que a lista de status seja carregada
+                showSubTab('motoristas', 'consultaViagens'); // Abre a sub-aba padrão
+            } else if (tabName === 'historico') {
+                loadHistorico();
+                showSubTab('historico', 'listaEntregas');
+            } else if (tabName === 'configuracoes') {
+                if (currentUser) { // ALTERADO: Verifica se o objeto currentUser existe
+                    document.getElementById('passwordFormContainer').style.display = 'none';
+                    document.getElementById('configuracoesContent').style.display = 'block';
+                    updateSystemStatus();
+                    updateDebugStats();
+                } else {
+                    document.getElementById('passwordFormContainer').style.display = 'block';
+                    document.getElementById('configuracoesContent').style.display = 'none';
+                }
+            }
+        }
         // Função para mostrar sub-abas
 // Função para mostrar sub-abas (VERSÃO CORRIGIDA)
-function showSubTab(tabName, subTabName) {
-    const tabContent = document.getElementById(tabName);
-    if (!tabContent) return; // Segurança extra
+// Função para mostrar sub-abas (VERSÃO ATUALIZADA)
+        function showSubTab(tabName, subTabName) {
+            const tabContent = document.getElementById(tabName);
+            if (!tabContent) return; 
 
-    // Limpa todas as sub-abas e conteúdos
-    tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-    tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
+            tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+            tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
 
-    // Procura pelo botão da sub-aba e pelo conteúdo a ser exibido
-    const subTabButton = tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`);
-    const subTabContentToShow = tabContent.querySelector(`#${subTabName}`);
+            const subTabButton = tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`);
+            const subTabContentToShow = tabContent.querySelector(`#${subTabName}`);
 
-    // --- INÍCIO DA CORREÇÃO ---
-    // Apenas adiciona a classe 'active' se o botão da sub-aba existir
-    if (subTabButton) {
-        subTabButton.classList.add('active');
-    }
-    // --- FIM DA CORREÇÃO ---
+            if (subTabButton) {
+                subTabButton.classList.add('active');
+            }
+            if (subTabContentToShow) {
+                subTabContentToShow.classList.add('active');
+            }
 
-    // Mostra o conteúdo da sub-aba
-    if (subTabContentToShow) {
-        subTabContentToShow.classList.add('active');
-    }
+            debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
 
-    debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
-
-    // Lógica adicional para carregar dados específicos da sub-aba
-    if (subTabName === 'indicadores') {
-        applyHistoricoFilters();
-    }
-    if (subTabName === 'relatoriosMotoristas') {
-        generateMotoristaReports();
-    }
-    if (tabName === 'configuracoes' && subTabName === 'transporteConfig') {
-        renderVeiculosConfig();
-    }
-    if (tabName === 'configuracoes' && subTabName === 'motoristasConfig') {
-    renderMotoristasConfig();
-}
-}
+            // Lógica para carregar dados específicos de cada sub-aba
+            if (subTabName === 'expedicoesEmAndamento') {
+                loadAcompanhamento();
+                setDefaultDateFilters();
+            } else if (subTabName === 'frota') {
+                loadFrotaData();
+            } else if (subTabName === 'listaEntregas') {
+                loadHistorico();
+            } else if (subTabName === 'indicadores') {
+                applyHistoricoFilters();
+            } else if (subTabName === 'relatoriosMotoristas') {
+                generateMotoristaReports();
+            } else if (subTabName === 'transporteConfig') {
+                renderVeiculosConfig();
+            } else if (subTabName === 'motoristasConfig') {
+                renderMotoristasConfig();
+            }
+        }
 
         // Definir filtros de data padrão
         function setDefaultDateFilters() {
@@ -3717,11 +3790,21 @@ function renderTransportList(expeditionsList, veiculosList, motoristasList) {
 
               const secondaryOperations = [];
 
-              secondaryOperations.push(
-                  supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
-                      .then(() => debugLog.add('Status do veículo atualizado', 'success'))
-                      .catch(error => debugLog.add(`Aviso: Erro ao atualizar veículo: ${error.message}`, 'warning'))
-              );
+              // Atualiza o status do veículo para 'em_uso' E registra no histórico
+            secondaryOperations.push(
+                supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
+                    .then(async () => {
+                        debugLog.add('Status do veículo atualizado', 'success');
+                        const historyData = {
+                            veiculo_id: veiculoId,
+                            status_anterior: 'disponivel', // Assumimos que estava disponível
+                            status_novo: 'em_uso',
+                            filial: selectedFilial.nome
+                        };
+                        await supabaseRequest('veiculos_status_historico', 'POST', historyData, false);
+                    })
+                    .catch(error => debugLog.add(`Aviso: Erro ao atualizar veículo: ${error.message}`, 'warning'))
+            );
 
               secondaryOperations.push(
                   supabaseRequestWithTimeout(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
@@ -3847,14 +3930,24 @@ function renderTransportList(expeditionsList, veiculosList, motoristasList) {
 
                  const secondaryOperations = [];
 
-                 // Libera os recursos ANTIGOS
-                 if (oldExpedition.veiculo_id) {
-                     secondaryOperations.push(
-                         supabaseRequestWithTimeout(`veiculos?id=eq.${oldExpedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
-                             .then(() => debugLog.add(`Veículo anterior liberado: ${oldExpedition.veiculo_id}`, 'success'))
-                             .catch(error => debugLog.add(`Aviso: Erro ao liberar veículo anterior: ${error.message}`, 'warning'))
-                     );
-                 }
+                // Libera os recursos ANTIGOS e registra o histórico
+                 if (oldExpedition.veiculo_id) {
+                     secondaryOperations.push(
+                         supabaseRequestWithTimeout(`veiculos?id=eq.${oldExpedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, 10000, false)
+                             .then(async () => {
+                                debugLog.add(`Veículo anterior liberado: ${oldExpedition.veiculo_id}`, 'success');
+                                const historyData = {
+                                    veiculo_id: oldExpedition.veiculo_id,
+                                    status_anterior: 'em_uso',
+                                    status_novo: 'disponivel',
+                                    filial: selectedFilial.nome
+                                };
+                                await supabaseRequest('veiculos_status_historico', 'POST', historyData, false);
+                                debugLog.add(`Registro de histórico para veículo ${oldExpedition.veiculo_id} (liberado) salvo.`, 'success');
+                             })
+                             .catch(error => debugLog.add(`Aviso: Erro ao liberar veículo anterior: ${error.message}`, 'warning'))
+                     );
+                 }
 
                  if (oldExpedition.motorista_id) {
                      secondaryOperations.push(
@@ -3865,12 +3958,22 @@ function renderTransportList(expeditionsList, veiculosList, motoristasList) {
                  }
 
                  // <<-- INÍCIO DA CORREÇÃO -->>
-                 // Ocupa os NOVOS recursos
-                 secondaryOperations.push(
-                     supabaseRequestWithTimeout(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
-                         .then(() => debugLog.add('Novo veículo alocado', 'success'))
-                         .catch(error => debugLog.add(`Aviso: Erro ao alocar novo veículo: ${error.message}`, 'warning'))
-                 );
+                // Ocupa os NOVOS recursos e registra o histórico
+                 secondaryOperations.push(
+                     supabaseRequestWithTimeout(`veiculos?id=eq.${newVeiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
+                         .then(async () => {
+                            debugLog.add('Novo veículo alocado', 'success');
+                            const historyData = {
+                                veiculo_id: newVeiculoId,
+                                status_anterior: 'disponivel', // Assumimos que o novo estava disponível
+                                status_novo: 'em_uso',
+                                filial: selectedFilial.nome
+                            };
+                            await supabaseRequest('veiculos_status_historico', 'POST', historyData, false);
+                            debugLog.add(`Registro de histórico para novo veículo ${newVeiculoId} salvo.`, 'success');
+                         })
+                         .catch(error => debugLog.add(`Aviso: Erro ao alocar novo veículo: ${error.message}`, 'warning'))
+                 );
 
                  secondaryOperations.push(
                      supabaseRequestWithTimeout(`motoristas?id=eq.${newMotoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
@@ -3975,14 +4078,26 @@ function renderTransportList(expeditionsList, veiculosList, motoristasList) {
                  debugLog.add('Expedição excluída com sucesso do banco de dados', 'success'); 
                  
                  // 3. LIBERAMOS O MOTORISTA E O VEÍCULO (SE EXISTIREM)
-                 if (expedition && expedition.veiculo_id && expedition.motorista_id) {
-                     debugLog.add(`Liberando veículo ${expedition.veiculo_id} e motorista ${expedition.motorista_id}`, 'info');
-                     await Promise.all([
-                         supabaseRequest(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, false),
-                         supabaseRequest(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, false)
-                     ]);
-                     debugLog.add('Veículo e motorista liberados com sucesso', 'success');
-                 }
+                 if (expedition && expedition.veiculo_id && expedition.motorista_id) {
+                     debugLog.add(`Liberando veículo ${expedition.veiculo_id} e motorista ${expedition.motorista_id}`, 'info');
+
+                     const oldVeiculo = veiculos.find(v => v.id === expedition.veiculo_id);
+
+                     // Atualiza o status do veículo e registra no histórico
+                     await Promise.all([
+                         supabaseRequest(`veiculos?id=eq.${expedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, false),
+                         supabaseRequest(`motoristas?id=eq.${expedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, false)
+                     ]);
+                     const historyData = {
+                         veiculo_id: expedition.veiculo_id,
+                         status_anterior: oldVeiculo ? oldVeiculo.status : 'desconhecido',
+                         status_novo: 'disponivel',
+                         filial: selectedFilial.nome
+                     };
+                     await supabaseRequest('veiculos_status_historico', 'POST', historyData, false);
+
+                     debugLog.add('Veículo e motorista liberados com sucesso', 'success');
+                 }
                  
                  showNotification('Expedição excluída e recursos liberados!', 'success'); 
                  // Recarrega os dados de todas as abas relevantes
@@ -4757,11 +4872,10 @@ showNotification('Expedição atualizada com sucesso!', 'success');
             }
         }
         
-        // --- Funções da Aba de Histórico ---
         async function loadHistorico() {
             if (!selectedFilial) {
                 document.getElementById('historicoList').innerHTML =
-                    '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
+                    '<div class="alert alert-error">Selecione uma filial primeiro!</td></tr>';
                 return;
             }
 
@@ -4777,7 +4891,14 @@ showNotification('Expedição atualizada com sucesso!', 'success');
                     const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
                     const totalCarga = (expItems.reduce((sum, item) => sum + (item.pallets || 0), 0)) + ((expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0)) / 2);
                     const ocupacao = veiculo && veiculo.capacidade_pallets > 0 ? (totalCarga / veiculo.capacidade_pallets) * 100 : 0;
-
+                    
+                    // Novos cálculos de tempo para o histórico
+                    const criadoEm = new Date(exp.data_hora || exp.created_at);
+                    const alocadoEm = exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo) : null;
+                    const chegadaEm = exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo) : null;
+                    const saidaEm = exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo) : null;
+                    const saidaEntregaEm = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
+                    const ultimaDescargaEm = expItems.length > 0 ? new Date(expItems[expItems.length - 1].data_fim_descarga) : null;
 
                     return {
                         ...exp,
@@ -4793,7 +4914,12 @@ showNotification('Expedição atualizada com sucesso!', 'success');
                         lider_nome: lideres.find(l => l.id === exp.lider_id)?.nome || 'N/A',
                         veiculo_placa: veiculo?.placa || null,
                         motorista_nome: motoristas.find(m => m.id === exp.motorista_id)?.nome || null,
-                        ocupacao: ocupacao.toFixed(1)
+                        ocupacao: ocupacao.toFixed(1),
+                        // Novos campos de tempo
+                        tempoAlocar: alocadoEm ? (alocadoEm - criadoEm) / 60000 : null,
+                        tempoChegada: chegadaEm ? (chegadaEm - criadoEm) / 60000 : null,
+                        tempoCarregamento: (chegadaEm && saidaEm) ? (saidaEm - chegadaEm) / 60000 : null,
+                        tempoTotalViagem: (criadoEm && ultimaDescargaEm) ? (ultimaDescargaEm - criadoEm) / 60000 : null
                     };
                 });
                 
@@ -4877,7 +5003,128 @@ function renderHistorico(expeditions) {
             });
             container.innerHTML = html;
         }
+        // --- NOVAS FUNÇÕES PARA A ABA DE FROTA ---
+
+        // Função para carregar dados do histórico de status de veículos e calcular a ociosidade
+        async function loadFrotaData() {
+            if (!selectedFilial) {
+                document.getElementById('ociosidadeBody').innerHTML = '<tr><td colspan="5" class="alert alert-error">Selecione uma filial primeiro!</td></tr>';
+                return;
+            }
+
+            try {
+                debugLog.add(`Carregando dados da frota para a filial: ${selectedFilial.nome}`, 'info');
+
+                const todayStart = new Date();
+                todayStart.setHours(6, 0, 0, 0); // Começa a contagem às 06:00
+                const todayEnd = new Date();
+                todayEnd.setHours(22, 0, 0, 0); // Termina a contagem às 22:00
+                const now = new Date();
+
+                let todayActiveHoursEnd = now > todayEnd ? todayEnd : now;
+                
+                const allVehicles = veiculos;
+                const activeVehicles = allVehicles.filter(v => ['em_uso', 'em_viagem', 'retornando_cd', 'retornando_com_imobilizado', 'descarregando_imobilizado'].includes(v.status));
+                const idleVehicles = allVehicles.filter(v => v.status === 'disponivel');
+
+                let totalIdleTimeToday = 0;
+                let ociosidadeVeiculos = [];
+
+                // Carregar o histórico de status de veículos para a filial
+                const statusHistory = await supabaseRequest(`veiculos_status_historico?order=created_at.asc`);
+
+                for (const vehicle of allVehicles) {
+                    let idleTimeMinutes = 0;
+                    let lastStatusChange = todayStart > new Date(vehicle.created_at) ? todayStart : new Date(vehicle.created_at);
+                    let lastAction = new Date(vehicle.created_at);
+
+                    // Filtra o histórico apenas para o veículo atual
+                    const vehicleHistory = statusHistory.filter(h => h.veiculo_id === vehicle.id);
+                    
+                    // Ordena por data
+                    vehicleHistory.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+                    
+                    let isIdle = vehicle.status === 'disponivel';
+                    let idleSince = isIdle ? lastStatusChange : null;
+
+                    for (const history of vehicleHistory) {
+                        const eventTime = new Date(history.created_at);
+                        lastAction = eventTime;
+
+                        if (eventTime > todayStart) {
+                             if (history.status_novo === 'disponivel') {
+                                isIdle = true;
+                                idleSince = eventTime;
+                            } else if (history.status_anterior === 'disponivel' && history.status_novo !== 'disponivel') {
+                                if (isIdle && idleSince) {
+                                    idleTimeMinutes += (eventTime - idleSince) / 60000;
+                                    idleSince = null;
+                                }
+                                isIdle = false;
+                            }
+                        }
+                    }
+                    
+                    // Se o veículo ainda está ocioso, calcula o tempo até agora ou até o final do dia
+                    if (isIdle && idleSince) {
+                        idleTimeMinutes += (todayActiveHoursEnd - idleSince) / 60000;
+                    }
+
+
+                    totalIdleTimeToday += idleTimeMinutes;
+                    ociosidadeVeiculos.push({
+                        placa: vehicle.placa,
+                        status: vehicle.status,
+                        idleTime: idleTimeMinutes,
+                        idleSince: idleSince,
+                        lastAction: lastAction
+                    });
+                }
+                
+                const totalWorkingMinutesToday = (todayActiveHoursEnd - todayStart) / 60000;
+                const totalVehicles = allVehicles.length;
+                const mediaOciosidade = totalVehicles > 0 ? (totalIdleTimeToday / totalVehicles) : 0;
+                
+                // Atualiza os cartões de resumo
+                document.getElementById('totalOciosidade').textContent = minutesToHHMM(mediaOciosidade);
+                document.getElementById('frotaAtiva').textContent = activeVehicles.length;
+                document.getElementById('frotaOciosa').textContent = idleVehicles.length;
+                document.getElementById('tempoTotalOciosoDia').textContent = minutesToHHMM(totalIdleTimeToday);
+                
+                // Renderiza a tabela de ociosidade por veículo
+                renderOciosidadeTable(ociosidadeVeiculos.sort((a, b) => b.idleTime - a.idleTime));
+                
+                debugLog.add('Relatório de ociosidade da frota gerado com sucesso.', 'success');
+
+            } catch (error) {
+                console.error('Erro ao carregar dados da frota:', error);
+                debugLog.add(`Erro ao carregar dados da frota: ${error.message}`, 'error');
+                document.getElementById('ociosidadeBody').innerHTML = `<tr><td colspan="5" class="alert alert-error">Erro: ${error.message}</td></tr>`;
+            }
+        }
         
+        // Função para renderizar a tabela de ociosidade dos veículos
+        function renderOciosidadeTable(data) {
+            const tbody = document.getElementById('ociosidadeBody');
+            if (!tbody) return;
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="alert alert-info">Nenhum veículo com histórico encontrado.</td></tr>';
+                return;
+            }
+
+            const html = data.map(v => `
+                <tr>
+                    <td style="font-weight: 600;">${v.placa}</td>
+                    <td><span class="status-badge status-${v.status.replace(/ /g, '_')}">${getStatusLabel(v.status)}</span></td>
+                    <td>${v.idleSince ? new Date(v.idleSince).toLocaleTimeString('pt-BR') : '-'}</td>
+                    <td>${v.idleTime > 0 ? minutesToHHMM(v.idleTime) : '-'}</td>
+                    <td>${v.lastAction ? new Date(v.lastAction).toLocaleTimeString('pt-BR') : '-'}</td>
+                </tr>
+            `).join('');
+
+            tbody.innerHTML = html;
+        }
         function applyHistoricoFilters() {
             const dataInicio = document.getElementById('historicoFiltroDataInicio').value || document.getElementById('indicadoresFiltroDataInicio').value;
             const dataFim = document.getElementById('historicoFiltroDataFim').value || document.getElementById('indicadoresFiltroDataFim').value;
@@ -5842,20 +6089,20 @@ ${expedition.observacoes || 'Nenhuma'}
             }
         }
 
- // Nova função com a lógica de status
 async function marcarRetornoCD(motoristaId, veiculoId) {
     try {
         const motorista = motoristas.find(m => m.id === motoristaId);
-        if (!motorista) throw new Error('Motorista não encontrado!');
+        const veiculo = veiculos.find(v => v.id === veiculoId);
+        if (!motorista || !veiculo) throw new Error('Dados não encontrados!');
 
         let novoStatusMotorista, novoStatusVeiculo, notificationMessage;
-
+        
         if (motorista.status === 'retornando_com_imobilizado') {
             novoStatusMotorista = 'descarregando_imobilizado';
-            novoStatusVeiculo = 'descarregando_imobilizado'; // Atualiza o veículo também
+            novoStatusVeiculo = 'descarregando_imobilizado';
             notificationMessage = 'Retorno com imobilizado registrado. Inicie a descarga.';
             debugLog.add(`Motorista ${motoristaId} chegou com imobilizado. Status alterado para 'descarregando_imobilizado'.`, 'info');
-        } else { // Status é 'retornando_cd'
+        } else {
             novoStatusMotorista = 'disponivel';
             novoStatusVeiculo = 'disponivel';
             notificationMessage = 'Retorno ao CD registrado. Motorista e veículo disponíveis!';
@@ -5867,10 +6114,20 @@ async function marcarRetornoCD(motoristaId, veiculoId) {
             supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: novoStatusVeiculo }, false)
         ]);
         
+        // Registrar a mudança no histórico do veículo
+        const historyData = {
+            veiculo_id: veiculoId,
+            status_anterior: veiculo.status,
+            status_novo: novoStatusVeiculo,
+            filial: selectedFilial.nome
+        };
+        await supabaseRequest('veiculos_status_historico', 'POST', historyData, false);
+        debugLog.add(`Registro de histórico para veículo ${veiculoId} (retorno CD) salvo.`, 'success');
+
         showNotification(notificationMessage, 'success');
 
         await loadSelectData();
-        await renderMotoristasStatusList(); // Usar a função que redesenha a lista
+        await renderMotoristasStatusList();
 
     } catch (error) {
         debugLog.add(`Erro ao marcar retorno ao CD: ${error.message}`, 'error');
@@ -5880,12 +6137,25 @@ async function marcarRetornoCD(motoristaId, veiculoId) {
 // ADICIONE ESTA NOVA FUNÇÃO
 async function finalizarDescargaImobilizado(motoristaId, veiculoId) {
     try {
+        const veiculo = veiculos.find(v => v.id === veiculoId);
+        if (!veiculo) throw new Error('Veículo não encontrado!');
+
         debugLog.add(`Finalizando descarga de imobilizado para motorista ${motoristaId} e veículo ${veiculoId}`, 'info');
 
         await Promise.all([
             supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'disponivel' }, false),
             supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'disponivel' }, false)
         ]);
+
+        // Registrar a mudança no histórico do veículo
+        const historyData = {
+            veiculo_id: veiculoId,
+            status_anterior: veiculo.status,
+            status_novo: 'disponivel',
+            filial: selectedFilial.nome
+        };
+        await supabaseRequest('veiculos_status_historico', 'POST', historyData, false);
+        debugLog.add(`Registro de histórico para veículo ${veiculoId} (final descarga) salvo.`, 'success');
 
         showNotification('Descarga de imobilizado finalizada. Motorista e veículo disponíveis!', 'success');
 
@@ -5939,9 +6209,11 @@ async function finalizarDescargaImobilizado(motoristaId, veiculoId) {
             let totalViagens = data.length;
             let totalEntregas = 0;
             let temposDeViagem = [];
-            let temposInternos = [];
             let temposEmTransito = [];
             let temposEmLoja = [];
+            let temposAlocar = [];
+            let temposChegada = [];
+            let temposCarregamento = [];
             let lojasData = {};
             let entregasFort = 0;
             let entregasComper = 0;
@@ -5952,6 +6224,10 @@ async function finalizarDescargaImobilizado(motoristaId, veiculoId) {
                 const t0_criacao = new Date(exp.data_hora);
                 const t6_saidaEntrega = exp.data_saida_entrega ? new Date(exp.data_saida_entrega) : null;
                 
+                if (exp.tempoAlocar !== null) temposAlocar.push(exp.tempoAlocar);
+                if (exp.tempoChegada !== null) temposChegada.push(exp.tempoChegada);
+                if (exp.tempoCarregamento !== null) temposCarregamento.push(exp.tempoCarregamento);
+
                 let t_ultimaDescarga = null;
                 exp.items.forEach(item => {
                     if (item.data_fim_descarga) {
@@ -5966,10 +6242,6 @@ async function finalizarDescargaImobilizado(motoristaId, veiculoId) {
                     temposDeViagem.push((t_ultimaDescarga - t0_criacao) / 60000);
                 }
                 
-                if(t6_saidaEntrega) {
-                    temposInternos.push((t6_saidaEntrega - t0_criacao) / 60000);
-                }
-
                 let ultimaData = t6_saidaEntrega;
                 let totalTransitoViagem = 0;
                 let totalLojaViagem = 0;
@@ -6008,16 +6280,17 @@ async function finalizarDescargaImobilizado(motoristaId, veiculoId) {
             summaryContainer.innerHTML = `
                 <div class="time-stat-card"><div class="stat-number">${totalViagens}</div><div class="stat-label">Total de Viagens</div></div>
                 <div class="time-stat-card"><div class="stat-number">${totalEntregas}</div><div class="stat-label">Total de Entregas</div></div>
-                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposDeViagem))}</div><div class="stat-label">Tempo Médio Total</div></div>
-                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposInternos))}</div><div class="stat-label">Tempo Médio Interno</div></div>
-                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposEmTransito))}</div><div class="stat-label">Tempo Médio em Trânsito</div></div>
-                <div class="time-stat-card"><div class="stat-number">${minutesToHHMM(calcularMedia(temposEmLoja))}</div><div class="stat-label">Tempo Médio em Loja</div></div>
+                <div class="time-stat-card"><div class="stat-number" id="tempoMedioAlocarHistorico">${minutesToHHMM(calcularMedia(temposAlocar))}</div><div class="stat-label">Tempo Médio<br>Alocar Placa</div></div>
+                <div class="time-stat-card"><div class="stat-number" id="tempoMedioChegadaHistorico">${minutesToHHMM(calcularMedia(temposChegada))}</div><div class="stat-label">Tempo Médio<br>Chegada Doca</div></div>
+                <div class="time-stat-card"><div class="stat-number" id="tempoMedioCarregamentoHistorico">${minutesToHHMM(calcularMedia(temposCarregamento))}</div><div class="stat-label">Tempo Médio<br>Carregamento</div></div>
+                <div class="time-stat-card"><div class="stat-number" id="tempoMedioTotalHistorico">${minutesToHHMM(calcularMedia(temposDeViagem))}</div><div class="stat-label">Tempo Médio<br>Total Viagem</div></div>
+                <div class="time-stat-card"><div class="stat-number" id="tempoMedioTransitoHistorico">${minutesToHHMM(calcularMedia(temposEmTransito))}</div><div class="stat-label">Tempo Médio<br>em Trânsito</div></div>
+                <div class="time-stat-card"><div class="stat-number" id="tempoMedioLojaHistorico">${minutesToHHMM(calcularMedia(temposEmLoja))}</div><div class="stat-label">Tempo Médio<br>em Loja</div></div>
             `;
             
             renderLojasRankingChart(lojasData);
             renderEntregasChart(entregasFort, entregasComper);
         }
-
         function renderLojasRankingChart(lojasData) {
             const ranking = Object.values(lojasData)
                 .map(loja => ({
@@ -6274,17 +6547,30 @@ async function renderVeiculosConfig() {
 async function updateVeiculoStatus(veiculoId, novoStatus) {
     try {
         debugLog.add(`Alterando status do veículo ${veiculoId} para ${novoStatus}`, 'info');
+
+        const oldVeiculo = veiculos.find(v => v.id === veiculoId);
+
+        // 1. Atualizar o status na tabela principal
         await supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: novoStatus }, false);
+        
+        // 2. Registrar a mudança de status na nova tabela de histórico
+        const historyData = {
+            veiculo_id: veiculoId,
+            status_anterior: oldVeiculo ? oldVeiculo.status : 'desconhecido',
+            status_novo: novoStatus,
+            filial: selectedFilial.nome
+        };
+        await supabaseRequest('veiculos_status_historico', 'POST', historyData, false);
+        debugLog.add(`Registro de histórico para veículo ${veiculoId} salvo.`, 'success');
+        
         showNotification(`Status do veículo atualizado para ${getStatusLabel(novoStatus)}!`, 'success');
 
         // Recarrega os dados para refletir a mudança em todo o sistema
         await loadSelectData(); 
-        await renderVeiculosConfig(); // Re-renderiza a tabela de configuração ATUAL
-
-        // ---- ADICIONE AS DUAS LINHAS ABAIXO ----
+        await renderVeiculosConfig();
+        
         loadTransportList();
         renderMotoristasStatusList();
-        // -----------------------------------------
 
     } catch (error) {
         console.error('Erro ao atualizar status do veículo:', error);
