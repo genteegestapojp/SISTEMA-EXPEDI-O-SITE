@@ -1818,6 +1818,114 @@
                 </div>
             </div>
 
+            <div id="acompanhamento" class="tab-content">
+                <h2 style="text-align: center;">Acompanhamento com Controle de Tempos</h2>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalExpedicoes">0</div>
+                        <div class="stat-label">Total de Expedições</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #D62828, #F77F00);">
+                        <div class="stat-number" id="pendentesCount">0</div>
+                        <div class="stat-label">Pendentes</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+                        <div class="stat-number" id="emAndamentoCount">0</div>
+                        <div class="stat-label">Em Andamento</div>
+                    </div>
+                </div>
+
+                <div class="time-stats-grid">
+                    <div class="time-stat-card">
+                        <div class="stat-number" id="tempoMedioAlocar">-</div>
+                        <div class="stat-label">Tempo Médio<br>Alocar Placa (HH:mm)</div>
+                    </div>
+                    <div class="time-stat-card">
+                        <div class="stat-number" id="tempoMedioChegada">-</div>
+                        <div class="stat-label">Tempo Médio<br>Chegada Doca (HH:mm)</div>
+                    </div>
+                    <div class="time-stat-card">
+                        <div class="stat-number" id="tempoMedioCarregamento">-</div>
+                        <div class="stat-label">Tempo Médio<br>Carregamento (HH:mm)</div>
+                    </div>
+                    <div class="time-stat-card">
+                        <div class="stat-number" id="tempoMedioTotal">-</div>
+                        <div class="stat-label">Tempo Médio<br>Total (HH:mm)</div>
+                    </div>
+                </div>
+
+                <div class="filters-section">
+                    <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="filtroDataInicio">Data Início:</label>
+                            <input type="date" id="filtroDataInicio" onchange="applyFilters()">
+                        </div>
+                        <div class="filter-group">
+                            <label for="filtroDataFim">Data Fim:</label>
+                            <input type="date" id="filtroDataFim" onchange="applyFilters()">
+                        </div>
+                        <div class="filter-group">
+                            <label for="filtroStatus">Status:</label>
+                           <select id="filtroStatus" onchange="applyFilters()">
+    <option value="">Todos os Status</option>
+    <option value="pendente">Pendente</option>
+    <option value="aguardando_veiculo">Aguardando Veículo</option>
+    <option value="em_carregamento">Em Carregamento</option>
+    <option value="carregado">Carregado</option>
+    <option value="aguardando_faturamento">Aguardando Faturamento</option>
+    <option value="faturamento_iniciado">Faturando</option>
+    <option value="faturado">Faturado</option>
+    <option value="saiu_para_entrega">Saiu para Entrega</option>
+    
+    <option value="retornando_cd">Retornando CD</option> 
+    
+    <option value="cancelado">Cancelado</option>
+</select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="searchInput">Pesquisar:</label>
+                            <input type="text" id="searchInput" placeholder="Buscar por loja, doca, líder..." onkeyup="applyFilters()">
+                        </div>
+                    </div>
+                    <div style="text-align: right; margin-top: 10px;">
+                        <button class="btn btn-primary btn-small" onclick="clearFilters()">Limpar Filtros</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-wrapper">
+                        <table id="acompanhamentoTable">
+                            <thead>
+                                <tr>
+                                    <th>Data/Hora</th>
+                                    <th>Lojas e Cargas</th>
+                                    <th>Pallets</th>
+                                    <th>RollTrainers</th>
+                                    <th>Doca</th>
+                                    <th>Líder</th>
+                                    <th>Status</th>
+                                    <th>Veículo</th>
+                                    <th>Ocupação</th>
+                                    <th>Motorista</th>
+                                    <th>Análise Tempos</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="acompanhamentoBody">
+                                <tr>
+                                    <td colspan="12" class="loading">
+                                        <div class="spinner"></div>
+                                        Carregando dados...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <<div id="configuracoes" class="tab-content">
     <h2 style="text-align: center;">Acesso Restrito</h2>
     <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
@@ -2452,9 +2560,9 @@
                 loadTransportList();
             } else if (tabName === 'faturamento') {
                 loadFaturamento();
-         } else if (tabName === 'acompanhamento') {
-                // Remove a chamada direta a loadAcompanhamento e usa a nova sub-aba
-                showSubTab('acompanhamento', 'acompanhamentoExpedicoes');
+            } else if (tabName === 'acompanhamento') {
+                loadAcompanhamento();
+                setDefaultDateFilters();
             } else if (tabName === 'motoristas') {
                 await loadMotoristaTab(); // Garante que a lista de status seja carregada
                 showSubTab('motoristas', 'consultaViagens'); // Abre a sub-aba padrão
@@ -2502,20 +2610,19 @@ function showSubTab(tabName, subTabName) {
     debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
 
     // Lógica adicional para carregar dados específicos da sub-aba
-   // Lógica adicional para carregar dados específicos da sub-aba
-    if (subTabName === 'acompanhamentoExpedicoes') {
-        loadAcompanhamento();
-    } else if (subTabName === 'acompanhamentoFrota') {
-        calculateIdleness();
-    } else if (subTabName === 'indicadores') {
-        applyHistoricoFilters();
-    } else if (subTabName === 'relatoriosMotoristas') {
-        generateMotoristaReports();
-    } else if (tabName === 'configuracoes' && subTabName === 'transporteConfig') {
-        renderVeiculosConfig();
-    } else if (tabName === 'configuracoes' && subTabName === 'motoristasConfig') {
-        renderMotoristasConfig();
-    }
+    if (subTabName === 'indicadores') {
+        applyHistoricoFilters();
+    }
+    if (subTabName === 'relatoriosMotoristas') {
+        generateMotoristaReports();
+    }
+    if (tabName === 'configuracoes' && subTabName === 'transporteConfig') {
+        renderVeiculosConfig();
+    }
+    if (tabName === 'configuracoes' && subTabName === 'motoristasConfig') {
+    renderMotoristasConfig();
+}
+}
 
         // Definir filtros de data padrão
         function setDefaultDateFilters() {
@@ -2714,8 +2821,6 @@ function showSubTab(tabName, subTabName) {
 
         // Carregar acompanhamento com dados relacionados completos (filtrado por filial)
         async function loadAcompanhamento() {
-            const container = document.getElementById('acompanhamentoExpedicoes');
-            if (!container) return; // Segurança caso a sub-aba ainda não exista
             if (!selectedFilial) {
                 document.getElementById('acompanhamentoBody').innerHTML =
                     '<tr><td colspan="12" class="alert alert-error">Selecione uma filial primeiro!</td></tr>';
@@ -6267,115 +6372,6 @@ async function updateMotoristaStatus(motoristaId, novoStatus) {
         console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.3 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
         console.log('📧 Contato: julianocorrea@bateforte.com.br');
-        // --- NOVAS FUNÇÕES PARA ACOMPANHAMENTO DE FROTA E OCIOSIDADE ---
-
-// Função principal para calcular a ociosidade da frota
-async function calculateIdleness() {
-    if (!selectedFilial) {
-        showNotification('Selecione uma filial para calcular a ociosidade.', 'error');
-        return;
-    }
-
-    const startInput = document.getElementById('ociosidadeFiltroDataInicio');
-    const endInput = document.getElementById('ociosidadeFiltroDataFim');
-
-    if (!startInput.value || !endInput.value) {
-        showNotification('Por favor, defina a data de início e fim.', 'error');
-        return;
-    }
-
-    const startDate = new Date(startInput.value + 'T06:00:00-04:00'); // Horário de Cuiabá
-    const endDate = new Date(endInput.value + 'T22:00:00-04:00'); // Horário de Cuiabá
-
-    if (startDate >= endDate) {
-        showNotification('A data de início deve ser anterior à data de fim.', 'error');
-        return;
-    }
-
-    const tbody = document.getElementById('ociosidadeBody');
-    tbody.innerHTML = '<tr><td colspan="3" class="loading"><div class="spinner"></div>Calculando ociosidade...</td></tr>';
-    
-    let totalIdleTime = 0;
-    let vehiclesWithData = 0;
-
-    // Buscar todos os veículos da filial
-    const vehiclesInFilial = await supabaseRequest('veiculos?order=placa');
-    let vehicleIdleTimes = [];
-
-    // Para cada veículo, buscar o histórico de status
-    for (const vehicle of vehiclesInFilial) {
-        const history = await supabaseRequest(`veiculos_status_historico?veiculo_id=eq.${vehicle.id}&created_at=gte.${startDate.toISOString()}&created_at=lte.${endDate.toISOString()}&order=created_at.asc`);
-
-        let idleTimeForVehicle = 0;
-        let lastKnownTime = startDate;
-        let isIdle = false;
-
-        // Adiciona um status inicial se o primeiro evento for após o início do período
-        if (history.length > 0 && new Date(history[0].created_at) > startDate) {
-            // Se o status anterior era 'disponivel', conta ociosidade desde o início do período
-            if (history[0].status_anterior === 'disponivel') {
-                 idleTimeForVehicle += (new Date(history[0].created_at) - lastKnownTime) / 60000;
-            }
-        }
-
-        // Processa o histórico de status
-        for (let i = 0; i < history.length; i++) {
-            const entry = history[i];
-            const eventTime = new Date(entry.created_at);
-
-            // Se o status era ocioso antes da mudança, calcula o tempo de ociosidade
-            if (entry.status_anterior === 'disponivel') {
-                idleTimeForVehicle += (eventTime - lastKnownTime) / 60000;
-            }
-
-            // Atualiza o último tempo conhecido para o próximo cálculo
-            lastKnownTime = eventTime;
-
-            // Define se o veículo está ocioso no momento do evento
-            isIdle = entry.status_novo === 'disponivel';
-        }
-
-        // Adiciona o tempo de ociosidade até o final do período, se o último status for 'disponivel'
-        if (isIdle) {
-            idleTimeForVehicle += (endDate - lastKnownTime) / 60000;
-        }
-
-        if (idleTimeForVehicle > 0) {
-            vehicleIdleTimes.push({
-                placa: vehicle.placa,
-                status: getStatusLabel(vehicle.status),
-                idleMinutes: idleTimeForVehicle
-            });
-            totalIdleTime += idleTimeForVehicle;
-            vehiclesWithData++;
-        }
-    }
-
-    // Renderiza a tabela e a média
-    renderOciosidadeTable(vehicleIdleTimes);
-    
-    const avgIdleTime = vehiclesWithData > 0 ? totalIdleTime / vehiclesWithData : 0;
-    document.getElementById('ociosidadeTotalMedia').textContent = minutesToHHMM(avgIdleTime);
-}
-
-// Renderiza a tabela de ociosidade
-function renderOciosidadeTable(data) {
-    const tbody = document.getElementById('ociosidadeBody');
-    if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="alert alert-info">Nenhum dado de ociosidade encontrado para o período.</td></tr>';
-        return;
-    }
-
-    const html = data.map(item => `
-        <tr>
-            <td><strong>${item.placa}</strong></td>
-            <td><span class="status-badge status-${item.status.replace(/ /g, '_').toLowerCase()}">${item.status}</span></td>
-            <td>${minutesToHHMM(item.idleMinutes)}</td>
-        </tr>
-    `).join('');
-
-    tbody.innerHTML = html;
-}
     </script>
 </body>
 </html>
