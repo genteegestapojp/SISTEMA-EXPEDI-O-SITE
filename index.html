@@ -4735,35 +4735,6 @@ async function finalizarDescarga(itemId, expeditionId) {
         showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
     }
 }
-        async function finishLoading(expeditionId) {
-            try {
-                const doca = docas.find(d => d.coddoca === modalState.expectedCode);
-                if (!doca) {
-                    throw new Error(`Doca com código "${modalState.expectedCode}" não encontrada no cache local.`);
-                }
-                const dataSaida = new Date().toISOString();
-
-                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-                    data_saida_veiculo: dataSaida,
-                    status: 'aguardando_faturamento'
-                });
-
-                try {
-                    await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'disponivel' });
-                    debugLog.add(`Status da doca atualizado para disponivel`, 'success');
-                } catch (docaError) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
-                }
-                
-                debugLog.add(`Carregamento finalizado para expedição ${expeditionId}.`, 'success');
-                showNotification(`Carregamento finalizado! Expedição aguardando faturamento.`, 'success');
-                consultarExpedicoesPorPlaca();
-            } catch (error) {
-                debugLog.add(`Erro ao finalizar carregamento: ${error.message}`, 'error');
-                showNotification('Erro ao finalizar carregamento: ' + error.message, 'error');
-            }
-        }
-
         // --- Funções do Modal de Edição ---
         async function openEditModal(expeditionId) {
             try {
