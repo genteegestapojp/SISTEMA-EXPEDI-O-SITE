@@ -214,7 +214,7 @@
             background: var(--primary-gradient);
         }
 
-        /* Sub-abas */
+       /* Sub-abas */
         .sub-tabs {
             display: flex;
             flex-wrap: wrap; /* Permite quebrar a linha em telas menores */
@@ -2000,6 +2000,53 @@
                 </div>
             </div>
 
+                <div id="frota" class="sub-tab-content">
+                    <h2 style="text-align: center;">Análise de Produtividade da Frota</h2>
+                    <div id="frotaSummary" class="time-stats-grid">
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="totalOciosidade">-</div>
+                            <div class="stat-label">Ociosidade Média da Frota</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="frotaAtiva">0</div>
+                            <div class="stat-label">Veículos Ativos Hoje</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="frotaOciosa">0</div>
+                            <div class="stat-label">Veículos Ociosos Agora</div>
+                        </div>
+                        <div class="time-stat-card">
+                            <div class="stat-number" id="tempoTotalOciosoDia">-</div>
+                            <div class="stat-label">Tempo Total Ocioso (Hoje)</div>
+                        </div>
+                    </div>
+                    <h3 style="text-align: center; margin: 20px 0;">Ociosidade por Veículo (Hoje)</h3>
+                    <div class="table-container">
+                        <div class="table-wrapper">
+                            <table id="ociosidadeTable">
+                                <thead>
+                                    <tr>
+                                        <th>Veículo (Placa)</th>
+                                        <th>Status Atual</th>
+                                        <th>Início da Ociosidade</th>
+                                        <th>Tempo Ocioso Atual</th>
+                                        <th>Última Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ociosidadeBody">
+                                    <tr>
+                                        <td colspan="5" class="loading">
+                                            <div class="spinner"></div>
+                                            Calculando ociosidade...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <<div id="configuracoes" class="tab-content">
     <h2 style="text-align: center;">Acesso Restrito</h2>
     <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
@@ -2111,10 +2158,14 @@
                                 <th>Produtivo (Matrícula)</th>
                                 <th>Status Atual</th>
                                 <th>Alterar Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="motoristasConfigBody"></tbody>
-                    </table>
+                            </tr>
+                        </thead>
+                        <tbody id="motoristasConfigBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
                 </div>
             </div>
         </div>
