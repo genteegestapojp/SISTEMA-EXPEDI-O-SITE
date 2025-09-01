@@ -1818,160 +1818,6 @@
                 </div>
             </div>
 
-           <div id="acompanhamento" class="tab-content">
-                <h2 style="text-align: center;">Acompanhamento com Controle de Tempos</h2>
-
-                <div class="sub-tabs">
-                    <button class="sub-tab active" onclick="showSubTab('acompanhamento', 'acompanhamentoExpedicoes')">Expedições</button>
-                    <button class="sub-tab" onclick="showSubTab('acompanhamento', 'acompanhamentoFrota')">Frota</button>
-                </div>
-
-                                <div id="acompanhamentoExpedicoes" class="sub-tab-content active">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-number" id="totalExpedicoes">0</div>
-                            <div class="stat-label">Total de Expedições</div>
-                        </div>
-                        <div class="stat-card" style="background: linear-gradient(135deg, #D62828, #F77F00);">
-                            <div class="stat-number" id="pendentesCount">0</div>
-                            <div class="stat-label">Pendentes</div>
-                    </div>
-                    <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
-                        <div class="stat-number" id="emAndamentoCount">0</div>
-                        <div class="stat-label">Em Andamento</div>
-                    </div>
-                  </div>
-
-                  <div class="time-stats-grid">
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioAlocar">-</div>
-                        <div class="stat-label">Tempo Médio<br>Alocar Placa (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioChegada">-</div>
-                        <div class="stat-label">Tempo Médio<br>Chegada Doca (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioCarregamento">-</div>
-                        <div class="stat-label">Tempo Médio<br>Carregamento (HH:mm)</div>
-                    </div>
-                    <div class="time-stat-card">
-                        <div class="stat-number" id="tempoMedioTotal">-</div>
-                        <div class="stat-label">Tempo Médio<br>Total (HH:mm)</div>
-                    </div>
-                  </div>
-
-                  <div class="filters-section">
-                    <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtros e Pesquisa</h3>
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label for="filtroDataInicio">Data Início:</label>
-                            <input type="date" id="filtroDataInicio" onchange="applyFilters()">
-                        </div>
-                        <div class="filter-group">
-                            <label for="filtroDataFim">Data Fim:</label>
-                            <input type="date" id="filtroDataFim" onchange="applyFilters()">
-                        </div>
-                        <div class="filter-group">
-                            <label for="filtroStatus">Status:</label>
-                            <select id="filtroStatus" onchange="applyFilters()">
-                                <option value="">Todos os Status</option>
-                                <option value="pendente">Pendente</option>
-                                <option value="aguardando_veiculo">Aguardando Veículo</option>
-                                <option value="em_carregamento">Em Carregamento</option>
-                                <option value="carregado">Carregado</option>
-                                <option value="aguardando_faturamento">Aguardando Faturamento</option>
-                                <option value="faturamento_iniciado">Faturando</option>
-                                <option value="faturado">Faturado</option>
-                                <option value="saiu_para_entrega">Saiu para Entrega</option>
-                                <option value="retornando_cd">Retornando CD</option>
-                                <option value="cancelado">Cancelado</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="searchInput">Pesquisar:</label>
-                            <input type="text" id="searchInput" placeholder="Buscar por loja, doca, líder..." onkeyup="applyFilters()">
-                        </div>
-                    </div>
-                    <div style="text-align: right; margin-top: 10px;">
-                        <button class="btn btn-primary btn-small" onclick="clearFilters()">Limpar Filtros</button>
-                    </div>
-                </div>
-
-                <div class="table-container">
-                    <div class="table-wrapper">
-                        <table id="acompanhamentoTable">
-                            <thead>
-                                <tr>
-                                    <th>Data/Hora</th>
-                                    <th>Lojas e Cargas</th>
-                                    <th>Pallets</th>
-                                    <th>RollTrainers</th>
-                                    <th>Doca</th>
-                                    <th>Líder</th>
-                                    <th>Status</th>
-                                    <th>Veículo</th>
-                                    <th>Ocupação</th>
-                                    <th>Motorista</th>
-                                    <th>Análise Tempos</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="acompanhamentoBody">
-                                <tr>
-                                    <td colspan="12" class="loading">
-                                        <div class="spinner"></div>
-                                        Carregando dados...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-              </div>
-
-                            <div id="acompanhamentoFrota" class="sub-tab-content">
-                <h3 style="text-align: center; color: var(--dark);">Acompanhamento de Ociosidade da Frota</h3>
-                <div class="filters-section">
-                    <h4 style="color: var(--dark); margin-bottom: 15px; font-size: 1rem;">Filtros de Ociosidade</h4>
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label for="ociosidadeFiltroDataInicio">Data Início:</label>
-                            <input type="date" id="ociosidadeFiltroDataInicio" onchange="calculateIdleness()">
-                        </div>
-                        <div class="filter-group">
-                            <label for="ociosidadeFiltroDataFim">Data Fim:</label>
-                            <input type="date" id="ociosidadeFiltroDataFim" onchange="calculateIdleness()">
-                        </div>
-                    </div>
-                </div>
-
-                <div id="ociosidadeSummary" class="time-stats-grid" style="margin-top: 20px;">
-                    <div class="time-stat-card" style="background: linear-gradient(135deg, #0077B6, #00B4D8);">
-                        <div class="stat-number" id="ociosidadeTotalMedia">-</div>
-                        <div class="stat-label">Ociosidade Média Total<br>(HH:mm)</div>
-                    </div>
-                </div>
-
-                <div class="table-container" style="margin-top: 20px;">
-                    <div class="table-wrapper">
-                        <table id="ociosidadeTable">
-                            <thead>
-                                <tr>
-                                    <th>Placa</th>
-                                    <th>Status Atual</th>
-                                    <th>Tempo de Ociosidade</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ociosidadeBody">
-                                <tr><td colspan="3" class="loading">Selecione o período para calcular...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-              </div>
-            </div>
-
             <<div id="configuracoes" class="tab-content">
     <h2 style="text-align: center;">Acesso Restrito</h2>
     <div id="passwordFormContainer" class="transport-card" style="max-width: 400px; margin: 40px auto;">
@@ -2606,7 +2452,8 @@
                 loadTransportList();
             } else if (tabName === 'faturamento') {
                 loadFaturamento();
-           } else if (tabName === 'acompanhamento') {
+         } else if (tabName === 'acompanhamento') {
+                // Remove a chamada direta a loadAcompanhamento e usa a nova sub-aba
                 showSubTab('acompanhamento', 'acompanhamentoExpedicoes');
             } else if (tabName === 'motoristas') {
                 await loadMotoristaTab(); // Garante que a lista de status seja carregada
@@ -2655,22 +2502,20 @@ function showSubTab(tabName, subTabName) {
     debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
 
     // Lógica adicional para carregar dados específicos da sub-aba
-    if (subTabName === 'indicadores') {
-        if (subTabName === 'acompanhamentoFrota') {
+   // Lógica adicional para carregar dados específicos da sub-aba
+    if (subTabName === 'acompanhamentoExpedicoes') {
+        loadAcompanhamento();
+    } else if (subTabName === 'acompanhamentoFrota') {
         calculateIdleness();
     } else if (subTabName === 'indicadores') {
-        applyHistoricoFilters();
-    }
-    if (subTabName === 'relatoriosMotoristas') {
-        generateMotoristaReports();
-    }
-    if (tabName === 'configuracoes' && subTabName === 'transporteConfig') {
-        renderVeiculosConfig();
-    }
-    if (tabName === 'configuracoes' && subTabName === 'motoristasConfig') {
-    renderMotoristasConfig();
-}
-}
+        applyHistoricoFilters();
+    } else if (subTabName === 'relatoriosMotoristas') {
+        generateMotoristaReports();
+    } else if (tabName === 'configuracoes' && subTabName === 'transporteConfig') {
+        renderVeiculosConfig();
+    } else if (tabName === 'configuracoes' && subTabName === 'motoristasConfig') {
+        renderMotoristasConfig();
+    }
 
         // Definir filtros de data padrão
         function setDefaultDateFilters() {
