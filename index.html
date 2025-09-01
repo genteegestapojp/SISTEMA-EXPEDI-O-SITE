@@ -6634,6 +6634,44 @@ async function updateMotoristaStatus(motoristaId, novoStatus) {
         showNotification('Erro ao atualizar status: ' + error.message, 'error');
     }
 }
+        // Função para mostrar sub-abas (VERSÃO ATUALIZADA)
+function showSubTab(tabName, subTabName) {
+    const tabContent = document.getElementById(tabName);
+    if (!tabContent) return; 
+
+    tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+    tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
+
+    const subTabButton = tabContent.querySelector(`[onclick="showSubTab('${tabName}', '${subTabName}')"]`);
+    const subTabContentToShow = tabContent.querySelector(`#${subTabName}`);
+
+    if (subTabButton) {
+        subTabButton.classList.add('active');
+    }
+    if (subTabContentToShow) {
+        subTabContentToShow.classList.add('active');
+    }
+
+    debugLog.add(`Navegando para sub-aba: ${subTabName} em ${tabName}`, 'info');
+
+    // Lógica para carregar dados específicos de cada sub-aba
+    if (subTabName === 'expedicoesEmAndamento') {
+        loadAcompanhamento();
+        setDefaultDateFilters();
+    } else if (subTabName === 'frota') {
+        loadFrotaData();
+    } else if (subTabName === 'listaEntregas') {
+        loadHistorico();
+    } else if (subTabName === 'indicadores') {
+        applyHistoricoFilters();
+    } else if (subTabName === 'relatoriosMotoristas') {
+        generateMotoristaReports();
+    } else if (subTabName === 'transporteConfig') {
+        renderVeiculosConfig();
+    } else if (subTabName === 'motoristasConfig') {
+        renderMotoristasConfig();
+    }
+}
         console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.3 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
         console.log('📧 Contato: julianocorrea@bateforte.com.br');
