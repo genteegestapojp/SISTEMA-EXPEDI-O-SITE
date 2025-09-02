@@ -2779,24 +2779,24 @@
 
         debugLog.add(`Criando cargas individuais para filial ${selectedFilial.nome} com ${lojaLines.length} lojas`, 'info');
 
-        const itemsData = [];
-        lojaLines.forEach((line) => {
-            const lojaSelect = line.querySelector('.loja-select');
-            const palletsInput = line.querySelector('.pallets-input');
-            const rolltrainersInput = line.querySelector('.rolltrainers-input');
+      const itemsData = [];
+lojaLines.forEach((line) => {
+    const lojaSelect = line.querySelector('.loja-select');
+    const palletsInput = line.querySelector('.pallets-input');
+    const rolltrainersInput = line.querySelector('.rolltrainers-input');
 
-            cconst itemData = {
-    data_hora: data_hora,
-    lider_id: liderId,
-    loja_id: lojaSelect.value,
-    pallets: parseInt(palletsInput.value),
-    rolltrainers: parseInt(rolltrainersInput.value),
-    status: 'disponivel', // Novo status
-    observacoes: formData.observacoes || null
-    // filial será adicionada automaticamente pela função supabaseRequest
-};
-            itemsData.push(itemData);
-        });
+    const itemData = {
+        data_hora: data_hora,
+        lider_id: liderId,
+        loja_id: lojaSelect.value,
+        pallets: parseInt(palletsInput.value),
+        rolltrainers: parseInt(rolltrainersInput.value),
+        status: 'disponivel', // Novo status
+        observacoes: formData.observacoes || null
+        // filial será adicionada automaticamente pela função supabaseRequest
+    };
+    itemsData.push(itemData);
+});
 
         const itemsPromises = itemsData.map(item => supabaseRequest('expeditions', 'POST', item));
         await Promise.all(itemsPromises);
