@@ -628,7 +628,21 @@
             background: linear-gradient(135deg, #D62828, #F77F00);
             color: white;
         }
+/* NOVO: Estilo animado para o status aguardando agrupamento */
+        .status-aguardando_agrupamento {
+            background: linear-gradient(135deg, #7209B7, #A663CC, #4361EE);
+            color: white;
+            background-size: 200% 200%;
+            animation: animatedGradient 4s ease infinite;
+        }
 
+        /* NOVO: Estilo animado para o status aguardando doca */
+        .status-aguardando_doca {
+            background: linear-gradient(135deg, #0077B6, #00B4D8, #48CAE4);
+            color: white;
+            background-size: 200% 200%;
+            animation: animatedGradient 3.5s ease infinite;
+        }
         .status-aguardando_veiculo {
             background: var(--primary-gradient);
             color: white;
@@ -3178,6 +3192,8 @@ function renderAcompanhamentoTableWithItems(expeditions) {
 function getStatusLabel(status) {
     const labels = {
         'pendente': 'Pendente',
+        'aguardando_agrupamento': 'Aguard. Agrupamento', // <-- ADICIONADO
+        'aguardando_doca': 'Aguard. Doca',
         'aguardando_veiculo': 'Aguard. Veículo',
         'em_carregamento': 'Carregando',
         'carregado': 'Carregado',
