@@ -5811,26 +5811,24 @@ DESENVOLVIDO POR: JP Tech Solutions
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
             // Event listener para o formulário de expedição
-            const expeditionForm = document.getElementById('expeditionForm');
-            if (expeditionForm) {
-                expeditionForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
+           // Event listener para o formulário de expedição
+const expeditionForm = document.getElementById('expeditionForm');
+if (expeditionForm) {
+    expeditionForm.addEventListener('submit', function(e) {
+        e.preventDefault();
 
-                    if (!selectedFilial) {
-                        showAlert('operacaoAlert', 'Selecione uma filial primeiro!', 'error');
-                        return;
-                    }
+        if (!selectedFilial) {
+            showAlert('operacaoAlert', 'Selecione uma filial primeiro!', 'error');
+            return;
+        }
 
-                    const formData = {
-                        docaId: document.getElementById('docaSelect').value,
-                        liderId: document.getElementById('liderSelect').value,
-                        observacoes: document.getElementById('observacoes').value
-                    };
+        const formData = {
+            observacoes: document.getElementById('observacoes').value
+        };
 
-                    s(formData);
-                });
-            }
-
+        saveExpedition(formData);
+    });
+}
         // COLE ESTE BLOCO INTEIRO NO LUGAR DA SUA FUNÇÃO DE LOGIN ATUAL
 
 // Event listener para formulário de senha
