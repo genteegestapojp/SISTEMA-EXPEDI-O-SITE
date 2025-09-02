@@ -3427,7 +3427,10 @@ async function showYesNoModal(message) {
         modal.style.display = 'flex';
     });
 }
-        async function loadTransportList() {
+       // VARIÁVEL GLOBAL PARA ARMAZENAR CARGAS DISPONÍVEIS
+let allCargas = [];
+
+async function loadTransportList() {
     if (!selectedFilial) {
         document.getElementById('transporteList').innerHTML = 
             '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
@@ -3438,16 +3441,17 @@ async function showYesNoModal(message) {
         debugLog.add(`Carregando cargas disponíveis para transporte da filial: ${selectedFilial.nome}`, 'info');
 
         // Busca todas as cargas avulsas (que ainda não foram agrupadas em uma expedição)
-       const cargas = await supabaseRequest("expeditions?status=eq.disponivel&order=data_hora.desc");
+        const cargas = await supabaseRequest("expeditions?status=eq.disponivel&order=data_hora.desc");
         
+        // As contagens de veículos e motoristas devem ser atualizadas na tela de TRANSPORTE
         const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
         const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
-        document.getElementById('availableVehicles').textContent = availableVehicles;
-        document.getElementById('availableDrivers').textContent = availableDrivers;
-
+        
+        // Renderiza a lista de cargas
         allCargas = cargas;
-        renderTransportList(cargas);
+        renderTransportList(cargas, availableVehicles, availableDrivers);
         debugLog.add(`${cargas.length} cargas disponíveis carregadas para transporte`, 'success');
+
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
         debugLog.add(`Erro ao carregar transporte: ${error.message}`, 'error');
@@ -3456,6 +3460,57 @@ async function showYesNoModal(message) {
     }
 }
 
+        function renderTransportList(cargasList, availableVehicles, availableDrivers) {
+    const container = document.getElementById('transporteList');
+    const actionsContainer = document.getElementById('transporteActions');
+
+    document.getElementById('availableVehicles').textContent = availableVehicles;
+    document.getElementById('availableDrivers').textContent = availableDrivers;
+
+    if (cargasList.length === 0) {
+        container.innerHTML = '<div class="alert alert-success">Nenhuma carga disponível para alocação!</div>';
+        actionsContainer.style.display = 'none';
+        return;
+    }
+
+    actionsContainer.style.display = 'block';
+    
+    // Popula os selects do novo formulário de transporte
+    const veiculoSelect = document.getElementById('transporteVehiculoSelect');
+    veiculoSelect.innerHTML = '<option value="">Selecione um veículo</option>' + 
+        veiculos.filter(v => v.status === 'disponivel').map(v => `<option value="${v.id}">${v.placa} - ${v.modelo} (${v.capacidade_pallets} pallets)</option>`).join('');
+
+    const motoristaSelect = document.getElementById('transporteMotoristaSelect');
+    motoristaSelect.innerHTML = '<option value="">Selecione um motorista</option>' + 
+        motoristas.filter(m => m.status === 'disponivel').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('');
+
+    const docaSelect = document.getElementById('transporteDocaSelect');
+    docaSelect.innerHTML = '<option value="">Selecione a doca</option>' + 
+        docas.map(d => `<option value="${d.id}">${d.nome} - (${d.coddoca})</option>`).join('');
+
+    let html = '<h3 style="text-align: center; color: var(--dark); margin-bottom: 15px;">Cargas Disponíveis</h3>';
+    html += '<p style="text-align: center; color: #666; margin-bottom: 20px;">Selecione as cargas para agrupar em uma expedição.</p>';
+    
+    html += '<div class="table-container"><table style="width: 100%;"><thead><tr><th>Selecionar</th><th>Loja</th><th>Líder</th><th>Pallets</th><th>RollTrainers</th></tr></thead><tbody>';
+
+    cargasList.forEach(carga => {
+        const loja = lojas.find(l => l.id === carga.loja_id);
+        const lider = lideres.find(l => l.id === carga.lider_id);
+        html += `
+            <tr>
+                <td><input type="checkbox" class="carga-checkbox" data-carga-id="${carga.id}"></td>
+                <td>${loja ? loja.nome : 'N/A'}</td>
+                <td>${lider ? lider.nome : 'N/A'}</td>
+                <td>${carga.pallets}</td>
+                <td>${carga.rolltrainers}</td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+        
 async function criarExpedicaoComCargas() {
     const selectedCargas = Array.from(document.querySelectorAll('.carga-checkbox:checked'))
         .map(cb => cb.getAttribute('data-carga-id'));
