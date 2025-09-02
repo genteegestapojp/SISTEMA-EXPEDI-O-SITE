@@ -1575,50 +1575,42 @@
                 </div>
 
                 <form id="expeditionForm">
-                    <div class="form-grid">
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label style="font-size: 1.1rem; color: var(--dark); margin-bottom: 15px;">Lojas e Quantidades:</label>
-                            <div id="lojasContainer" style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3);">
-                                <div class="loja-line" data-index="0">
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label>Loja:</label>
-                                        <select class="loja-select" required>
-                                            <option value="">Carregando lojas...</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label>Pallets:</label>
-                                        <input type="number" class="pallets-input" min="0" required>
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label>RollTrainers:</label>
-                                        <input type="number" class="rolltrainers-input" min="0" required>
-                                    </div>
-                                    <div style="display: flex; align-items: center; height: 48px;">
-                                        <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="docaSelect">Doca:</label>
-                            <select id="docaSelect" required>
-                                <option value="">Carregando docas...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="liderSelect">Líder:</label>
-                            <select id="liderSelect" required>
-                                <option value="">Carregando líderes...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="observacoes">Observações:</label>
-                            <textarea id="observacoes" placeholder="Observações gerais para todas as lojas..."></textarea>
-                        </div>
-                    </div>
+                    <hr style="margin: 40px 0; border: 1px solid rgba(0, 212, 170, 0.2);">
+
+<h2 style="text-align: center; margin-bottom: 20px;">Atribuição de Doca</h2>
+
+<div id="atribuicaoDocaList" class="loading">
+    <div class="spinner"></div>
+    Carregando expedições aguardando doca...
+</div>
+                     <div class="form-grid">
+    <div class="form-group">
+        <label for="lancar_lojaSelect">Loja:</label>
+        <select id="lancar_lojaSelect" class="loja-select" required>
+            <option value="">Carregando lojas...</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="lancar_palletsInput">Pallets:</label>
+        <input type="number" id="lancar_palletsInput" class="pallets-input" min="0" required placeholder="0">
+    </div>
+    <div class="form-group">
+        <label for="lancar_rolltrainersInput">RollTrainers:</label>
+        <input type="number" id="lancar_rolltrainersInput" class="rolltrainers-input" min="0" required placeholder="0">
+    </div>
+    <div class="form-group">
+        <label for="lancar_liderSelect">Líder Responsável:</label>
+        <select id="lancar_liderSelect" required>
+            <option value="">Carregando líderes...</option>
+        </select>
+    </div>
+</div>
+<div class="form-grid">
+    <div class="form-group" style="grid-column: 1 / -1;">
+        <label for="lancar_observacoes">Observações:</label>
+        <textarea id="lancar_observacoes" placeholder="Observações para esta carga específica..."></textarea>
+    </div>
+</div>
                     <button type="submit" class="btn btn-primary">Lançar Expedição</button>
                 </form>
 
@@ -1626,22 +1618,67 @@
             </div>
 
             <div id="transporte" class="tab-content">
-                <h2 style="text-align: center;">Alocação de Transporte</h2>
-                <div id="availabilityInfo" class="availability-info">
-                    <div class="availability-stat">
-                        <div class="stat-number" id="availableVehicles">0</div>
-                        <div class="stat-label">Veículos Disponíveis</div>
-                    </div>
-                    <div class="availability-stat">
-                        <div class="stat-number" id="availableDrivers">0</div>
-                        <div class="stat-label">Motoristas Disponíveis</div>
-                    </div>
-                </div>
-                <div id="transporteList" class="loading">
-                    <div class="spinner"></div>
-                    Carregando expedições pendentes...
-                </div>
+    <h2 style="text-align: center;">Agrupamento e Alocação de Cargas</h2>
+
+    <div id="availabilityInfo" class="availability-info">
+        <div class="availability-stat">
+            <div class="stat-number" id="availableVehicles">0</div>
+            <div class="stat-label">Veículos Disponíveis</div>
+        </div>
+        <div class="availability-stat">
+            <div class="stat-number" id="availableDrivers">0</div>
+            <div class="stat-label">Motoristas Disponíveis</div>
+        </div>
+    </div>
+    
+    <div class="transport-card" style="background: rgba(255, 255, 255, 0.9);">
+        <h3 style="color: var(--dark);">Cargas Disponíveis para Agrupamento</h3>
+        <div id="cargasDisponiveisList" class="loading">
+            <div class="spinner"></div>
+            Carregando cargas disponíveis...
+        </div>
+    </div>
+    
+    <div class="transport-card" style="margin-top: 20px;">
+        <h3>Montar Expedição</h3>
+        <div class="stats-grid" id="agrupamentoSummary" style="margin-bottom: 20px;">
+             <div class="stat-card" style="background: var(--secondary-gradient);">
+                <div class="stat-number" id="summaryLojas">0</div>
+                <div class="stat-label">Lojas Selecionadas</div>
             </div>
+             <div class="stat-card">
+                <div class="stat-number" id="summaryPallets">0</div>
+                <div class="stat-label">Total Pallets</div>
+            </div>
+             <div class="stat-card" style="background: var(--accent-gradient);">
+                <div class="stat-number" id="summaryRolls">0</div>
+                <div class="stat-label">Total RollTrainers</div>
+            </div>
+             <div class="stat-card" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
+                <div class="stat-number" id="summaryCargaTotal">0</div>
+                <div class="stat-label">Carga Total (em Pallets)</div>
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="alocar_veiculoSelect">Selecione o Veículo:</label>
+                <select id="alocar_veiculoSelect" required></select>
+            </div>
+            <div class="form-group">
+                <label for="alocar_motoristaSelect">Selecione o Motorista:</label>
+                <select id="alocar_motoristaSelect" required></select>
+            </div>
+        </div>
+         <div class="form-group">
+             <label for="alocar_observacoes">Observações da Expedição:</label>
+             <textarea id="alocar_observacoes" placeholder="Observações gerais para a viagem..."></textarea>
+         </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="agruparEAlocar()">Agrupar e Alocar Transporte</button>
+        </div>
+    </div>
+</div>
 
             <div id="faturamento" class="tab-content">
                 <h2 style="text-align: center;">Controle de Faturamento</h2>
@@ -2540,7 +2577,14 @@
                 showAlert('operacaoAlert', 'Erro ao carregar dados: ' + error.message, 'error');
             }
         }
-
+// ADICIONE ESTE BLOCO DENTRO DA FUNÇÃO populateSelects
+const lancarLiderSelect = document.getElementById('lancar_liderSelect');
+if (lancarLiderSelect) {
+    lancarLiderSelect.innerHTML = '<option value="">Selecione um líder</option>';
+    lideres.forEach(lider => {
+        lancarLiderSelect.innerHTML += `<option value="${lider.id}">${lider.nome}</option>`;
+    });
+}
         // Popular select de loja individual
         function populateLojaSelect(selectElement) {
             selectElement.innerHTML = '<option value="">Selecione uma loja</option>';
@@ -2588,50 +2632,7 @@
             }
         }
 
-        // Adicionar nova linha de loja
-        function addLojaLine() {
-            lojaLineCounter++;
-            const container = document.getElementById('lojasContainer');
-
-            const newLine = document.createElement('div');
-            newLine.className = 'loja-line';
-            newLine.setAttribute('data-index', lojaLineCounter);
-
-            newLine.innerHTML = `
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Loja:</label>
-                    <select class="loja-select" required>
-                        <option value="">Selecione uma loja</option>
-                    </select>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Pallets:</label>
-                    <input type="number" class="pallets-input" min="0" required>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>RollTrainers:</label>
-                    <input type="number" class="rolltrainers-input" min="0" required>
-                </div>
-                <div style="display: flex; align-items: center; height: 48px; gap: 8px;">
-                    <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
-                    <button type="button" class="btn btn-danger btn-small" onclick="removeLojaLine(${lojaLineCounter})" style="padding: 12px; border-radius: 8px;">-</button>
-                </div>
-            `;
-
-            container.appendChild(newLine);
-            populateLojaSelect(newLine.querySelector('.loja-select'));
-            debugLog.add(`Nova linha de loja adicionada (índice: ${lojaLineCounter})`, 'info');
-        }
-
-        // Remover linha de loja
-        function removeLojaLine(index) {
-            const line = document.querySelector(`[data-index="${index}"]`);
-            if (line) {
-                line.remove();
-                debugLog.add(`Linha de loja removida (índice: ${index})`, 'info');
-            }
-        }
-
+      
         // Mostrar abas (só funciona se filial estiver selecionada)
         async function showTab(tabName) {
             if (!selectedFilial) {
@@ -2647,8 +2648,10 @@
 
             debugLog.add(`Navegando para aba: ${tabName}`, 'info');
 
-            if (tabName === 'transporte') {
-                loadTransportList();
+           if (tabName === 'operacao') {
+    // Carrega a lista de expedições que precisam de uma doca
+    loadAtribuicaoDoca();
+}
             } else if (tabName === 'faturamento') {
                 loadFaturamento();
             } else if (tabName === 'acompanhamento') {
@@ -2760,80 +2763,64 @@
             return true;
         }
 
-        // Salvar expedição única com múltiplos itens
-        async function saveExpedition(formData) {
-            if (!validateForm()) return;
-            
-            if (!selectedFilial) {
-                showAlert('operacaoAlert', 'Erro: Nenhuma filial selecionada', 'error');
-                return;
-            }
+     // ADICIONE ESTA NOVA FUNÇÃO NO LUGAR DAS TRÊS REMOVIDAS
+async function lancarCarga() {
+    const lojaId = document.getElementById('lancar_lojaSelect').value;
+    const pallets = parseInt(document.getElementById('lancar_palletsInput').value);
+    const rolltrainers = parseInt(document.getElementById('lancar_rolltrainersInput').value);
+    const liderId = document.getElementById('lancar_liderSelect').value;
+    const observacoes = document.getElementById('lancar_observacoes').value;
 
-            try {
-                const dataHoraLancamento = new Date().toISOString();
-                const lojaLines = document.querySelectorAll('.loja-line');
+    if (!lojaId || !liderId || (isNaN(pallets) && isNaN(rolltrainers))) {
+        showAlert('operacaoAlert', 'Preencha Loja, Líder e ao menos um tipo de carga!', 'error');
+        return;
+    }
+    if ((pallets < 0) || (rolltrainers < 0)) {
+        showAlert('operacaoAlert', 'As quantidades não podem ser negativas.', 'error');
+        return;
+    }
 
-                debugLog.add(`Criando expedição única para filial ${selectedFilial.nome} com ${lojaLines.length} lojas`, 'info');
+    try {
+        debugLog.add(`Lançando nova carga individual...`, 'info');
 
-                // 1. Criar a expedição principal
-                const expeditionData = {
-                    data_hora: dataHoraLancamento,
-                    doca_id: formData.docaId,
-                    lider_id: formData.liderId,
-                    observacoes: formData.observacoes || null,
-                    status: 'pendente',
-                    created_at: dataHoraLancamento
-                    // filial será adicionada automaticamente pela função supabaseRequest
-                };
-
-                const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
-                const expeditionId = expeditionResponse[0].id;
-
-                // 2. Criar os itens da expedição
-                const itemsData = [];
-                lojaLines.forEach((line, index) => {
-                    const lojaSelect = line.querySelector('.loja-select');
-                    const palletsInput = line.querySelector('.pallets-input');
-                    const rolltrainersInput = line.querySelector('.rolltrainers-input');
-
-                    const itemData = {
-                        expedition_id: expeditionId,
-                        loja_id: lojaSelect.value,
-                        pallets: parseInt(palletsInput.value),
-                        rolltrainers: parseInt(rolltrainersInput.value),
-                        status_descarga: 'pendente' // NOVO: status inicial da descarga
-                        // filial será adicionada automaticamente pela função supabaseRequest
-                    };
-
-                    itemsData.push(itemData);
-                });
-
-                const itemsPromises = itemsData.map(item => supabaseRequest('expedition_items', 'POST', item));
-                await Promise.all(itemsPromises);
-
-                const lojasResumo = itemsData.map(item => {
-                    const loja = lojas.find(l => l.id === item.loja_id);
-                    return `${loja ? loja.nome : 'Loja desconhecida'} (${item.pallets}P + ${item.rolltrainers}R)`;
-                }).join(', ');
-
-                const totalPallets = itemsData.reduce((sum, item) => sum + item.pallets, 0);
-                const totalRolltrainers = itemsData.reduce((sum, item) => sum + item.rolltrainers, 0);
-
-                showAlert('operacaoAlert',
-                    `Expedição criada com sucesso para ${selectedFilial.nome}!<br>
-                    <strong>Lojas (${itemsData.length}):</strong> ${lojasResumo}<br>
-                    <strong>Total:</strong> ${totalPallets} pallets + ${totalRolltrainers} rolltrainers`, 'success');
-
-                showNotification(`Expedição criada para ${itemsData.length} lojas na filial ${selectedFilial.nome}!`, 'success');
-                resetMultiLojaForm();
-
-            } catch (error) {
-                console.error('Erro ao salvar expedição:', error);
-                debugLog.add(`Erro ao salvar expedição: ${error.message}`, 'error');
-                showAlert('operacaoAlert', `Erro: ${error.message}`, 'error');
-            }
+        // 1. Cria uma "casca" de expedição com status 'aguardando_agrupamento'
+        // Esta expedição representa uma carga disponível.
+        const expeditionData = {
+            data_hora: new Date().toISOString(),
+            lider_id: liderId,
+            observacoes: observacoes || null,
+            status: 'aguardando_agrupamento',
+            // O filial é adicionado automaticamente pelo supabaseRequest
+        };
+        const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
+        if (!expeditionResponse || expeditionResponse.length === 0) {
+            throw new Error('Falha ao criar a pré-expedição.');
         }
+        const newExpeditionId = expeditionResponse[0].id;
 
+        // 2. Cria o item (a carga em si) e o associa à "casca"
+        const itemData = {
+            expedition_id: newExpeditionId,
+            loja_id: lojaId,
+            pallets: pallets || 0,
+            rolltrainers: rolltrainers || 0,
+            status_descarga: 'pendente'
+        };
+        await supabaseRequest('expedition_items', 'POST', itemData);
+        
+        const lojaNome = lojas.find(l => l.id === lojaId)?.nome || 'Loja';
+        showNotification(`Carga para ${lojaNome} lançada e disponível para alocação!`, 'success');
+        
+        // Limpa o formulário para o próximo lançamento
+        document.getElementById('expeditionForm').reset();
+        document.getElementById('lancar_lojaSelect').focus();
+        
+    } catch (error) {
+        console.error('Erro ao lançar carga:', error);
+        debugLog.add(`Erro ao lançar carga: ${error.message}`, 'error');
+        showAlert('operacaoAlert', `Erro: ${error.message}`, 'error');
+    }
+}
         // Resetar formulário de múltiplas lojas
         function resetMultiLojaForm() {
             document.getElementById('docaSelect').value = '';
@@ -3482,189 +3469,42 @@ async function showYesNoModal(message) {
         modal.style.display = 'flex';
     });
 }
-        // Carregar transporte
-        async function loadTransportList() {
-            if (!selectedFilial) {
-                document.getElementById('transporteList').innerHTML = 
-                    '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
-                return;
-            }
+      
 
-            try {
-                debugLog.add(`Carregando expedições para transporte da filial: ${selectedFilial.nome}`, 'info');
-
-                const expeditions = await supabaseRequest("expeditions?status=in.(pendente,aguardando_veiculo,em_carregamento)&order=data_hora.desc");
-                const items = await supabaseRequest('expedition_items');
-                
-                const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
-                const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
-                document.getElementById('availableVehicles').textContent = availableVehicles;
-                document.getElementById('availableDrivers').textContent = availableDrivers;
-
-                const expeditionsWithItems = expeditions.map(exp => {
-                    const expItems = items.filter(item => item.expedition_id === exp.id);
-
-                    const doca = docas.find(d => d.id === exp.doca_id);
-                    const lider = lideres.find(l => l.id === exp.lider_id);
-                    const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
-                    const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
-
-                    return {
-                        ...exp,
-                        items: expItems,
-                        total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
-                        total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
-                        lojas_count: expItems.length,
-                        lojas_info: expItems.map(item => {
-                            const loja = lojas.find(l => l.id === item.loja_id);
-                            return loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'Loja N/A';
-                        }).join(', '),
-                        doca_nome: doca ? doca.nome : null,
-                        lider_nome: lider ? lider.nome : null,
-                        veiculo_placa: veiculo ? veiculo.placa : null,
-                        veiculo_modelo: veiculo ? veiculo.modelo : null,
-                        motorista_nome: motorista ? motorista.nome : null,
-                        veiculo_capacidade: veiculo ? veiculo.capacidade_pallets : 0
-                    };
-                });
-                
-                allExpeditions = expeditionsWithItems;
-                renderTransportList(expeditionsWithItems, veiculos, motoristas);
-                debugLog.add(`${expeditionsWithItems.length} expedições carregadas para transporte`, 'success');
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                debugLog.add(`Erro ao carregar transporte: ${error.message}`, 'error');
-                document.getElementById('transporteList').innerHTML =
-                    `<div class="alert alert-error">Erro: ${error.message}</div>`;
-            }
-        }
-
-        // SUBSTITUA SUA FUNÇÃO ANTIGA POR ESTA VERSÃO CORRIGIDA
-function renderTransportList(expeditionsList, veiculosList, motoristasList) {
-    const container = document.getElementById('transporteList');
-
-    if (expeditionsList.length === 0) {
-        container.innerHTML = '<div class="alert alert-success">Nenhuma expedição pendente de alocação!</div>';
+ // REMOVA A FUNÇÃO ANTIGA E INCLUA ESTA
+async function loadTransportList() {
+    if (!selectedFilial) {
+        document.getElementById('cargasDisponiveisList').innerHTML =
+            '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
         return;
     }
 
-    let html = '';
-    expeditionsList.forEach(exp => {
-        const temVeiculo = exp.veiculo_id || exp.veiculo_placa;
-        const temMotorista = exp.motorista_id || exp.motorista_nome;
+    try {
+        debugLog.add(`Carregando cargas para agrupamento da filial: ${selectedFilial.nome}`, 'info');
 
-        const podeAlterarTransporte = !['em_carregamento', 'carregado', 'saiu_para_entrega', 'entregue'].includes(exp.status);
+        const expeditions = await supabaseRequest("expeditions?status=eq.aguardando_agrupamento&order=data_hora.asc");
+        const items = await supabaseRequest('expedition_items');
+        
+        const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
+        const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
+        document.getElementById('availableVehicles').textContent = availableVehicles;
+        document.getElementById('availableDrivers').textContent = availableDrivers;
 
-        const criadaEm = new Date(exp.data_hora || exp.created_at);
-        const agora = new Date();
-        const tempoEspera = Math.round((agora - criadaEm) / 60000);
-        const tempoEsperaTexto = tempoEspera < 60 ? `${tempoEspera} min` : `${Math.floor(tempoEspera/60)}h ${tempoEspera%60}min`;
-
-        const lojasInfo = exp.lojas_info || 'N/A';
-        const totalPallets = exp.total_pallets || 0;
-        const totalRolltrainers = exp.total_rolltrainers || 0;
-        const quantidadeLojas = exp.lojas_count || 0;
-
-        const cargaTotalNecessaria = totalPallets + (totalRolltrainers / 2);
-
-        html += `
-            <div class="transport-card">
-                <h3>Expedição - ${quantidadeLojas} loja${quantidadeLojas > 1 ? 's' : ''}</h3>
-                <div style="color: var(--secondary); font-weight: 600; margin-bottom: 10px;">${lojasInfo}</div>
-
-                <div class="time-display ${tempoEspera > 60 ? 'warning' : tempoEspera > 120 ? 'danger' : 'good'}">
-                    <strong>Aguardando há:</strong> ${tempoEsperaTexto} (desde ${criadaEm.toLocaleString('pt-BR')})
-                </div>
-
-                <div class="transport-grid">
-                    <div><strong>Pallets:</strong> <span style="color: var(--primary); font-weight: 700; font-size: 1.1rem;">${totalPallets}</span></div>
-                    <div><strong>RollTrainers:</strong> <span style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">${totalRolltrainers}</span></div>
-                    <div><strong>Carga (Pallets):</strong> ${Math.ceil(cargaTotalNecessaria)}</div>
-                    <div><strong>Doca:</strong> ${exp.doca_nome || 'N/A'}</div>
-                    <div><strong>Líder:</strong> ${exp.lider_nome || 'N/A'}</div>
-                    <div><strong>Status:</strong> <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></div>
-                </div>
-
-                ${temVeiculo && temMotorista ? `
-                <div style="background: rgba(0, 212, 170, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid rgba(0, 212, 170, 0.3);">
-                    <h4 style="color: var(--dark); margin-bottom: 15px;">Transporte Alocado:</h4>
-                    <div class="transport-grid">
-                        <div><strong>Veículo:</strong> ${exp.veiculo_placa || 'N/A'} - ${exp.veiculo_modelo || 'N/A'}</div>
-                        <div><strong>Motorista:</strong> ${exp.motorista_nome || 'N/A'}</div>
-                        <div><strong>Alocado em:</strong> ${exp.data_alocacao_veiculo ? new Date(exp.data_alocacao_veiculo).toLocaleString('pt-BR') : 'N/A'}</div>
-                    </div>
-                </div>
-                ${podeAlterarTransporte ? `
-                    <div style="text-align: center;">
-                        <button class="btn btn-primary" onclick="showReallocateForm('${exp.id}')">Alterar Transporte</button>
-                    </div>
-                ` : `
-                    <div style="text-align: center; padding: 12px; background: rgba(247, 127, 0, 0.1); border-radius: 8px; border: 1px solid #F77F00;">
-                        <span style="color: #F77F00; font-weight: 600; font-size: 0.9rem;">
-                            🔒 Transporte não pode ser alterado - Carga em ${getStatusLabel(exp.status)}
-                        </span>
-                    </div>
-                `}
-                ` : `
-                <div class="transport-actions">
-                    <div class="form-group">
-                        <label>Veículo:</label>
-                        <select id="veiculo_${exp.id}">
-                            <option value="">Selecione um veículo</option>
-                            ${veiculosList.filter(v => v.status === 'disponivel').map(v => {
-                                const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
-                                const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
-                                return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                            ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                        </option>`;
-                            }).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Motorista:</label>
-                        <select id="motorista_${exp.id}">
-                            <option value="">Selecione um motorista</option>
-                            ${motoristasList.filter(m => m.status === 'disponivel').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
-                        </select>
-                    </div>
-                    <button class="btn btn-success" onclick="allocateTransport('${exp.id}')">Alocar Agora</button>
-                </div>
-                `}
-
-                <div id="reallocate_${exp.id}" style="display: none; background: rgba(247, 127, 0, 0.1); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #F77F00;">
-                    <h4 style="color: var(--dark); margin-bottom: 15px;">Alterar Transporte:</h4>
-                    <div class="transport-actions">
-                        <div class="form-group">
-                            <label>Novo Veículo:</label>
-                            <select id="new_veiculo_${exp.id}">
-                                <option value="">Selecione um veículo</option>
-                                ${veiculosList.map(v => {
-                                    const isCompatible = (v.capacidade_pallets || 0) >= cargaTotalNecessaria;
-                                    const colorClass = isCompatible ? 'background: rgba(0, 212, 170, 0.1); color: var(--dark);' : 'background: rgba(214, 40, 40, 0.1); color: #D62828;';
-                                    return `<option value="${v.id}" style="${colorClass}" ${!isCompatible ? 'disabled' : ''}>
-                                                ${isCompatible ? '✅' : '⚠️'} ${v.placa} - ${v.modelo} (${v.capacidade_pallets || 0} pallets)
-                                            </option>`;
-                                }).join('')}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Novo Motorista:</label>
-                            <select id="new_motorista_${exp.id}">
-                                <option value="">Selecione um motorista</option>
-                                ${motoristasList.map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div>
-                            <button class="btn btn-success" onclick="reallocateTransport('${exp.id}')">Confirmar Alteração</button>
-                            <button class="btn btn-danger" onclick="hideReallocateForm('${exp.id}')" style="margin-left: 10px;">Cancelar</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    container.innerHTML = html;
+        const expeditionsWithItems = expeditions.map(exp => {
+            return { ...exp, items: items.filter(item => item.expedition_id === exp.id) };
+        }).filter(exp => exp.items.length > 0); // Garante que só mostre pré-expedições com itens
+        
+        renderCargasDisponiveis(expeditionsWithItems, veiculos, motoristas);
+        atualizarResumoAgrupamento(); // Zera o resumo inicial
+        
+        debugLog.add(`${expeditionsWithItems.length} cargas carregadas para transporte`, 'success');
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        debugLog.add(`Erro ao carregar transporte: ${error.message}`, 'error');
+        document.getElementById('cargasDisponiveisList').innerHTML =
+            `<div class="alert alert-error">Erro: ${error.message}</div>`;
+    }
 }
 
         // Mostrar/ocultar formulários de realocação
@@ -3698,136 +3538,157 @@ function renderTransportList(expeditionsList, veiculosList, motoristasList) {
                 }
             });
         }
+// ADICIONE ESTAS NOVAS FUNÇÕES NO LUGAR DAS ANTIGAS
 
-        // Alocar transporte
-      async function allocateTransport(expeditionId) {
-          if (allocatingTransports.has(expeditionId)) {
-              showNotification('Aguarde! Alocação já está sendo processada...', 'warning');
-              return;
-          }
+// Guarda as cargas carregadas para uso nos cálculos
+let cargasDisponiveis = [];
 
-          const veiculoSelect = document.getElementById(`veiculo_${expeditionId}`);
-          const motoristaSelect = document.getElementById(`motorista_${expeditionId}`);
-          const allocateButton = document.querySelector(`button[onclick="allocateTransport('${expeditionId}')"]`);
+function renderCargasDisponiveis(cargas, veiculosList, motoristasList) {
+    const container = document.getElementById('cargasDisponiveisList');
+    cargasDisponiveis = cargas; // Armazena globalmente na aba
 
-          if (!veiculoSelect || !motoristaSelect) {
-              showNotification('Erro: Elementos do formulário não encontrados', 'error');
-              return;
-          }
+    if (cargas.length === 0) {
+        container.innerHTML = '<div class="alert alert-success">Nenhuma carga aguardando agrupamento!</div>';
+        return;
+    }
 
-          const veiculoId = veiculoSelect.value;
-          const motoristaId = motoristaSelect.value;
+    let html = '<div class="form-grid" style="gap: 8px;">';
+    cargas.forEach(carga => {
+        const loja = lojas.find(l => l.id === carga.items[0].loja_id);
+        html += `
+            <div class="form-group" style="background: rgba(144, 224, 239, 0.1); padding: 10px; border-radius: 8px;">
+                <label for="carga_${carga.id}" style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="carga_${carga.id}" value="${carga.id}" onchange="atualizarResumoAgrupamento()" style="margin-right: 10px; width: 20px; height: 20px;">
+                    <div>
+                        <strong>${loja ? loja.nome : 'N/A'}</strong><br>
+                        <span style="font-size: 0.8rem;">
+                            ${carga.items[0].pallets}P + ${carga.items[0].rolltrainers}R | Lançado em: ${new Date(carga.data_hora).toLocaleTimeString('pt-BR')}
+                        </span>
+                    </div>
+                </label>
+            </div>
+        `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
 
-          if (!veiculoId || !motoristaId) {
-              showNotification('Por favor, selecione um veículo e um motorista!', 'error');
-              return;
-          }
+    // Popula selects de alocação
+    const veiculoSelect = document.getElementById('alocar_veiculoSelect');
+    veiculoSelect.innerHTML = '<option value="">Selecione...</option>';
+    veiculosList.filter(v => v.status === 'disponivel').forEach(v => {
+        veiculoSelect.innerHTML += `<option value="${v.id}">${v.placa} - ${v.modelo} (Cap: ${v.capacidade_pallets}P)</option>`;
+    });
 
-          allocatingTransports.add(expeditionId);
-          
-          if (allocateButton) {
-              allocateButton.disabled = true;
-              allocateButton.textContent = 'Alocando...';
-              allocateButton.style.opacity = '0.6';
-          }
+    const motoristaSelect = document.getElementById('alocar_motoristaSelect');
+    motoristaSelect.innerHTML = '<option value="">Selecione...</option>';
+    motoristasList.filter(m => m.status === 'disponivel').forEach(m => {
+        motoristaSelect.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+    });
+}
 
-          veiculoSelect.disabled = true;
-          motoristaSelect.disabled = true;
+function atualizarResumoAgrupamento() {
+    const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
+    let totalLojas = 0;
+    let totalPallets = 0;
+    let totalRolls = 0;
 
-          try {
-              const selectedVehicle = veiculos.find(v => v.id === veiculoId);
-              const expedition = allExpeditions.find(e => e.id === expeditionId);
-              
-              if (!selectedVehicle || !expedition) {
-                  throw new Error('Veículo ou expedição não encontrados');
-              }
+    checkboxes.forEach(cb => {
+        const carga = cargasDisponiveis.find(c => c.id === cb.value);
+        if (carga) {
+            totalLojas++;
+            totalPallets += carga.items[0].pallets;
+            totalRolls += carga.items[0].rolltrainers;
+        }
+    });
 
-              const cargaTotalNecessaria = expedition.total_pallets + (expedition.total_rolltrainers / 2);
-              
-              if (selectedVehicle.capacidade_pallets < cargaTotalNecessaria) {
-                  throw new Error(`Veículo não tem capacidade suficiente. Necessário: ${Math.ceil(cargaTotalNecessaria)} pallets. Capacidade: ${selectedVehicle.capacidade_pallets}`);
-              }
+    const cargaTotal = totalPallets + (totalRolls / 2);
 
-              const dataAlocacao = new Date().toISOString();
-              debugLog.add(`Iniciando alocação de transporte para expedição ${expeditionId}`, 'info');
+    document.getElementById('summaryLojas').textContent = totalLojas;
+    document.getElementById('summaryPallets').textContent = totalPallets;
+    document.getElementById('summaryRolls').textContent = totalRolls;
+    document.getElementById('summaryCargaTotal').textContent = cargaTotal.toFixed(1);
 
-              const expeditionUpdateData = {
-                  veiculo_id: veiculoId,
-                  motorista_id: motoristaId,
-                  status: 'aguardando_veiculo',
-                  data_alocacao_veiculo: dataAlocacao
-              };
+    // Sugere o melhor veículo
+    const veiculoSelect = document.getElementById('alocar_veiculoSelect');
+    for (const option of veiculoSelect.options) {
+        const veiculoId = option.value;
+        if(veiculoId){
+            const veiculo = veiculos.find(v => v.id === veiculoId);
+            if(veiculo && veiculo.capacidade_pallets >= cargaTotal){
+                 option.style.backgroundColor = 'rgba(0, 212, 170, 0.2)';
+            } else {
+                 option.style.backgroundColor = 'transparent';
+            }
+        }
+    }
+}
 
-              await supabaseRequestWithTimeout(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdateData, 30000, false);
-              debugLog.add('Expedição atualizada com sucesso', 'success');
-              
-              await logAction('ALOCAÇÃO TRANSPORTE', `Expedição ID ${expeditionId} alocada ao veículo ID ${veiculoId} e motorista ID ${motoristaId}.`);
+async function agruparEAlocar() {
+    const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
+    const veiculoId = document.getElementById('alocar_veiculoSelect').value;
+    const motoristaId = document.getElementById('alocar_motoristaSelect').value;
+    const observacoes = document.getElementById('alocar_observacoes').value;
 
-              const secondaryOperations = [];
+    if (checkboxes.length === 0) {
+        showNotification('Selecione pelo menos uma carga para agrupar!', 'error');
+        return;
+    }
+    if (!veiculoId || !motoristaId) {
+        showNotification('Selecione um veículo e um motorista!', 'error');
+        return;
+    }
 
-              // Atualiza o status do veículo para 'em_uso' E registra no histórico
-            secondaryOperations.push(
-                supabaseRequestWithTimeout(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, 10000, false)
-                    .then(async () => {
-                        debugLog.add('Status do veículo atualizado', 'success');
-                        const historyData = {
-                            veiculo_id: veiculoId,
-                            status_anterior: 'disponivel', // Assumimos que estava disponível
-                            status_novo: 'em_uso',
-                            filial: selectedFilial.nome
-                        };
-                        await supabaseRequest('veiculos_status_historico', 'POST', historyData, false);
-                    })
-                    .catch(error => debugLog.add(`Aviso: Erro ao atualizar veículo: ${error.message}`, 'warning'))
-            );
+    const idsDasCargas = Array.from(checkboxes).map(cb => cb.value);
 
-              secondaryOperations.push(
-                  supabaseRequestWithTimeout(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, 10000, false)
-                      .then(() => debugLog.add('Status do motorista atualizado', 'success'))
-                      .catch(error => debugLog.add(`Aviso: Erro ao atualizar motorista: ${error.message}`, 'warning'))
-              );
+    try {
+        debugLog.add(`Iniciando agrupamento de ${idsDasCargas.length} cargas.`, 'info');
 
-              await Promise.allSettled(secondaryOperations.map(op => 
-                  Promise.race([op, new Promise((_, reject) => 
-                      setTimeout(() => reject(new Error('Timeout secundário')), 10000)
-                  )])
-              ));
+        // 1. Criar a nova expedição "mãe"
+        const newExpeditionData = {
+            data_hora: new Date().toISOString(),
+            status: 'aguardando_doca', // NOVO STATUS! A expedição agora precisa de uma doca.
+            veiculo_id: veiculoId,
+            motorista_id: motoristaId,
+            data_alocacao_veiculo: new Date().toISOString(),
+            observacoes: observacoes || null
+        };
+        const newExpeditionResponse = await supabaseRequest('expeditions', 'POST', newExpeditionData);
+        const newExpeditionId = newExpeditionResponse[0].id;
+        
+        // 2. Mover os itens das cargas antigas para a nova expedição
+        const itemsToUpdate = cargasDisponiveis
+            .filter(c => idsDasCargas.includes(c.id))
+            .map(c => c.items[0].id);
+        
+        await supabaseRequest(`expedition_items?id=in.(${itemsToUpdate.join(',')})`, 'PATCH', {
+            expedition_id: newExpeditionId
+        });
 
-              debugLog.add(`Transporte alocado com sucesso às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}`, 'success');
-              showNotification(`Transporte alocado às ${new Date(dataAlocacao).toLocaleTimeString('pt-BR')}!`, 'success');
+        // 3. Deletar as "cascas" das expedições antigas
+        await supabaseRequest(`expeditions?id=in.(${idsDasCargas.join(',')})`, 'DELETE');
 
-              try {
-                  await Promise.all([
-                      loadSelectData(),
-                      loadTransportList()
-                  ]);
-              } catch (reloadError) {
-                  debugLog.add(`Aviso: Erro ao recarregar dados: ${reloadError.message}`, 'warning');
-                  setTimeout(loadTransportList, 2000);
-              }
+        // 4. Atualizar status do veículo e motorista
+        await Promise.all([
+            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
+            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false)
+        ]);
 
-          } catch (error) {
-              console.error('Erro ao alocar transporte:', error);
-              debugLog.add(`Erro ao alocar transporte: ${error.message}`, 'error');
-              showNotification(`Erro: ${error.message}`, 'error');
-              setTimeout(() => {
-                  loadTransportList();
-              }, 2000);
+        showNotification('Expedição montada e alocada com sucesso! Aguardando atribuição de doca.', 'success');
+        
+        // Limpa o formulário de alocação
+        document.getElementById('alocar_veiculoSelect').value = '';
+        document.getElementById('alocar_motoristaSelect').value = '';
+        document.getElementById('alocar_observacoes').value = '';
+        
+        loadTransportList(); // Recarrega a lista de cargas disponíveis
 
-          } finally {
-              allocatingTransports.delete(expeditionId);
-              
-              if (allocateButton) {
-                  allocateButton.disabled = false;
-                  allocateButton.textContent = 'Alocar Agora';
-                  allocateButton.style.opacity = '1';
-              }
-              
-              if (veiculoSelect) veiculoSelect.disabled = false;
-              if (motoristaSelect) motoristaSelect.disabled = false;
-          }
-      }
-        // Realocar transporte
+    } catch (error) {
+        console.error('Erro ao agrupar e alocar:', error);
+        debugLog.add(`Erro ao agrupar: ${error.message}`, 'error');
+        showNotification(`Erro ao agrupar: ${error.message}`, 'error');
+    }
+}
+      
         // Realocar transporte
          async function reallocateTransport(expeditionId) {
              if (allocatingTransports.has(expeditionId)) {
@@ -5758,22 +5619,11 @@ DESENVOLVIDO POR: JP Tech Solutions
             // Event listener para o formulário de expedição
             const expeditionForm = document.getElementById('expeditionForm');
             if (expeditionForm) {
-                expeditionForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-
-                    if (!selectedFilial) {
-                        showAlert('operacaoAlert', 'Selecione uma filial primeiro!', 'error');
-                        return;
-                    }
-
-                    const formData = {
-                        docaId: document.getElementById('docaSelect').value,
-                        liderId: document.getElementById('liderSelect').value,
-                        observacoes: document.getElementById('observacoes').value
-                    };
-
-                    saveExpedition(formData);
-                });
+                // INCLUA ESTE NO LUGAR
+expeditionForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    lancarCarga(); // Chama a nova função de lançamento
+});
             }
 
         // COLE ESTE BLOCO INTEIRO NO LUGAR DA SUA FUNÇÃO DE LOGIN ATUAL
@@ -6728,6 +6578,108 @@ function showSubTab(tabName, subTabName) {
         renderVeiculosConfig();
     } else if (subTabName === 'motoristasConfig') {
         renderMotoristasConfig();
+    }
+}
+        // ADICIONE ESTAS TRÊS NOVAS FUNÇÕES AO SEU SCRIPT
+
+async function loadAtribuicaoDoca() {
+    try {
+        const container = document.getElementById('atribuicaoDocaList');
+        container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando...</div>`;
+
+        const expeditions = await supabaseRequest("expeditions?status=eq.aguardando_doca&order=data_alocacao_veiculo.asc");
+        const items = await supabaseRequest('expedition_items');
+
+        const expeditionsWithDetails = expeditions.map(exp => {
+            const expItems = items.filter(item => item.expedition_id === exp.id);
+            const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+            const motorista = motoristas.find(m => m.id === exp.motorista_id);
+            return {
+                ...exp,
+                items: expItems,
+                lojas_count: expItems.length,
+                total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
+                total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
+                veiculo_placa: veiculo ? veiculo.placa : 'N/A',
+                motorista_nome: motorista ? motorista.nome : 'N/A'
+            };
+        });
+
+        renderAtribuicaoDoca(expeditionsWithDetails);
+
+    } catch (error) {
+        debugLog.add(`Erro ao carregar atribuições de doca: ${error.message}`, 'error');
+        document.getElementById('atribuicaoDocaList').innerHTML = `<div class="alert alert-error">Erro ao carregar: ${error.message}</div>`;
+    }
+}
+
+function renderAtribuicaoDoca(expeditions) {
+    const container = document.getElementById('atribuicaoDocaList');
+    if (expeditions.length === 0) {
+        container.innerHTML = '<div class="alert alert-success">Nenhuma expedição aguardando doca.</div>';
+        return;
+    }
+
+    const docasDisponiveis = docas.filter(d => d.status === 'disponivel');
+
+    let html = '';
+    expeditions.forEach(exp => {
+        const alocadoEm = new Date(exp.data_alocacao_veiculo);
+        html += `
+            <div class="transport-card">
+                <div class="transport-grid">
+                    <div><strong>Veículo:</strong> ${exp.veiculo_placa}</div>
+                    <div><strong>Motorista:</strong> ${exp.motorista_nome}</div>
+                    <div><strong>Lojas:</strong> ${exp.lojas_count}</div>
+                    <div><strong>Carga:</strong> ${exp.total_pallets}P + ${exp.total_rolltrainers}R</div>
+                    <div><strong>Alocado em:</strong> ${alocadoEm.toLocaleTimeString('pt-BR')}</div>
+                </div>
+                <div class="transport-actions" style="margin-top: 15px;">
+                    <div class="form-group">
+                        <label for="doca_${exp.id}">Atribuir Doca:</label>
+                        <select id="doca_${exp.id}">
+                            <option value="">Selecione a doca</option>
+                            ${docasDisponiveis.map(d => `<option value="${d.id}">${d.nome}</option>`).join('')}
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="atribuirDoca('${exp.id}')">Confirmar Doca</button>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+async function atribuirDoca(expeditionId) {
+    const docaSelect = document.getElementById(`doca_${expeditionId}`);
+    const docaId = docaSelect.value;
+
+    if (!docaId) {
+        showNotification('Por favor, selecione uma doca!', 'error');
+        return;
+    }
+
+    try {
+        debugLog.add(`Atribuindo doca ${docaId} para expedição ${expeditionId}`, 'info');
+
+        await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+            doca_id: docaId,
+            status: 'aguardando_veiculo' // Agora sim, o motorista pode se dirigir à doca
+        });
+
+        // Ocupa a doca
+        await supabaseRequest(`docas?id=eq.${docaId}`, 'PATCH', { status: 'em_uso' });
+
+        showNotification('Doca atribuída com sucesso! Motorista notificado.', 'success');
+        
+        // Recarrega as listas
+        loadAtribuicaoDoca();
+        await loadSelectData(); // Para atualizar a lista de docas disponíveis
+
+    } catch (error) {
+        console.error('Erro ao atribuir doca:', error);
+        debugLog.add(`Erro ao atribuir doca: ${error.message}`, 'error');
+        showNotification(`Erro: ${error.message}`, 'error');
     }
 }
         console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.3 carregado com sucesso!');
