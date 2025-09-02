@@ -3498,29 +3498,30 @@ async function loadTransportList() {
             `<div class="alert alert-error">Erro: ${error.message}</div>`;
     }
 }
-        function renderTransportList(cargasList, veiculosList, motoristasList)  {
+        // Substitua sua função antiga `renderTransportList` por esta versão
+function renderTransportList(cargasList, veiculosList, motoristasList) {
     const container = document.getElementById('transporteList');
     const actionsContainer = document.getElementById('transporteActions');
 
-    document.getElementById('availableVehicles').textContent = availableVehicles;
-    document.getElementById('availableDrivers').textContent = availableDrivers;
-
+    // A VISUALIZAÇÃO FOI REMOVIDA DAQUI
+    // Agora o foco é em selecionar cargas para criar uma expedição
+    
     if (cargasList.length === 0) {
         container.innerHTML = '<div class="alert alert-success">Nenhuma carga disponível para alocação!</div>';
         actionsContainer.style.display = 'none';
         return;
     }
-
-    actionsContainer.style.display = 'block';
     
-    // Popula os selects do novo formulário de transporte
+    actionsContainer.style.display = 'block';
+
+    // Popula os selects do formulário de criação de expedição
     const veiculoSelect = document.getElementById('transporteVehiculoSelect');
     veiculoSelect.innerHTML = '<option value="">Selecione um veículo</option>' + 
-        veiculos.filter(v => v.status === 'disponivel').map(v => `<option value="${v.id}">${v.placa} - ${v.modelo} (${v.capacidade_pallets} pallets)</option>`).join('');
+        veiculosList.filter(v => v.status === 'disponivel').map(v => `<option value="${v.id}">${v.placa} - ${v.modelo} (${v.capacidade_pallets} pallets)</option>`).join('');
 
     const motoristaSelect = document.getElementById('transporteMotoristaSelect');
     motoristaSelect.innerHTML = '<option value="">Selecione um motorista</option>' + 
-        motoristas.filter(m => m.status === 'disponivel').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('');
+        motoristasList.filter(m => m.status === 'disponivel').map(m => `<option value="${m.id}">${m.nome} - PRODUTIVO: ${m.PRODUTIVO || 'N/A'}</option>`).join('');
 
     const docaSelect = document.getElementById('transporteDocaSelect');
     docaSelect.innerHTML = '<option value="">Selecione a doca</option>' + 
@@ -3529,6 +3530,7 @@ async function loadTransportList() {
     let html = '<h3 style="text-align: center; color: var(--dark); margin-bottom: 15px;">Cargas Disponíveis</h3>';
     html += '<p style="text-align: center; color: #666; margin-bottom: 20px;">Selecione as cargas para agrupar em uma expedição.</p>';
     
+    // Agora renderizamos a lista de cargas em uma tabela
     html += '<div class="table-container"><table style="width: 100%;"><thead><tr><th>Selecionar</th><th>Loja</th><th>Líder</th><th>Pallets</th><th>RollTrainers</th></tr></thead><tbody>';
 
     cargasList.forEach(carga => {
@@ -3549,7 +3551,7 @@ async function loadTransportList() {
     container.innerHTML = html;
 }
         
-// Substitua sua função antiga 'criarExpedicaoComCargas' por esta versão
+// Substitua sua função antiga `criarExpedicaoComCargas` por esta versão
 async function criarExpedicaoComCargas() {
     const selectedCargas = Array.from(document.querySelectorAll('.carga-checkbox:checked'))
         .map(cb => cb.getAttribute('data-carga-id'));
@@ -3581,11 +3583,14 @@ async function criarExpedicaoComCargas() {
 
         const novaExpedicao = await supabaseRequest('expeditions', 'POST', expedicaoData);
 
+        // Agora que temos o ID da nova expedição, atualizamos as cargas selecionadas
+        // O status é alterado para 'em_carregamento'
         await supabaseRequest(`expeditions?id=in.(${selectedCargas.join(',')})`, 'PATCH', {
             expedition_id_nova: novaExpedicao[0].id,
             status: 'em_carregamento'
         });
 
+        // Atualiza o status do veículo e motorista
         const promises = [
             supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }),
             supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' })
@@ -3602,7 +3607,7 @@ async function criarExpedicaoComCargas() {
     }
 }
         // SUBSTITUA SUA FUNÇÃO ANTIGA POR ESTA VERSÃO CORRIGIDA
-function renderTransportList(expeditionsList, veiculosList, motoristasList) {
+function (expeditionsList, veiculosList, motoristasList) {
     const container = document.getElementById('transporteList');
 
     if (expeditionsList.length === 0) {
