@@ -2652,7 +2652,7 @@
             debugLog.add(`Navegando para aba: ${tabName}`, 'info');
 
             if (tabName === 'transporte') {
-                loadTransportList();
+                await loadTransportList();
             } else if (tabName === 'faturamento') {
                 loadFaturamento();
             } else if (tabName === 'acompanhamento') {
@@ -3462,7 +3462,7 @@ async function showYesNoModal(message) {
        // VARIÁVEL GLOBAL PARA ARMAZENAR CARGAS DISPONÍVEIS
 let allCargas = [];
 
-// Substitua sua função 'loadTransportList' por esta versão
+// Substitua sua função `loadTransportList` inteira por este código
 async function loadTransportList() {
     if (!selectedFilial) {
         document.getElementById('transporteList').innerHTML =
@@ -3470,13 +3470,20 @@ async function loadTransportList() {
         return;
     }
 
+    // ADIÇÃO: Verifica se os dados auxiliares já foram carregados.
+    // Se não, carrega e aguarda.
+    if (veiculos.length === 0 || motoristas.length === 0 || docas.length === 0) {
+        debugLog.add('Dados de veículos, motoristas ou docas ausentes. Recarregando dados auxiliares...', 'info');
+        await loadSelectData();
+    }
+
     try {
         debugLog.add(`Carregando cargas pendentes para alocação na filial: ${selectedFilial.nome}`, 'info');
 
         // Busca todas as cargas avulsas com o status 'pendente'
         const cargas = await supabaseRequest("expeditions?status=eq.pendente&order=data_hora.desc");
-
-        // Conta veículos e motoristas disponíveis
+        
+        // As variáveis 'veiculos' e 'motoristas' agora já devem estar preenchidas
         const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
         const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
 
