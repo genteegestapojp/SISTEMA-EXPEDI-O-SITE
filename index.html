@@ -3488,7 +3488,7 @@ async function loadTransportList() {
         const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
 
         allCargas = cargas;
-        renderTransportList(cargas, availableVehicles, availableDrivers);
+        renderTransportList(cargas, veiculos, motoristas);;
         debugLog.add(`${cargas.length} cargas pendentes carregadas para transporte`, 'success');
 
     } catch (error) {
@@ -3498,7 +3498,7 @@ async function loadTransportList() {
             `<div class="alert alert-error">Erro: ${error.message}</div>`;
     }
 }
-        function renderTransportList(cargasList, availableVehicles, availableDrivers) {
+        function renderTransportList(cargasList, veiculosList, motoristasList)  {
     const container = document.getElementById('transporteList');
     const actionsContainer = document.getElementById('transporteActions');
 
