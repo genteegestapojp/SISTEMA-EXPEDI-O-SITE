@@ -4976,16 +4976,17 @@ async function loadFrotaData() {
     try {
         debugLog.add(`Carregando dados da frota para a filial: ${selectedFilial.nome}`, 'info');
 
-        const dataInicio = document.getElementById('frotaFiltroDataInicio').value;
-        const dataFim = document.getElementById('frotaFiltroDataFim').value;
+        // VERIFICAÇÃO ADICIONADA AQUI para evitar o erro
+        const dataInicioElement = document.getElementById('frotaFiltroDataInicio');
+        const dataFimElement = document.getElementById('frotaFiltroDataFim');
+
+        const dataInicio = dataInicioElement ? dataInicioElement.value : null;
+        const dataFim = dataFimElement ? dataFimElement.value : null;
 
         const today = new Date();
-        // Define o início do período de análise como o maior valor entre o filtro e o início do dia de trabalho
         const startOfAnalysis = dataInicio ? new Date(dataInicio + 'T06:00:00') : new Date(today.getFullYear(), today.getMonth(), today.getDate(), 6);
-        // Define o fim do período de análise como o menor valor entre o filtro e o fim do dia de trabalho ou o momento atual
         let endOfAnalysis = dataFim ? new Date(dataFim + 'T19:00:00') : new Date(today.getFullYear(), today.getMonth(), today.getDate(), 19);
 
-        // Se o horário de trabalho já passou, o fim da análise é 19:00, caso contrário, é o horário atual
         endOfAnalysis = endOfAnalysis.getTime() > new Date().getTime() ? new Date() : endOfAnalysis;
 
         const allVehicles = veiculos;
@@ -4994,8 +4995,7 @@ async function loadFrotaData() {
 
         let totalIdleTimeMinutes = 0;
         let ociosidadeVeiculos = [];
-
-        // Fetch do histórico de status de veículos para o período selecionado
+        
         let queryHistory = `veiculos_status_historico?order=created_at.asc&created_at=gte.${startOfAnalysis.toISOString()}&created_at=lte.${endOfAnalysis.toISOString()}`;
         const statusHistory = await supabaseRequest(queryHistory);
 
@@ -5005,11 +5005,9 @@ async function loadFrotaData() {
             let idleStart = null;
             let lastAction = vehicle.created_at ? new Date(vehicle.created_at) : new Date(0);
 
-            // Determina o status do veículo no início do período
             const lastStatusBeforePeriod = await supabaseRequest(`veiculos_status_historico?veiculo_id=eq.${vehicle.id}&created_at=lt.${startOfAnalysis.toISOString()}&order=created_at.desc&limit=1`);
             let startStatus = lastStatusBeforePeriod[0]?.status_novo || vehicle.status;
 
-            // Se o veículo já estava disponível no início do período de análise, a ociosidade começa ali
             if (startStatus === 'disponivel') {
                 idleStart = startOfAnalysis;
             }
@@ -5026,7 +5024,6 @@ async function loadFrotaData() {
                 }
             }
             
-            // Se o veículo ainda está ocioso, calcula o tempo até o final do período
             if (idleStart) {
                 idleTimeMinutes += (endOfAnalysis - idleStart) / 60000;
             }
@@ -5044,12 +5041,16 @@ async function loadFrotaData() {
         const totalVehiclesCount = allVehicles.length;
         const mediaOciosidade = totalVehiclesCount > 0 ? (totalIdleTimeMinutes / totalVehiclesCount) : 0;
 
-        // Atualiza os cartões de resumo
         document.getElementById('totalOciosidade').textContent = minutesToHHMM(mediaOciosidade);
         document.getElementById('frotaAtiva').textContent = activeVehicles.length;
         document.getElementById('frotaOciosa').textContent = idleVehicles.length;
         
-        // Renderiza a tabela de ociosidade por veículo
+        const summaryGrid = document.getElementById('frotaSummary');
+        const tempoTotalOciosoCard = document.getElementById('tempoTotalOciosoDia');
+        if(tempoTotalOciosoCard) {
+            tempoTotalOciosoCard.parentNode.remove();
+        }
+
         renderOciosidadeTable(ociosidadeVeiculos.sort((a, b) => b.idleTime - a.idleTime));
         
         debugLog.add('Relatório de ociosidade da frota gerado com sucesso.', 'success');
