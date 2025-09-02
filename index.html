@@ -2593,45 +2593,37 @@ if (lancarLiderSelect) {
             });
         }
 
-        // Popular selects
-        function populateSelects() {
-            // Popular todos os selects de lojas existentes
-            const lojaSelects = document.querySelectorAll('.loja-select');
-            lojaSelects.forEach(select => {
-                populateLojaSelect(select);
+       // SUBSTITUA A FUNÇÃO ACIMA POR ESTA VERSÃO CORRIGIDA
+function populateSelects() {
+    // Popular todos os selects de lojas existentes
+    const lojaSelects = document.querySelectorAll('.loja-select');
+    lojaSelects.forEach(select => {
+        populateLojaSelect(select);
+    });
+
+    // NOVO: Popula o select de líder no formulário de lançamento
+    const lancarLiderSelect = document.getElementById('lancar_liderSelect');
+    if (lancarLiderSelect) {
+        lancarLiderSelect.innerHTML = '<option value="">Selecione um líder</option>';
+        lideres.forEach(lider => {
+            lancarLiderSelect.innerHTML += `<option value="${lider.id}">${lider.nome}</option>`;
+        });
+    }
+
+    // Popular o select da aba de motoristas
+    const placaMotoristaSelect = document.getElementById('placaMotorista');
+    if (placaMotoristaSelect) {
+        placaMotoristaSelect.innerHTML = '<option value="">Selecione uma placa</option>';
+        if (veiculos && veiculos.length > 0) {
+            veiculos.forEach(veiculo => {
+                const modelo = veiculo.modelo || 'Modelo não informado';
+                placaMotoristaSelect.innerHTML += `<option value="${veiculo.placa}">${veiculo.placa} - ${modelo}</option>`;
             });
-
-            const docaSelect = document.getElementById('docaSelect');
-            if (docaSelect) {
-                docaSelect.innerHTML = '<option value="">Selecione uma doca</option>';
-                docas.forEach(doca => {
-                    docaSelect.innerHTML += `<option value="${doca.id}">${doca.nome} - ${doca.tipo || 'normal'} (${doca.capacidade_pallets || 0} pallets)</option>`;
-                });
-            }
-
-            const liderSelect = document.getElementById('liderSelect');
-            if (liderSelect) {
-                liderSelect.innerHTML = '<option value="">Selecione um líder</option>';
-                lideres.forEach(lider => {
-                    liderSelect.innerHTML += `<option value="${lider.id}">${lider.nome}</option>`;
-                });
-            }
-
-            // Popular o select da aba de motoristas
-            const placaMotoristaSelect = document.getElementById('placaMotorista');
-            if (placaMotoristaSelect) {
-                placaMotoristaSelect.innerHTML = '<option value="">Selecione uma placa</option>';
-                if (veiculos && veiculos.length > 0) {
-                    veiculos.forEach(veiculo => {
-                        const modelo = veiculo.modelo || 'Modelo não informado';
-                        placaMotoristaSelect.innerHTML += `<option value="${veiculo.placa}">${veiculo.placa} - ${modelo}</option>`;
-                    });
-                } else {
-                    placaMotoristaSelect.innerHTML = '<option value="">Nenhum veículo encontrado</option>';
-                }
-            }
+        } else {
+            placaMotoristaSelect.innerHTML = '<option value="">Nenhum veículo encontrado</option>';
         }
-
+    }
+}
       
         // Mostrar abas (só funciona se filial estiver selecionada)
         async function showTab(tabName) {
