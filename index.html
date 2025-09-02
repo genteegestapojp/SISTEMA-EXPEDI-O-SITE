@@ -1955,6 +1955,24 @@
 
                 <div id="frota" class="sub-tab-content">
                     <h2 style="text-align: center;">Análise de Produtividade da Frota</h2>
+
+                    <div class="filters-section">
+        <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtrar Período de Ociosidade</h3>
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="frotaFiltroDataInicio">Data Início:</label>
+                <input type="date" id="frotaFiltroDataInicio" onchange="loadFrotaData()">
+            </div>
+            <div class="filter-group">
+                <label for="frotaFiltroDataFim">Data Fim:</label>
+                <input type="date" id="frotaFiltroDataFim" onchange="loadFrotaData()">
+            </div>
+        </div>
+    </div>
+    
+    <div id="frotaSummary" class="time-stats-grid">
+        </div>
+    </div>
                     <div id="frotaSummary" class="time-stats-grid">
                         <div class="time-stat-card">
                             <div class="stat-number" id="totalOciosidade">-</div>
@@ -1968,10 +1986,7 @@
                             <div class="stat-number" id="frotaOciosa">0</div>
                             <div class="stat-label">Veículos Ociosos Agora</div>
                         </div>
-                        <div class="time-stat-card">
-                            <div class="stat-number" id="tempoTotalOciosoDia">-</div>
-                            <div class="stat-label">Tempo Total Ocioso (Hoje)</div>
-                        </div>
+                        
                     </div>
                     <h3 style="text-align: center; margin: 20px 0;">Ociosidade por Veículo (Hoje)</h3>
                     <div class="table-container">
@@ -5012,126 +5027,188 @@ function renderHistorico(expeditions) {
         }
         // --- NOVAS FUNÇÕES PARA A ABA DE FROTA ---
 
-        // Função para carregar dados do histórico de status de veículos e calcular a ociosidade
-        async function loadFrotaData() {
-            if (!selectedFilial) {
-                document.getElementById('ociosidadeBody').innerHTML = '<tr><td colspan="5" class="alert alert-error">Selecione uma filial primeiro!</td></tr>';
-                return;
-            }
+       // Função para carregar dados do histórico de status de veículos e calcular a ociosidade
+async function loadFrotaData() {
+    if (!selectedFilial) {
+        document.getElementById('ociosidadeBody').innerHTML = '<tr><td colspan="5" class="alert alert-error">Selecione uma filial primeiro!</td></tr>';
+        return;
+    }
 
-            try {
-                debugLog.add(`Carregando dados da frota para a filial: ${selectedFilial.nome}`, 'info');
+    try {
+        debugLog.add(`Carregando dados da frota para a filial: ${selectedFilial.nome}`, 'info');
 
-                const todayStart = new Date();
-                todayStart.setHours(6, 0, 0, 0); // Começa a contagem às 06:00
-                const todayEnd = new Date();
-                todayEnd.setHours(19, 0, 0, 0); // Termina a contagem às 19:00
-                const now = new Date();
+        const dataInicio = document.getElementById('frotaFiltroDataInicio').value;
+        const dataFim = document.getElementById('frotaFiltroDataFim').value;
 
-                let todayActiveHoursEnd = now > todayEnd ? todayEnd : now;
-                
-                const allVehicles = veiculos;
-                const activeVehicles = allVehicles.filter(v => ['em_uso', 'em_viagem', 'retornando_cd', 'retornando_com_imobilizado', 'descarregando_imobilizado'].includes(v.status));
-                const idleVehicles = allVehicles.filter(v => v.status === 'disponivel');
+        // Se não houver data, define o dia de hoje como padrão para a tabela principal
+        const today = new Date();
+        const startOfDay = dataInicio ? new Date(dataInicio + 'T00:00:00') : new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = dataFim ? new Date(dataFim + 'T23:59:59') : new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
-                let totalIdleTimeToday = 0;
-                let ociosidadeVeiculos = [];
+        // Define o horário de trabalho do dia
+        const workStartHour = 6; // 6:00
+        const workEndHour = 19; // 19:00
 
-                // Carregar o histórico de status de veículos para a filial
-                const statusHistory = await supabaseRequest(`veiculos_status_historico?order=created_at.asc`);
+        const allVehicles = veiculos;
+        const activeVehicles = allVehicles.filter(v => ['em_uso', 'em_viagem', 'retornando_cd', 'retornando_com_imobilizado', 'descarregando_imobilizado'].includes(v.status));
+        const idleVehicles = allVehicles.filter(v => v.status === 'disponivel');
 
-                for (const vehicle of allVehicles) {
-                    let idleTimeMinutes = 0;
-                    let lastStatusChange = todayStart > new Date(vehicle.created_at) ? todayStart : new Date(vehicle.created_at);
-                    let lastAction = new Date(vehicle.created_at);
+        let totalIdleTimeMinutes = 0;
+        let ociosidadeVeiculos = [];
 
-                    // Filtra o histórico apenas para o veículo atual
-                    const vehicleHistory = statusHistory.filter(h => h.veiculo_id === vehicle.id);
+        // Fetch do histórico apenas para o período selecionado
+        let queryHistory = `veiculos_status_historico?order=created_at.asc`;
+        if (dataInicio) {
+            queryHistory += `&created_at=gte.${startOfDay.toISOString()}`;
+        }
+        if (dataFim) {
+            queryHistory += `&created_at=lte.${endOfDay.toISOString()}`;
+        }
+
+        const statusHistory = await supabaseRequest(queryHistory);
+
+        for (const vehicle of allVehicles) {
+            let vehicleHistory = statusHistory.filter(h => h.veiculo_id === vehicle.id);
+            if (vehicleHistory.length === 0) {
+                 // Se não houver histórico para o período, verifica o status atual
+                if (vehicle.status === 'disponivel') {
+                    const startIdle = new Date(Math.max(startOfDay.getTime(), new Date(vehicle.created_at).getTime()));
+                    let endIdle = endOfDay > new Date() ? new Date() : endOfDay;
+                    endIdle = new Date(Math.min(endIdle.getTime(), new Date(today.getFullYear(), today.getMonth(), today.getDate(), workEndHour).getTime()));
                     
-                    // Ordena por data
-                    vehicleHistory.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-                    
-                    let isIdle = vehicle.status === 'disponivel';
-                    let idleSince = isIdle ? lastStatusChange : null;
-
-                    for (const history of vehicleHistory) {
-                        const eventTime = new Date(history.created_at);
-                        lastAction = eventTime;
-
-                        if (eventTime > todayStart) {
-                             if (history.status_novo === 'disponivel') {
-                                isIdle = true;
-                                idleSince = eventTime;
-                            } else if (history.status_anterior === 'disponivel' && history.status_novo !== 'disponivel') {
-                                if (isIdle && idleSince) {
-                                    idleTimeMinutes += (eventTime - idleSince) / 60000;
-                                    idleSince = null;
-                                }
-                                isIdle = false;
-                            }
-                        }
+                    if (startIdle < endIdle) {
+                         const idleTime = (endIdle - startIdle) / 60000;
+                         totalIdleTimeMinutes += idleTime;
+                         ociosidadeVeiculos.push({
+                            placa: vehicle.placa,
+                            status: vehicle.status,
+                            idleTime: idleTime,
+                            idleSince: startIdle,
+                            lastAction: startIdle
+                        });
                     }
-                    
-                    // Se o veículo ainda está ocioso, calcula o tempo até agora ou até o final do dia
-                    if (isIdle && idleSince) {
-                        idleTimeMinutes += (todayActiveHoursEnd - idleSince) / 60000;
-                    }
-
-
-                    totalIdleTimeToday += idleTimeMinutes;
-                    ociosidadeVeiculos.push({
-                        placa: vehicle.placa,
-                        status: vehicle.status,
-                        idleTime: idleTimeMinutes,
-                        idleSince: idleSince,
-                        lastAction: lastAction
-                    });
                 }
-                
-                const totalWorkingMinutesToday = (todayActiveHoursEnd - todayStart) / 60000;
-                const totalVehicles = allVehicles.length;
-                const mediaOciosidade = totalVehicles > 0 ? (totalIdleTimeToday / totalVehicles) : 0;
-                
-                // Atualiza os cartões de resumo
-                document.getElementById('totalOciosidade').textContent = minutesToHHMM(mediaOciosidade);
-                document.getElementById('frotaAtiva').textContent = activeVehicles.length;
-                document.getElementById('frotaOciosa').textContent = idleVehicles.length;
-                document.getElementById('tempoTotalOciosoDia').textContent = minutesToHHMM(totalIdleTimeToday);
-                
-                // Renderiza a tabela de ociosidade por veículo
-                renderOciosidadeTable(ociosidadeVeiculos.sort((a, b) => b.idleTime - a.idleTime));
-                
-                debugLog.add('Relatório de ociosidade da frota gerado com sucesso.', 'success');
-
-            } catch (error) {
-                console.error('Erro ao carregar dados da frota:', error);
-                debugLog.add(`Erro ao carregar dados da frota: ${error.message}`, 'error');
-                document.getElementById('ociosidadeBody').innerHTML = `<tr><td colspan="5" class="alert alert-error">Erro: ${error.message}</td></tr>`;
+                continue;
             }
+
+            let idleTimeMinutes = 0;
+            let lastEventTime = startOfDay;
+            
+            // Assume o status do início do período como o último status do dia anterior ou "disponivel" se não houver histórico
+            let currentStatus = vehicleHistory.find(h => new Date(h.created_at) > startOfDay)?.status_anterior || vehicle.status;
+            let idleStart = null;
+            if (currentStatus === 'disponivel') {
+                idleStart = new Date(Math.max(lastEventTime.getTime(), new Date(vehicle.created_at).getTime()));
+            }
+
+            for (const history of vehicleHistory) {
+                const eventTime = new Date(history.created_at);
+                const eventDate = new Date(eventTime.getFullYear(), eventTime.getMonth(), eventTime.getDate());
+                
+                // Ignora eventos fora do intervalo
+                if (eventTime < startOfDay || eventTime > endOfDay) continue;
+
+                // Contabiliza o tempo ocioso do período anterior ao evento atual
+                if (idleStart) {
+                    const workEndForDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), workEndHour);
+                    let idleEnd = new Date(Math.min(eventTime.getTime(), workEndForDay.getTime()));
+                    if (idleStart < idleEnd) {
+                        idleTimeMinutes += (idleEnd - idleStart) / 60000;
+                    }
+                }
+
+                if (history.status_novo === 'disponivel') {
+                    idleStart = eventTime;
+                } else if (idleStart) {
+                    const workEndForDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), workEndHour);
+                    let idleEnd = new Date(Math.min(eventTime.getTime(), workEndForDay.getTime()));
+                    if (idleStart < idleEnd) {
+                        idleTimeMinutes += (idleEnd - idleStart) / 60000;
+                    }
+                    idleStart = null;
+                }
+                currentStatus = history.status_novo;
+                lastEventTime = eventTime;
+            }
+            
+            // Contabiliza o tempo ocioso remanescente até o final do período ou agora
+            if (idleStart) {
+                 const currentDay = new Date(idleStart.getFullYear(), idleStart.getMonth(), idleStart.getDate());
+                 const workEndForDay = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), workEndHour);
+                 
+                 let idleEnd = new Date(Math.min(endOfDay.getTime(), workEndForDay.getTime(), new Date().getTime()));
+                 
+                 if (idleStart < idleEnd) {
+                     idleTimeMinutes += (idleEnd - idleStart) / 60000;
+                 }
+            }
+
+            totalIdleTimeMinutes += idleTimeMinutes;
+            ociosidadeVeiculos.push({
+                placa: vehicle.placa,
+                status: vehicle.status,
+                idleTime: idleTimeMinutes,
+                idleSince: idleStart,
+                lastAction: vehicleHistory[vehicleHistory.length - 1]?.created_at || vehicle.created_at
+            });
         }
         
-        // Função para renderizar a tabela de ociosidade dos veículos
-        function renderOciosidadeTable(data) {
-            const tbody = document.getElementById('ociosidadeBody');
-            if (!tbody) return;
+        const totalVehiclesCount = allVehicles.length;
+        const mediaOciosidade = totalVehiclesCount > 0 ? (totalIdleTimeMinutes / totalVehiclesCount) : 0;
 
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="alert alert-info">Nenhum veículo com histórico encontrado.</td></tr>';
-                return;
-            }
-
-            const html = data.map(v => `
-                <tr>
-                    <td style="font-weight: 600;">${v.placa}</td>
-                    <td><span class="status-badge status-${v.status.replace(/ /g, '_')}">${getStatusLabel(v.status)}</span></td>
-                    <td>${v.idleSince ? new Date(v.idleSince).toLocaleTimeString('pt-BR') : '-'}</td>
-                    <td>${v.idleTime > 0 ? minutesToHHMM(v.idleTime) : '-'}</td>
-                    <td>${v.lastAction ? new Date(v.lastAction).toLocaleTimeString('pt-BR') : '-'}</td>
-                </tr>
-            `).join('');
-
-            tbody.innerHTML = html;
+        // Atualiza os cartões de resumo
+        document.getElementById('totalOciosidade').textContent = minutesToHHMM(mediaOciosidade);
+        document.getElementById('frotaAtiva').textContent = activeVehicles.length;
+        document.getElementById('frotaOciosa').textContent = idleVehicles.length;
+        
+        // Remove o card de tempo total (item 1 da lista)
+        const summaryGrid = document.getElementById('frotaSummary');
+        const tempoTotalOciosoCard = document.getElementById('tempoTotalOciosoDia');
+        if(tempoTotalOciosoCard) {
+            tempoTotalOciosoCard.parentNode.remove();
         }
+
+        // Renderiza a tabela de ociosidade por veículo
+        renderOciosidadeTable(ociosidadeVeiculos.sort((a, b) => b.idleTime - a.idleTime));
+        
+        debugLog.add('Relatório de ociosidade da frota gerado com sucesso.', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados da frota:', error);
+        debugLog.add(`Erro ao carregar dados da frota: ${error.message}`, 'error');
+        document.getElementById('ociosidadeBody').innerHTML = `<tr><td colspan="5" class="alert alert-error">Erro: ${error.message}</td></tr>`;
+    }
+}
+        
+        // Função para renderizar a tabela de ociosidade dos veículos
+function renderOciosidadeTable(data) {
+    const tbody = document.getElementById('ociosidadeBody');
+    if (!tbody) return;
+
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="alert alert-info">Nenhum veículo com histórico encontrado no período.</td></tr>';
+        return;
+    }
+
+    const html = data.map(v => {
+        const tempoOciosoDisplay = v.idleTime > 0 ? minutesToHHMM(v.idleTime) : '-';
+        const idleSinceDisplay = v.idleSince ? new Date(v.idleSince).toLocaleString('pt-BR') : '-';
+        const lastActionDisplay = v.lastAction ? new Date(v.lastAction).toLocaleString('pt-BR') : '-';
+
+        return `
+            <tr>
+                <td style="font-weight: 600;">${v.placa}</td>
+                <td><span class="status-badge status-${v.status.replace(/ /g, '_')}">${getStatusLabel(v.status)}</span></td>
+                <td>${idleSinceDisplay}</td>
+                <td>${tempoOciosoDisplay}</td>
+                <td>${lastActionDisplay}</td>
+            </tr>
+        `;
+    }).join('');
+
+    tbody.innerHTML = html;
+}
+        
         function applyHistoricoFilters() {
             const dataInicio = document.getElementById('historicoFiltroDataInicio').value || document.getElementById('indicadoresFiltroDataInicio').value;
             const dataFim = document.getElementById('historicoFiltroDataFim').value || document.getElementById('indicadoresFiltroDataFim').value;
