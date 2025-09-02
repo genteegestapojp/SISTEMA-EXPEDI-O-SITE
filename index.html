@@ -2785,7 +2785,7 @@ async function saveExpedition(formData) {
                 loja_id: lojaSelect.value,
                 pallets: parseInt(palletsInput.value),
                 rolltrainers: parseInt(rolltrainersInput.value),
-                status: 'disponivel', // Novo status
+                status: 'pendente', // Novo status
                 observacoes: formData.observacoes || null
                 // filial será adicionada automaticamente pela função supabaseRequest
             };
