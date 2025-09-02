@@ -3673,6 +3673,7 @@ function atualizarResumoAgrupamento() {
     }
 }
 
+// REMOVA a função antiga e SUBSTITUA por esta versão corrigida:
 async function agruparEAlocar() {
     const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
     const veiculoId = document.getElementById('alocar_veiculoSelect').value;
@@ -3693,12 +3694,22 @@ async function agruparEAlocar() {
     try {
         debugLog.add(`Iniciando agrupamento de ${idsDasCargas.length} cargas.`, 'info');
 
-        // 1. Criar a nova expedição "mãe"
+        // --- INÍCIO DA CORREÇÃO ---
+        // Pega a primeira carga da lista selecionada para herdar o líder dela.
+        const primeiraCarga = cargasDisponiveis.find(c => c.id === idsDasCargas[0]);
+        if (!primeiraCarga || !primeiraCarga.lider_id) {
+            throw new Error("Não foi possível encontrar o líder da primeira carga selecionada. Tente novamente.");
+        }
+        const liderDaExpedicao = primeiraCarga.lider_id;
+        // --- FIM DA CORREÇÃO ---
+
+        // 1. Criar a nova expedição "mãe", agora com a informação do líder
         const newExpeditionData = {
             data_hora: new Date().toISOString(),
-            status: 'aguardando_doca', // NOVO STATUS! A expedição agora precisa de uma doca.
+            status: 'aguardando_doca', 
             veiculo_id: veiculoId,
             motorista_id: motoristaId,
+            lider_id: liderDaExpedicao, // <-- LINHA ADICIONADA NA LÓGICA
             data_alocacao_veiculo: new Date().toISOString(),
             observacoes: observacoes || null
         };
