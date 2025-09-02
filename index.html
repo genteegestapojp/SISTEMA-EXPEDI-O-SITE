@@ -2702,69 +2702,62 @@
             }, 5000);
         }
 
-        // Validar formulário com múltiplas lojas
-        function validateForm() {
-            const lojaLines = document.querySelectorAll('.loja-line');
-            const docaSelect = document.getElementById('docaSelect');
-            const liderSelect = document.getElementById('liderSelect');
+       // Validar formulário de lançamento de cargas
+function validateForm() {
+    const lojaLines = document.querySelectorAll('.loja-line');
+    const liderSelect = document.getElementById('liderSelect');
 
-            if (!docaSelect.value.trim()) {
-                showAlert('operacaoAlert', 'Campo obrigatório: Doca', 'error');
-                docaSelect.focus();
-                return false;
-            }
+    if (!liderSelect.value.trim()) {
+        showAlert('operacaoAlert', 'Campo obrigatório: Líder de Operação', 'error');
+        liderSelect.focus();
+        return false;
+    }
 
-            if (!liderSelect.value.trim()) {
-                showAlert('operacaoAlert', 'Campo obrigatório: Líder', 'error');
-                liderSelect.focus();
-                return false;
-            }
+    const lojasSelecionadas = [];
+    for (let i = 0; i < lojaLines.length; i++) {
+        const line = lojaLines[i];
+        const lojaSelect = line.querySelector('.loja-select');
+        const palletsInput = line.querySelector('.pallets-input');
+        const rolltrainersInput = line.querySelector('.rolltrainers-input');
 
-            const lojasSelecionadas = [];
-            for (let i = 0; i < lojaLines.length; i++) {
-                const line = lojaLines[i];
-                const lojaSelect = line.querySelector('.loja-select');
-                const palletsInput = line.querySelector('.pallets-input');
-                const rolltrainersInput = line.querySelector('.rolltrainers-input');
-
-                if (!lojaSelect.value.trim()) {
-                    showAlert('operacaoAlert', `Selecione uma loja na linha ${i + 1}`, 'error');
-                    lojaSelect.focus();
-                    return false;
-                }
-
-                if (lojasSelecionadas.includes(lojaSelect.value)) {
-                    showAlert('operacaoAlert', `Loja duplicada na linha ${i + 1}. Cada loja pode ser selecionada apenas uma vez.`, 'error');
-                    lojaSelect.focus();
-                    return false;
-                }
-                lojasSelecionadas.push(lojaSelect.value);
-
-                const pallets = parseInt(palletsInput.value);
-                const rolltrainers = parseInt(rolltrainersInput.value);
-
-                if (isNaN(pallets) || pallets < 0) {
-                    showAlert('operacaoAlert', `Quantidade de pallets inválida na linha ${i + 1}`, 'error');
-                    palletsInput.focus();
-                    return false;
-                }
-
-                if (isNaN(rolltrainers) || rolltrainers < 0) {
-                    showAlert('operacaoAlert', `Quantidade de RollTrainers inválida na linha ${i + 1}`, 'error');
-                    rolltrainersInput.focus();
-                    return false;
-                }
-            }
-
-            if (lojaLines.length === 0) {
-                showAlert('operacaoAlert', 'Adicione pelo menos uma loja', 'error');
-                return false;
-            }
-
-            return true;
+        if (!lojaSelect.value.trim()) {
+            showAlert('operacaoAlert', `Selecione uma loja na linha ${i + 1}`, 'error');
+            lojaSelect.focus();
+            return false;
         }
 
-       async function saveExpedition(formData) {
+        if (lojasSelecionadas.includes(lojaSelect.value)) {
+            showAlert('operacaoAlert', `Loja duplicada na linha ${i + 1}. Cada loja pode ser selecionada apenas uma vez.`, 'error');
+            lojaSelect.focus();
+            return false;
+        }
+        lojasSelecionadas.push(lojaSelect.value);
+
+        const pallets = parseInt(palletsInput.value);
+        const rolltrainers = parseInt(rolltrainersInput.value);
+
+        if (isNaN(pallets) || pallets < 0) {
+            showAlert('operacaoAlert', `Quantidade de pallets inválida na linha ${i + 1}`, 'error');
+            palletsInput.focus();
+            return false;
+        }
+
+        if (isNaN(rolltrainers) || rolltrainers < 0) {
+            showAlert('operacaoAlert', `Quantidade de RollTrainers inválida na linha ${i + 1}`, 'error');
+            rolltrainersInput.focus();
+            return false;
+        }
+    }
+
+    if (lojaLines.length === 0) {
+        showAlert('operacaoAlert', 'Adicione pelo menos uma loja', 'error');
+        return false;
+    }
+
+    return true;
+}
+
+     async function saveExpedition(formData) {
     if (!validateForm()) return;
     
     if (!selectedFilial) {
@@ -2773,30 +2766,30 @@
     }
 
     try {
-       const data_hora = new Date().toISOString();
+        const data_hora = new Date().toISOString();
         const liderId = document.getElementById('liderSelect').value;
         const lojaLines = document.querySelectorAll('.loja-line');
 
         debugLog.add(`Criando cargas individuais para filial ${selectedFilial.nome} com ${lojaLines.length} lojas`, 'info');
 
-      const itemsData = [];
-lojaLines.forEach((line) => {
-    const lojaSelect = line.querySelector('.loja-select');
-    const palletsInput = line.querySelector('.pallets-input');
-    const rolltrainersInput = line.querySelector('.rolltrainers-input');
+        const itemsData = [];
+        lojaLines.forEach((line) => {
+            const lojaSelect = line.querySelector('.loja-select');
+            const palletsInput = line.querySelector('.pallets-input');
+            const rolltrainersInput = line.querySelector('.rolltrainers-input');
 
-    const itemData = {
-        data_hora: data_hora,
-        lider_id: liderId,
-        loja_id: lojaSelect.value,
-        pallets: parseInt(palletsInput.value),
-        rolltrainers: parseInt(rolltrainersInput.value),
-        status: 'disponivel', // Novo status
-        observacoes: formData.observacoes || null
-        // filial será adicionada automaticamente pela função supabaseRequest
-    };
-    itemsData.push(itemData);
-});
+            const itemData = {
+                data_hora: data_hora,
+                lider_id: liderId,
+                loja_id: lojaSelect.value,
+                pallets: parseInt(palletsInput.value),
+                rolltrainers: parseInt(rolltrainersInput.value),
+                status: 'disponivel', // Novo status
+                observacoes: formData.observacoes || null
+                // filial será adicionada automaticamente pela função supabaseRequest
+            };
+            itemsData.push(itemData);
+        });
 
         const itemsPromises = itemsData.map(item => supabaseRequest('expeditions', 'POST', item));
         await Promise.all(itemsPromises);
@@ -3445,7 +3438,7 @@ async function showYesNoModal(message) {
         debugLog.add(`Carregando cargas disponíveis para transporte da filial: ${selectedFilial.nome}`, 'info');
 
         // Busca todas as cargas avulsas (que ainda não foram agrupadas em uma expedição)
-        const cargas = await supabaseRequest("expeditions?status=eq.disponivel&order=data_lancamento.desc");
+       const cargas = await supabaseRequest("expeditions?status=eq.disponivel&order=data_hora.desc");
         
         const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
         const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
@@ -5747,7 +5740,7 @@ DESENVOLVIDO POR: JP Tech Solutions
                         observacoes: document.getElementById('observacoes').value
                     };
 
-                    saveExpedition(formData);
+                    s(formData);
                 });
             }
 
