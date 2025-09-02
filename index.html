@@ -4978,7 +4978,7 @@ function renderHistorico(expeditions) {
         }
         // --- NOVAS FUNÇÕES PARA A ABA DE FROTA ---
 
-   // SUBSTITUA a função 'loadFrotaData' inteira por esta versão
+ // SUBSTITUA a função 'loadFrotaData' inteira por esta versão
 
 async function loadFrotaData() {
     if (!selectedFilial) {
@@ -5106,7 +5106,6 @@ async function loadFrotaData() {
         document.getElementById('ociosidadeBody').innerHTML = `<tr><td colspan="5" class="alert alert-error">Erro: ${error.message}</td></tr>`;
     }
 }
-
 // ATUALIZE A FUNÇÃO 'renderOciosidadeTable' COM A VERSÃO ABAIXO
 function renderOciosidadeTable(data) {
     const tbody = document.getElementById('ociosidadeBody');
