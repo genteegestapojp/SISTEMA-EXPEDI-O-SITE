@@ -1552,6 +1552,54 @@
             background-position: 0% 50%;
         }
     }
+        /* --- ESTILOS PARA O NOVO BOTÃO DE ATUALIZAÇÃO --- */
+
+        /* Aparência do botão flutuante */
+        .btn-refresh-floating {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 8px 20px rgba(0, 119, 182, 0.4);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            transition: all 0.3s ease;
+        }
+
+        /* Efeito ao passar o mouse */
+        .btn-refresh-floating:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 12px 25px rgba(0, 119, 182, 0.5);
+        }
+
+        /* Tamanho do ícone dentro do botão */
+        .btn-refresh-floating .refresh-icon {
+            font-size: 28px;
+            transition: transform 0.5s ease;
+        }
+
+        /* Classe para ativar a animação de rotação */
+        .btn-refresh-floating.spinning .refresh-icon {
+            animation: spin-animation 1s linear infinite;
+        }
+
+        /* Animação de rotação (Keyframes) */
+        @keyframes spin-animation {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body>
@@ -6743,6 +6791,43 @@ async function atribuirDoca(expeditionId) {
         showNotification(`Erro: ${error.message}`, 'error');
     }
 }
+        // NOVA FUNÇÃO PARA ATUALIZAÇÃO GERAL DE DADOS
+        async function refreshAllData() {
+            // Mostra notificação e ativa a animação do botão
+            showNotification('Sincronizando todos os dados...', 'info');
+            const refreshBtn = document.getElementById('refresh-all-btn');
+            if (refreshBtn) refreshBtn.classList.add('spinning');
+
+            try {
+                // Passo 1: Recarrega os dados de base (lojas, docas, veículos, etc.)
+                await loadSelectData();
+
+                // Passo 2: Descobre qual aba está ativa no momento
+                const activeTabEl = document.querySelector('.tab.active');
+                
+                if (activeTabEl) {
+                    // Extrai o nome da aba a partir do atributo 'onclick'
+                    const tabName = activeTabEl.getAttribute('onclick').match(/'([^']+)'/)[1];
+
+                    // Passo 3: Chama a função de carregamento da aba ativa para atualizar a tela
+                    debugLog.add(`Atualização geral acionada. Recarregando aba: ${tabName}`, 'sync');
+                    await showTab(tabName);
+                } else {
+                    // Caso nenhuma aba esteja ativa, carrega a primeira por segurança
+                    await showTab('operacao');
+                }
+
+                showNotification('Dados atualizados com sucesso!', 'success');
+
+            } catch (error) {
+                console.error('Erro na sincronização completa:', error);
+                showNotification('Falha ao sincronizar dados: ' + error.message, 'error');
+                debugLog.add(`Falha na sincronização completa: ${error.message}`, 'error');
+            } finally {
+                // Para a animação do botão, independentemente de sucesso ou erro
+                if (refreshBtn) refreshBtn.classList.remove('spinning');
+            }
+        }
         console.log('✅ Sistema de Controle de Expedição Multi-Filial v4.3 carregado com sucesso!');
         console.log('🏢 Desenvolvido por Juliano Patrick - JP Tech Solutions');
         console.log('📧 Contato: julianocorrea@bateforte.com.br');
