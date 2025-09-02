@@ -3471,10 +3471,10 @@ async function loadTransportList() {
     }
 
     try {
-        debugLog.add(`Carregando cargas disponíveis para transporte da filial: ${selectedFilial.nome}`, 'info');
+        debugLog.add(`Carregando cargas pendentes para alocação na filial: ${selectedFilial.nome}`, 'info');
 
-        // Busca todas as cargas avulsas
-        const cargas = await supabaseRequest("expeditions?status=eq.disponivel&order=data_hora.desc");
+        // Busca todas as cargas avulsas com o status 'pendente'
+        const cargas = await supabaseRequest("expeditions?status=eq.pendente&order=data_hora.desc");
 
         // Conta veículos e motoristas disponíveis
         const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
@@ -3482,7 +3482,7 @@ async function loadTransportList() {
 
         allCargas = cargas;
         renderTransportList(cargas, availableVehicles, availableDrivers);
-        debugLog.add(`${cargas.length} cargas disponíveis carregadas para transporte`, 'success');
+        debugLog.add(`${cargas.length} cargas pendentes carregadas para transporte`, 'success');
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -3491,7 +3491,6 @@ async function loadTransportList() {
             `<div class="alert alert-error">Erro: ${error.message}</div>`;
     }
 }
-
         function renderTransportList(cargasList, availableVehicles, availableDrivers) {
     const container = document.getElementById('transporteList');
     const actionsContainer = document.getElementById('transporteActions');
