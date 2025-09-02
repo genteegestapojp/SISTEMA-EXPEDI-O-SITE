@@ -2757,8 +2757,8 @@ function validateForm() {
     return true;
 }
 
-     // Função Corrigida: Lança cargas individuais no banco
-async function saveExpedition() {
+ // Substitua sua função `saveExpedition` por esta
+async function saveExpedition(formData) {
     if (!validateForm()) return;
     
     if (!selectedFilial) {
@@ -2769,7 +2769,6 @@ async function saveExpedition() {
     try {
         const data_hora = new Date().toISOString();
         const liderId = document.getElementById('liderSelect').value;
-        const observacoes = document.getElementById('observacoes').value;
         const lojaLines = document.querySelectorAll('.loja-line');
 
         debugLog.add(`Criando cargas individuais para filial ${selectedFilial.nome} com ${lojaLines.length} lojas`, 'info');
@@ -2786,8 +2785,9 @@ async function saveExpedition() {
                 loja_id: lojaSelect.value,
                 pallets: parseInt(palletsInput.value),
                 rolltrainers: parseInt(rolltrainersInput.value),
-                status: 'disponivel',
-                observacoes: observacoes || null
+                status: 'disponivel', // Novo status
+                observacoes: formData.observacoes || null
+                // filial será adicionada automaticamente pela função supabaseRequest
             };
             itemsData.push(itemData);
         });
@@ -2806,7 +2806,7 @@ async function saveExpedition() {
 
         showNotification(`Cargas avulsas criadas para ${itemsData.length} lojas na filial ${selectedFilial.nome}!`, 'success');
         resetMultiLojaForm();
-        loadTransportList(); // Recarregar a lista na aba de transporte
+
     } catch (error) {
         console.error('Erro ao salvar cargas:', error);
         debugLog.add(`Erro ao salvar cargas: ${error.message}`, 'error');
