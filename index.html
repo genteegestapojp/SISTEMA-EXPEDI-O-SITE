@@ -2773,7 +2773,7 @@
     }
 
     try {
-        const dataHoraLancamento = new Date().toISOString();
+       const data_hora = new Date().toISOString();
         const liderId = document.getElementById('liderSelect').value;
         const lojaLines = document.querySelectorAll('.loja-line');
 
@@ -2785,16 +2785,16 @@
             const palletsInput = line.querySelector('.pallets-input');
             const rolltrainersInput = line.querySelector('.rolltrainers-input');
 
-            const itemData = {
-                data_lancamento: dataHoraLancamento,
-                lider_id: liderId,
-                loja_id: lojaSelect.value,
-                pallets: parseInt(palletsInput.value),
-                rolltrainers: parseInt(rolltrainersInput.value),
-                status: 'disponivel', // Novo status
-                observacoes: formData.observacoes || null
-                // filial será adicionada automaticamente pela função supabaseRequest
-            };
+            cconst itemData = {
+    data_hora: data_hora,
+    lider_id: liderId,
+    loja_id: lojaSelect.value,
+    pallets: parseInt(palletsInput.value),
+    rolltrainers: parseInt(rolltrainersInput.value),
+    status: 'disponivel', // Novo status
+    observacoes: formData.observacoes || null
+    // filial será adicionada automaticamente pela função supabaseRequest
+};
             itemsData.push(itemData);
         });
 
