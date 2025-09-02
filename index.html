@@ -2757,7 +2757,8 @@ function validateForm() {
     return true;
 }
 
-     async function saveExpedition(formData) {
+     // Função Corrigida: Lança cargas individuais no banco
+async function saveExpedition() {
     if (!validateForm()) return;
     
     if (!selectedFilial) {
@@ -2768,6 +2769,7 @@ function validateForm() {
     try {
         const data_hora = new Date().toISOString();
         const liderId = document.getElementById('liderSelect').value;
+        const observacoes = document.getElementById('observacoes').value;
         const lojaLines = document.querySelectorAll('.loja-line');
 
         debugLog.add(`Criando cargas individuais para filial ${selectedFilial.nome} com ${lojaLines.length} lojas`, 'info');
@@ -2784,9 +2786,8 @@ function validateForm() {
                 loja_id: lojaSelect.value,
                 pallets: parseInt(palletsInput.value),
                 rolltrainers: parseInt(rolltrainersInput.value),
-                status: 'disponivel', // Novo status
-                observacoes: formData.observacoes || null
-                // filial será adicionada automaticamente pela função supabaseRequest
+                status: 'disponivel',
+                observacoes: observacoes || null
             };
             itemsData.push(itemData);
         });
@@ -2805,14 +2806,42 @@ function validateForm() {
 
         showNotification(`Cargas avulsas criadas para ${itemsData.length} lojas na filial ${selectedFilial.nome}!`, 'success');
         resetMultiLojaForm();
-
+        loadTransportList(); // Recarregar a lista na aba de transporte
     } catch (error) {
         console.error('Erro ao salvar cargas:', error);
         debugLog.add(`Erro ao salvar cargas: ${error.message}`, 'error');
         showAlert('operacaoAlert', `Erro: ${error.message}`, 'error');
     }
 }
-        // Carregar acompanhamento com dados relacionados completos (filtrado por filial)
+
+// Nova função para limpar o formulário após o envio
+function resetMultiLojaForm() {
+    document.getElementById('expeditionForm').reset();
+    const lojasContainer = document.getElementById('lojasContainer');
+    lojasContainer.innerHTML = `
+        <div class="loja-line" data-index="0">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Loja:</label>
+                <select class="loja-select" required>
+                    <option value="">Carregando lojas...</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Pallets:</label>
+                <input type="number" class="pallets-input" min="0" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>RollTrainers:</label>
+                <input type="number" class="rolltrainers-input" min="0" required>
+            </div>
+            <div style="display: flex; align-items: center; height: 48px;">
+                <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
+            </div>
+        </div>
+    `;
+    lojaLineCounter = 0;
+    populateLojaSelect(lojasContainer.querySelector('.loja-select'));
+}
        // Substitua sua função 'loadAcompanhamento' por esta versão
 async function loadAcompanhamento() {
     if (!selectedFilial) {
