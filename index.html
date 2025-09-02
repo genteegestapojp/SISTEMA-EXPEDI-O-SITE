@@ -2625,46 +2625,49 @@ function populateSelects() {
     }
 }
       
-        // Mostrar abas (só funciona se filial estiver selecionada)
-        async function showTab(tabName) {
-            if (!selectedFilial) {
-                showNotification('Selecione uma filial primeiro!', 'error');
-                return;
-            }
+      // SUBSTITUA A FUNÇÃO ACIMA PELA VERSÃO CORRIGIDA E COMPLETA
+async function showTab(tabName) {
+    if (!selectedFilial) {
+        showNotification('Selecione uma filial primeiro!', 'error');
+        return;
+    }
 
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-            document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(tabName).classList.add('active');
+    document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+    document.getElementById(tabName).classList.add('active');
 
-            debugLog.add(`Navegando para aba: ${tabName}`, 'info');
+    debugLog.add(`Navegando para aba: ${tabName}`, 'info');
 
-           if (tabName === 'operacao') {
-    // Carrega a lista de expedições que precisam de uma doca
-    loadAtribuicaoDoca();
-            } else if (tabName === 'faturamento') {
-                loadFaturamento();
-            } else if (tabName === 'acompanhamento') {
-                showSubTab('acompanhamento', 'expedicoesEmAndamento');
-            } else if (tabName === 'motoristas') {
-                await loadMotoristaTab();
-                showSubTab('motoristas', 'consultaViagens');
-            } else if (tabName === 'historico') {
-                loadHistorico();
-                showSubTab('historico', 'listaEntregas');
-            } else if (tabName === 'configuracoes') {
-                if (currentUser) {
-                    document.getElementById('passwordFormContainer').style.display = 'none';
-                    document.getElementById('configuracoesContent').style.display = 'block';
-                    updateSystemStatus();
-                    updateDebugStats();
-                } else {
-                    document.getElementById('passwordFormContainer').style.display = 'block';
-                    document.getElementById('configuracoesContent').style.display = 'none';
-                }
-            }
+    // --- INÍCIO DA CORREÇÃO ---
+    if (tabName === 'operacao') {
+        loadAtribuicaoDoca();
+    } else if (tabName === 'transporte') { // <<< ESTA É A LINHA QUE FALTAVA
+        loadTransportList();
+    } else if (tabName === 'faturamento') {
+        loadFaturamento();
+    } else if (tabName === 'acompanhamento') {
+        showSubTab('acompanhamento', 'expedicoesEmAndamento');
+    } else if (tabName === 'motoristas') {
+        await loadMotoristaTab();
+        showSubTab('motoristas', 'consultaViagens');
+    } else if (tabName === 'historico') {
+        loadHistorico();
+        showSubTab('historico', 'listaEntregas');
+    } else if (tabName === 'configuracoes') {
+        if (currentUser) {
+            document.getElementById('passwordFormContainer').style.display = 'none';
+            document.getElementById('configuracoesContent').style.display = 'block';
+            updateSystemStatus();
+            updateDebugStats();
+        } else {
+            document.getElementById('passwordFormContainer').style.display = 'block';
+            document.getElementById('configuracoesContent').style.display = 'none';
         }
+    }
+    // --- FIM DA CORREÇÃO ---
+}
 
         // Definir filtros de data padrão
         function setDefaultDateFilters() {
