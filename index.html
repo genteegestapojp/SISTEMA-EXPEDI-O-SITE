@@ -1955,6 +1955,19 @@
 
                 <div id="frota" class="sub-tab-content">
                     <h2 style="text-align: center;">Análise de Produtividade da Frota</h2>
+                    <div class="filters-section">
+    <h3 style="color: var(--dark); margin-bottom: 15px; font-size: 1.2rem;">Filtrar Período de Ociosidade</h3>
+    <div class="filters-grid">
+        <div class="filter-group">
+            <label for="frotaFiltroDataInicio">Data Início:</label>
+            <input type="date" id="frotaFiltroDataInicio" onchange="loadFrotaData()">
+        </div>
+        <div class="filter-group">
+            <label for="frotaFiltroDataFim">Data Fim:</label>
+            <input type="date" id="frotaFiltroDataFim" onchange="loadFrotaData()">
+        </div>
+    </div>
+</div>
                     <div id="frotaSummary" class="time-stats-grid">
                         <div class="time-stat-card">
                             <div class="stat-number" id="totalOciosidade">-</div>
