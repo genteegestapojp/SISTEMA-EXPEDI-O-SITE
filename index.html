@@ -374,7 +374,17 @@
             resize: vertical;
             min-height: 80px;
         }
-
+/* NOVO: Estilo para destacar a carga selecionada para agrupamento */
+        .form-group.selected {
+            background: rgba(144, 224, 239, 0.4) !important; /* Fundo azul claro */
+            border: 2px solid var(--primary); /* Borda verde primária */
+            transform: scale(1.02); /* Leve aumento para dar destaque */
+            box-shadow: 0 4px 15px rgba(0, 119, 182, 0.15);
+        }
+        
+        #cargasDisponiveisList .form-group {
+             transition: all 0.2s ease-in-out; /* Adiciona uma transição suave */
+        }
         /* Layout de Lojas Responsivo */
         .loja-line, .edit-loja-line {
             display: grid;
@@ -434,7 +444,12 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3);
         }
-
+/* NOVO: Estilo para veículos sem capacidade na seleção */
+        .veiculo-option.incapacitated {
+            background-color: #D62828 !important; /* Vermelho forte */
+            color: white !important; /* Texto branco para contraste */
+            font-weight: 700;
+        }
         /* Stats Grid Responsivo */
         .stats-grid {
             display: grid;
@@ -3580,11 +3595,22 @@ function renderCargasDisponiveis(cargas, veiculosList, motoristasList) {
     });
 }
 
+// REMOVA a função antiga e SUBSTITUA por esta:
 function atualizarResumoAgrupamento() {
     const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
     let totalLojas = 0;
     let totalPallets = 0;
     let totalRolls = 0;
+
+    // Adiciona ou remove a classe 'selected' para o feedback visual
+    document.querySelectorAll('#cargasDisponiveisList .form-group').forEach(group => {
+        const checkbox = group.querySelector('input[type="checkbox"]');
+        if (checkbox && checkbox.checked) {
+            group.classList.add('selected');
+        } else {
+            group.classList.remove('selected');
+        }
+    });
 
     checkboxes.forEach(cb => {
         const carga = cargasDisponiveis.find(c => c.id === cb.value);
@@ -3602,17 +3628,31 @@ function atualizarResumoAgrupamento() {
     document.getElementById('summaryRolls').textContent = totalRolls;
     document.getElementById('summaryCargaTotal').textContent = cargaTotal.toFixed(1);
 
-    // Sugere o melhor veículo
+    // Lógica aprimorada para colorir as opções de veículos
     const veiculoSelect = document.getElementById('alocar_veiculoSelect');
     for (const option of veiculoSelect.options) {
         const veiculoId = option.value;
-        if(veiculoId){
+        if (veiculoId) {
             const veiculo = veiculos.find(v => v.id === veiculoId);
-            if(veiculo && veiculo.capacidade_pallets >= cargaTotal){
-                 option.style.backgroundColor = 'rgba(0, 212, 170, 0.2)';
-            } else {
-                 option.style.backgroundColor = 'transparent';
+            if (veiculo) {
+                // Adiciona a classe 'veiculo-option' para estilização
+                option.classList.add('veiculo-option');
+                
+                if (veiculo.capacidade_pallets < cargaTotal) {
+                    // Veículo NÃO tem capacidade
+                    option.classList.add('incapacitated');
+                    option.style.backgroundColor = ''; // Remove o estilo inline
+                } else {
+                    // Veículo TEM capacidade
+                    option.classList.remove('incapacitated');
+                    // Sugestão visual para o veículo ideal
+                    option.style.backgroundColor = 'rgba(0, 212, 170, 0.2)';
+                }
             }
+        } else {
+             // Garante que a opção "Selecione..." não seja colorida
+            option.classList.remove('incapacitated');
+            option.style.backgroundColor = '';
         }
     }
 }
