@@ -1601,17 +1601,11 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="docaSelect">Doca:</label>
-                            <select id="docaSelect" required>
-                                <option value="">Carregando docas...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="liderSelect">Líder:</label>
-                            <select id="liderSelect" required>
-                                <option value="">Carregando líderes...</option>
-                            </select>
-                        </div>
+    <label for="liderSelect">Líder de Operação:</label>
+    <select id="liderSelect" required>
+        <option value="">Carregando líderes...</option>
+    </select>
+</div>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
@@ -1626,22 +1620,32 @@
             </div>
 
             <div id="transporte" class="tab-content">
-                <h2 style="text-align: center;">Alocação de Transporte</h2>
-                <div id="availabilityInfo" class="availability-info">
-                    <div class="availability-stat">
-                        <div class="stat-number" id="availableVehicles">0</div>
-                        <div class="stat-label">Veículos Disponíveis</div>
-                    </div>
-                    <div class="availability-stat">
-                        <div class="stat-number" id="availableDrivers">0</div>
-                        <div class="stat-label">Motoristas Disponíveis</div>
-                    </div>
+    <div id="transporteList" class="loading">
+        <div class="spinner"></div>
+        Carregando cargas disponíveis...
+    </div>
+
+    <div id="transporteActions" style="display: none; margin-top: 20px;">
+        <h3 style="text-align: center; color: var(--dark); margin-bottom: 15px;">Criar Expedição</h3>
+        <div style="background: rgba(144, 224, 239, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 212, 170, 0.3);">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Selecione um Veículo:</label>
+                    <select id="transporteVehiculoSelect" required></select>
                 </div>
-                <div id="transporteList" class="loading">
-                    <div class="spinner"></div>
-                    Carregando expedições pendentes...
+                <div class="form-group">
+                    <label>Selecione um Motorista:</label>
+                    <select id="transporteMotoristaSelect" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Selecione a Doca:</label>
+                    <select id="transporteDocaSelect" required></select>
                 </div>
             </div>
+            <button class="btn btn-primary" onclick="criarExpedicaoComCargas()">Criar Expedição e Alocar</button>
+        </div>
+    </div>
+</div>
 
             <div id="faturamento" class="tab-content">
                 <h2 style="text-align: center;">Controle de Faturamento</h2>
@@ -2760,113 +2764,61 @@
             return true;
         }
 
-        // Salvar expedição única com múltiplos itens
-        async function saveExpedition(formData) {
-            if (!validateForm()) return;
-            
-            if (!selectedFilial) {
-                showAlert('operacaoAlert', 'Erro: Nenhuma filial selecionada', 'error');
-                return;
-            }
+       async function saveExpedition(formData) {
+    if (!validateForm()) return;
+    
+    if (!selectedFilial) {
+        showAlert('operacaoAlert', 'Erro: Nenhuma filial selecionada', 'error');
+        return;
+    }
 
-            try {
-                const dataHoraLancamento = new Date().toISOString();
-                const lojaLines = document.querySelectorAll('.loja-line');
+    try {
+        const dataHoraLancamento = new Date().toISOString();
+        const liderId = document.getElementById('liderSelect').value;
+        const lojaLines = document.querySelectorAll('.loja-line');
 
-                debugLog.add(`Criando expedição única para filial ${selectedFilial.nome} com ${lojaLines.length} lojas`, 'info');
+        debugLog.add(`Criando cargas individuais para filial ${selectedFilial.nome} com ${lojaLines.length} lojas`, 'info');
 
-                // 1. Criar a expedição principal
-                const expeditionData = {
-                    data_hora: dataHoraLancamento,
-                    doca_id: formData.docaId,
-                    lider_id: formData.liderId,
-                    observacoes: formData.observacoes || null,
-                    status: 'pendente',
-                    created_at: dataHoraLancamento
-                    // filial será adicionada automaticamente pela função supabaseRequest
-                };
+        const itemsData = [];
+        lojaLines.forEach((line) => {
+            const lojaSelect = line.querySelector('.loja-select');
+            const palletsInput = line.querySelector('.pallets-input');
+            const rolltrainersInput = line.querySelector('.rolltrainers-input');
 
-                const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
-                const expeditionId = expeditionResponse[0].id;
+            const itemData = {
+                data_lancamento: dataHoraLancamento,
+                lider_id: liderId,
+                loja_id: lojaSelect.value,
+                pallets: parseInt(palletsInput.value),
+                rolltrainers: parseInt(rolltrainersInput.value),
+                status: 'disponivel', // Novo status
+                observacoes: formData.observacoes || null
+                // filial será adicionada automaticamente pela função supabaseRequest
+            };
+            itemsData.push(itemData);
+        });
 
-                // 2. Criar os itens da expedição
-                const itemsData = [];
-                lojaLines.forEach((line, index) => {
-                    const lojaSelect = line.querySelector('.loja-select');
-                    const palletsInput = line.querySelector('.pallets-input');
-                    const rolltrainersInput = line.querySelector('.rolltrainers-input');
+        const itemsPromises = itemsData.map(item => supabaseRequest('expeditions', 'POST', item));
+        await Promise.all(itemsPromises);
 
-                    const itemData = {
-                        expedition_id: expeditionId,
-                        loja_id: lojaSelect.value,
-                        pallets: parseInt(palletsInput.value),
-                        rolltrainers: parseInt(rolltrainersInput.value),
-                        status_descarga: 'pendente' // NOVO: status inicial da descarga
-                        // filial será adicionada automaticamente pela função supabaseRequest
-                    };
+        const lojasResumo = itemsData.map(item => {
+            const loja = lojas.find(l => l.id === item.loja_id);
+            return `${loja ? loja.nome : 'Loja desconhecida'} (${item.pallets}P + ${item.rolltrainers}R)`;
+        }).join(', ');
 
-                    itemsData.push(itemData);
-                });
+        showAlert('operacaoAlert',
+            `Cargas avulsas criadas com sucesso para ${selectedFilial.nome}!<br>
+            <strong>Lojas (${itemsData.length}):</strong> ${lojasResumo}`, 'success');
 
-                const itemsPromises = itemsData.map(item => supabaseRequest('expedition_items', 'POST', item));
-                await Promise.all(itemsPromises);
+        showNotification(`Cargas avulsas criadas para ${itemsData.length} lojas na filial ${selectedFilial.nome}!`, 'success');
+        resetMultiLojaForm();
 
-                const lojasResumo = itemsData.map(item => {
-                    const loja = lojas.find(l => l.id === item.loja_id);
-                    return `${loja ? loja.nome : 'Loja desconhecida'} (${item.pallets}P + ${item.rolltrainers}R)`;
-                }).join(', ');
-
-                const totalPallets = itemsData.reduce((sum, item) => sum + item.pallets, 0);
-                const totalRolltrainers = itemsData.reduce((sum, item) => sum + item.rolltrainers, 0);
-
-                showAlert('operacaoAlert',
-                    `Expedição criada com sucesso para ${selectedFilial.nome}!<br>
-                    <strong>Lojas (${itemsData.length}):</strong> ${lojasResumo}<br>
-                    <strong>Total:</strong> ${totalPallets} pallets + ${totalRolltrainers} rolltrainers`, 'success');
-
-                showNotification(`Expedição criada para ${itemsData.length} lojas na filial ${selectedFilial.nome}!`, 'success');
-                resetMultiLojaForm();
-
-            } catch (error) {
-                console.error('Erro ao salvar expedição:', error);
-                debugLog.add(`Erro ao salvar expedição: ${error.message}`, 'error');
-                showAlert('operacaoAlert', `Erro: ${error.message}`, 'error');
-            }
-        }
-
-        // Resetar formulário de múltiplas lojas
-        function resetMultiLojaForm() {
-            document.getElementById('docaSelect').value = '';
-            document.getElementById('liderSelect').value = '';
-            document.getElementById('observacoes').value = '';
-
-            const container = document.getElementById('lojasContainer');
-            container.innerHTML = `
-                <div class="loja-line" data-index="0">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label>Loja:</label>
-                        <select class="loja-select" required>
-                            <option value="">Selecione uma loja</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label>Pallets:</label>
-                        <input type="number" class="pallets-input" min="0" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label>RollTrainers:</label>
-                        <input type="number" class="rolltrainers-input" min="0" required>
-                    </div>
-                    <div style="display: flex; align-items: center; height: 48px;">
-                        <button type="button" class="btn btn-success btn-small" onclick="addLojaLine()" style="padding: 12px; border-radius: 8px;">+</button>
-                    </div>
-                </div>
-            `;
-
-            lojaLineCounter = 0;
-            populateLojaSelect(container.querySelector('.loja-select'));
-        }
-
+    } catch (error) {
+        console.error('Erro ao salvar cargas:', error);
+        debugLog.add(`Erro ao salvar cargas: ${error.message}`, 'error');
+        showAlert('operacaoAlert', `Erro: ${error.message}`, 'error');
+    }
+}
         // Carregar acompanhamento com dados relacionados completos (filtrado por filial)
         async function loadAcompanhamento() {
             if (!selectedFilial) {
@@ -3482,63 +3434,86 @@ async function showYesNoModal(message) {
         modal.style.display = 'flex';
     });
 }
-        // Carregar transporte
         async function loadTransportList() {
-            if (!selectedFilial) {
-                document.getElementById('transporteList').innerHTML = 
-                    '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
-                return;
-            }
+    if (!selectedFilial) {
+        document.getElementById('transporteList').innerHTML = 
+            '<div class="alert alert-error">Selecione uma filial primeiro!</div>';
+        return;
+    }
 
-            try {
-                debugLog.add(`Carregando expedições para transporte da filial: ${selectedFilial.nome}`, 'info');
+    try {
+        debugLog.add(`Carregando cargas disponíveis para transporte da filial: ${selectedFilial.nome}`, 'info');
 
-                const expeditions = await supabaseRequest("expeditions?status=in.(pendente,aguardando_veiculo,em_carregamento)&order=data_hora.desc");
-                const items = await supabaseRequest('expedition_items');
-                
-                const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
-                const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
-                document.getElementById('availableVehicles').textContent = availableVehicles;
-                document.getElementById('availableDrivers').textContent = availableDrivers;
+        // Busca todas as cargas avulsas (que ainda não foram agrupadas em uma expedição)
+        const cargas = await supabaseRequest("expeditions?status=eq.disponivel&order=data_lancamento.desc");
+        
+        const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
+        const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
+        document.getElementById('availableVehicles').textContent = availableVehicles;
+        document.getElementById('availableDrivers').textContent = availableDrivers;
 
-                const expeditionsWithItems = expeditions.map(exp => {
-                    const expItems = items.filter(item => item.expedition_id === exp.id);
+        allCargas = cargas;
+        renderTransportList(cargas);
+        debugLog.add(`${cargas.length} cargas disponíveis carregadas para transporte`, 'success');
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        debugLog.add(`Erro ao carregar transporte: ${error.message}`, 'error');
+        document.getElementById('transporteList').innerHTML =
+            `<div class="alert alert-error">Erro: ${error.message}</div>`;
+    }
+}
 
-                    const doca = docas.find(d => d.id === exp.doca_id);
-                    const lider = lideres.find(l => l.id === exp.lider_id);
-                    const veiculo = exp.veiculo_id ? veiculos.find(v => v.id === exp.veiculo_id) : null;
-                    const motorista = exp.motorista_id ? motoristas.find(m => m.id === exp.motorista_id) : null;
+async function criarExpedicaoComCargas() {
+    const selectedCargas = Array.from(document.querySelectorAll('.carga-checkbox:checked'))
+        .map(cb => cb.getAttribute('data-carga-id'));
 
-                    return {
-                        ...exp,
-                        items: expItems,
-                        total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
-                        total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
-                        lojas_count: expItems.length,
-                        lojas_info: expItems.map(item => {
-                            const loja = lojas.find(l => l.id === item.loja_id);
-                            return loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'Loja N/A';
-                        }).join(', '),
-                        doca_nome: doca ? doca.nome : null,
-                        lider_nome: lider ? lider.nome : null,
-                        veiculo_placa: veiculo ? veiculo.placa : null,
-                        veiculo_modelo: veiculo ? veiculo.modelo : null,
-                        motorista_nome: motorista ? motorista.nome : null,
-                        veiculo_capacidade: veiculo ? veiculo.capacidade_pallets : 0
-                    };
-                });
-                
-                allExpeditions = expeditionsWithItems;
-                renderTransportList(expeditionsWithItems, veiculos, motoristas);
-                debugLog.add(`${expeditionsWithItems.length} expedições carregadas para transporte`, 'success');
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                debugLog.add(`Erro ao carregar transporte: ${error.message}`, 'error');
-                document.getElementById('transporteList').innerHTML =
-                    `<div class="alert alert-error">Erro: ${error.message}</div>`;
-            }
-        }
+    const veiculoId = document.getElementById('transporteVehiculoSelect').value;
+    const motoristaId = document.getElementById('transporteMotoristaSelect').value;
+    const docaId = document.getElementById('transporteDocaSelect').value;
 
+    if (selectedCargas.length === 0) {
+        showNotification('Selecione pelo menos uma carga para agrupar!', 'error');
+        return;
+    }
+
+    if (!veiculoId || !motoristaId || !docaId) {
+        showNotification('Por favor, selecione um veículo, motorista e doca!', 'error');
+        return;
+    }
+
+    try {
+        debugLog.add(`Criando nova expedição com ${selectedCargas.length} cargas e alocando transporte`, 'info');
+
+        const expedicaoData = {
+            doca_id: docaId,
+            veiculo_id: veiculoId,
+            motorista_id: motoristaId,
+            status: 'aguardando_veiculo',
+            data_alocacao_veiculo: new Date().toISOString()
+        };
+
+        const { data: [novaExpedicao] } = await supabaseRequest('expeditions', 'POST', expedicaoData);
+
+        await supabaseRequest(`expeditions?id=in.(${selectedCargas.join(',')})`, 'PATCH', {
+            expedition_id_nova: novaExpedicao.id,
+            status: 'em_carregamento'
+        });
+
+        const promises = [
+            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
+            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false)
+        ];
+        await Promise.all(promises);
+
+        showNotification('Expedição criada e alocada com sucesso!', 'success');
+        await loadTransportList();
+        
+    } catch(error) {
+        console.error('Erro ao criar expedição agrupada:', error);
+        debugLog.add(`Erro ao criar expedição agrupada: ${error.message}`, 'error');
+        showNotification('Erro ao criar expedição: ' + error.message, 'error');
+    }
+}
         // SUBSTITUA SUA FUNÇÃO ANTIGA POR ESTA VERSÃO CORRIGIDA
 function renderTransportList(expeditionsList, veiculosList, motoristasList) {
     const container = document.getElementById('transporteList');
