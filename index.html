@@ -3552,7 +3552,7 @@ async function showYesNoModal(message) {
 }
       
 
- // REMOVA A FUNÇÃO ANTIGA E INCLUA ESTA
+// SUBSTITUA A SUA FUNÇÃO ANTIGA POR ESTA VERSÃO OTIMIZADA
 async function loadTransportList() {
     if (!selectedFilial) {
         document.getElementById('cargasDisponiveisList').innerHTML =
@@ -3563,28 +3563,45 @@ async function loadTransportList() {
     try {
         debugLog.add(`Carregando cargas para agrupamento da filial: ${selectedFilial.nome}`, 'info');
 
+        // Passo 1: Buscar as expedições "casca" que estão aguardando
         const expeditions = await supabaseRequest("expeditions?status=eq.aguardando_agrupamento&order=data_hora.asc");
-        const items = await supabaseRequest('expedition_items');
         
+        // Passo 2: Se não houver nenhuma, já encerramos o processo aqui.
+        if (!expeditions || expeditions.length === 0) {
+            renderCargasDisponiveis([], veiculos, motoristas); // Chama a função para mostrar a mensagem de "nenhuma carga"
+            atualizarResumoAgrupamento();
+            debugLog.add('Nenhuma carga aguardando agrupamento encontrada.', 'info');
+            return;
+        }
+
+        // Passo 3: Pegar os IDs das expedições encontradas
+        const expeditionIds = expeditions.map(exp => exp.id);
+
+        // Passo 4: Buscar APENAS os itens que pertencem a essas expedições
+        const items = await supabaseRequest(`expedition_items?expedition_id=in.(${expeditionIds.join(',')})`);
+        
+        // Atualiza os contadores de veículos e motoristas
         const availableVehicles = veiculos.filter(v => v.status === 'disponivel').length;
         const availableDrivers = motoristas.filter(m => m.status === 'disponivel').length;
         document.getElementById('availableVehicles').textContent = availableVehicles;
         document.getElementById('availableDrivers').textContent = availableDrivers;
 
+        // Combina os dados (agora de forma muito mais rápida)
         const expeditionsWithItems = expeditions.map(exp => {
             return { ...exp, items: items.filter(item => item.expedition_id === exp.id) };
-        }).filter(exp => exp.items.length > 0); // Garante que só mostre pré-expedições com itens
+        }).filter(exp => exp.items.length > 0);
         
+        // Renderiza a lista na tela
         renderCargasDisponiveis(expeditionsWithItems, veiculos, motoristas);
-        atualizarResumoAgrupamento(); // Zera o resumo inicial
+        atualizarResumoAgrupamento(); 
         
         debugLog.add(`${expeditionsWithItems.length} cargas carregadas para transporte`, 'success');
         
     } catch (error) {
-        console.error('Erro ao carregar dados:', error);
+        console.error('Erro ao carregar dados de transporte:', error);
         debugLog.add(`Erro ao carregar transporte: ${error.message}`, 'error');
         document.getElementById('cargasDisponiveisList').innerHTML =
-            `<div class="alert alert-error">Erro: ${error.message}</div>`;
+            `<div class="alert alert-error">Erro ao carregar cargas: ${error.message}</div>`;
     }
 }
 
