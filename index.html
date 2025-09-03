@@ -1652,19 +1652,18 @@
                 </div>
 
                 <form id="expeditionForm">
-                    <hr style="margin: 40px 0; border: 1px solid rgba(0, 212, 170, 0.2);">
-
-<h2 style="text-align: center; margin-bottom: 20px;">Atribuição de Doca</h2>
-
-<div id="atribuicaoDocaList" class="loading">
-    <div class="spinner"></div>
-    Carregando expedições aguardando doca...
-</div>
-                     <div class="form-grid">
+                  
+                  <div class="form-grid">
     <div class="form-group">
         <label for="lancar_lojaSelect">Loja:</label>
         <select id="lancar_lojaSelect" class="loja-select" required>
             <option value="">Carregando lojas...</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="lancar_docaSelect">Doca de Preparação:</label>
+        <select id="lancar_docaSelect" required>
+            <option value="">Carregando docas...</option>
         </select>
     </div>
     <div class="form-group">
@@ -1675,11 +1674,11 @@
         <label for="lancar_rolltrainersInput">RollTrainers:</label>
         <input type="number" id="lancar_rolltrainersInput" class="rolltrainers-input" min="0" required placeholder="0">
     </div>
-    <div class="form-group">
-        <label for="lancar_liderSelect">Líder Responsável:</label>
-        <select id="lancar_liderSelect" required>
-            <option value="">Carregando líderes...</option>
-        </select>
+    <div class="form-group" style="grid-column: 1 / -1;">
+         <label for="lancar_liderSelect">Líder Responsável:</label>
+         <select id="lancar_liderSelect" required>
+             <option value="">Carregando líderes...</option>
+         </select>
     </div>
 </div>
 <div class="form-grid">
@@ -2686,7 +2685,19 @@ function populateSelects() {
             lancarLiderSelect.innerHTML += `<option value="${lider.id}">${lider.nome}</option>`;
         });
     }
-
+// NOVO: Popula o select de doca no formulário de lançamento
+const lancarDocaSelect = document.getElementById('lancar_docaSelect');
+if (lancarDocaSelect) {
+    lancarDocaSelect.innerHTML = '<option value="">Selecione uma doca</option>';
+    // Filtra para mostrar apenas docas que estão realmente disponíveis para um novo lançamento
+    const docasDisponiveis = docas.filter(d => d.status === 'disponivel');
+    docasDisponiveis.forEach(doca => {
+        lancarDocaSelect.innerHTML += `<option value="${doca.id}">${doca.nome}</option>`;
+    });
+    if(docasDisponiveis.length === 0){
+         lancarDocaSelect.innerHTML = '<option value="">Nenhuma doca livre</option>';
+    }
+}
     // Popular o select da aba de motoristas
     const placaMotoristaSelect = document.getElementById('placaMotorista');
     if (placaMotoristaSelect) {
@@ -2718,10 +2729,7 @@ async function showTab(tabName) {
     debugLog.add(`Navegando para aba: ${tabName}`, 'info');
 
     // --- INÍCIO DA CORREÇÃO ---
-    if (tabName === 'operacao') {
-        loadAtribuicaoDoca();
-    } else if (tabName === 'transporte') { // <<< ESTA É A LINHA QUE FALTAVA
-        loadTransportList();
+ if (tabName === 'transporte') {
     } else if (tabName === 'faturamento') {
         loadFaturamento();
     } else if (tabName === 'acompanhamento') {
@@ -2834,16 +2842,17 @@ async function showTab(tabName) {
             return true;
         }
 
-     // ADICIONE ESTA NOVA FUNÇÃO NO LUGAR DAS TRÊS REMOVIDAS
 async function lancarCarga() {
     const lojaId = document.getElementById('lancar_lojaSelect').value;
+    const docaId = document.getElementById('lancar_docaSelect').value; // <-- Adicionado
     const pallets = parseInt(document.getElementById('lancar_palletsInput').value);
     const rolltrainers = parseInt(document.getElementById('lancar_rolltrainersInput').value);
     const liderId = document.getElementById('lancar_liderSelect').value;
     const observacoes = document.getElementById('lancar_observacoes').value;
 
-    if (!lojaId || !liderId || (isNaN(pallets) && isNaN(rolltrainers))) {
-        showAlert('operacaoAlert', 'Preencha Loja, Líder e ao menos um tipo de carga!', 'error');
+    // Validação agora inclui a doca
+    if (!lojaId || !liderId || !docaId || (isNaN(pallets) && isNaN(rolltrainers))) {
+        showAlert('operacaoAlert', 'Preencha Loja, Doca, Líder e ao menos um tipo de carga!', 'error');
         return;
     }
     if ((pallets < 0) || (rolltrainers < 0)) {
@@ -2852,16 +2861,14 @@ async function lancarCarga() {
     }
 
     try {
-        debugLog.add(`Lançando nova carga individual...`, 'info');
+        debugLog.add(`Lançando nova carga individual para a doca ${docaId}...`, 'info');
 
-        // 1. Cria uma "casca" de expedição com status 'aguardando_agrupamento'
-        // Esta expedição representa uma carga disponível.
         const expeditionData = {
             data_hora: new Date().toISOString(),
             lider_id: liderId,
+            doca_id: docaId, // <-- Adicionado
             observacoes: observacoes || null,
             status: 'aguardando_agrupamento',
-            // O filial é adicionado automaticamente pelo supabaseRequest
         };
         const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
         if (!expeditionResponse || expeditionResponse.length === 0) {
@@ -2869,7 +2876,6 @@ async function lancarCarga() {
         }
         const newExpeditionId = expeditionResponse[0].id;
 
-        // 2. Cria o item (a carga em si) e o associa à "casca"
         const itemData = {
             expedition_id: newExpeditionId,
             loja_id: lojaId,
@@ -2878,14 +2884,16 @@ async function lancarCarga() {
             status_descarga: 'pendente'
         };
         await supabaseRequest('expedition_items', 'POST', itemData);
-        
+
         const lojaNome = lojas.find(l => l.id === lojaId)?.nome || 'Loja';
         showNotification(`Carga para ${lojaNome} lançada e disponível para alocação!`, 'success');
-        
-        // Limpa o formulário para o próximo lançamento
+
         document.getElementById('expeditionForm').reset();
         document.getElementById('lancar_lojaSelect').focus();
-        
+
+        // Recarrega os dados para refletir que a doca pode não estar mais disponível (se essa for a regra)
+        await loadSelectData();
+
     } catch (error) {
         console.error('Erro ao lançar carga:', error);
         debugLog.add(`Erro ao lançar carga: ${error.message}`, 'error');
@@ -3721,7 +3729,6 @@ function atualizarResumoAgrupamento() {
     }
 }
 
-// REMOVA a função antiga e SUBSTITUA por esta versão corrigida:
 async function agruparEAlocar() {
     const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
     const veiculoId = document.getElementById('alocar_veiculoSelect').value;
@@ -3742,33 +3749,61 @@ async function agruparEAlocar() {
     try {
         debugLog.add(`Iniciando agrupamento de ${idsDasCargas.length} cargas.`, 'info');
 
-        // --- INÍCIO DA CORREÇÃO ---
-        // Pega a primeira carga da lista selecionada para herdar o líder dela.
-        const primeiraCarga = cargasDisponiveis.find(c => c.id === idsDasCargas[0]);
-        if (!primeiraCarga || !primeiraCarga.lider_id) {
-            throw new Error("Não foi possível encontrar o líder da primeira carga selecionada. Tente novamente.");
-        }
-        const liderDaExpedicao = primeiraCarga.lider_id;
-        // --- FIM DA CORREÇÃO ---
+        // --- INÍCIO DA NOVA LÓGICA DE SELEÇÃO DE DOCA ---
+        const cargasSelecionadas = cargasDisponiveis.filter(c => idsDasCargas.includes(c.id));
 
-        // 1. Criar a nova expedição "mãe", agora com a informação do líder
+        // 1. Contar pallets por doca
+        const dockPalletCounts = {};
+        cargasSelecionadas.forEach(carga => {
+            const docaId = carga.doca_id;
+            const pallets = carga.items[0]?.pallets || 0;
+            if (docaId) {
+                dockPalletCounts[docaId] = (dockPalletCounts[docaId] || 0) + pallets;
+            }
+        });
+
+        // 2. Rankear docas por contagem de pallets
+        const rankedDocks = Object.entries(dockPalletCounts).sort((a, b) => b[1] - a[1]);
+
+        // 3. Encontrar a primeira doca rankeada que está disponível
+        let docaAlvoId = null;
+        for (const [docaId, _] of rankedDocks) {
+            const doca = docas.find(d => d.id === docaId);
+            if (doca && doca.status === 'disponivel') {
+                docaAlvoId = docaId;
+                break; 
+            }
+        }
+
+        // 4. Se nenhuma doca estiver disponível, parar a operação
+        if (!docaAlvoId) {
+            const docasNomes = rankedDocks.map(([docaId, _]) => docas.find(d => d.id === docaId)?.nome).join(', ');
+            showNotification(`Nenhuma das docas necessárias (${docasNomes}) está disponível. Aguarde e tente novamente.`, 'error');
+            debugLog.add(`Falha no agrupamento: Nenhuma doca necessária está disponível.`, 'error');
+            return;
+        }
+        debugLog.add(`Doca alvo selecionada automaticamente: ${docaAlvoId}`, 'success');
+        // --- FIM DA NOVA LÓGICA ---
+
+        const primeiraCarga = cargasSelecionadas[0];
+        const liderDaExpedicao = primeiraCarga.lider_id;
+
+        // 1. Criar a nova expedição "mãe" com a doca já definida
         const newExpeditionData = {
             data_hora: new Date().toISOString(),
-            status: 'aguardando_doca', 
+            status: 'aguardando_veiculo', // Já pula direto para aguardando o veículo
+            doca_id: docaAlvoId, // <-- Doca definida automaticamente
             veiculo_id: veiculoId,
             motorista_id: motoristaId,
-            lider_id: liderDaExpedicao, // <-- LINHA ADICIONADA NA LÓGICA
+            lider_id: liderDaExpedicao,
             data_alocacao_veiculo: new Date().toISOString(),
             observacoes: observacoes || null
         };
         const newExpeditionResponse = await supabaseRequest('expeditions', 'POST', newExpeditionData);
         const newExpeditionId = newExpeditionResponse[0].id;
-        
-        // 2. Mover os itens das cargas antigas para a nova expedição
-        const itemsToUpdate = cargasDisponiveis
-            .filter(c => idsDasCargas.includes(c.id))
-            .map(c => c.items[0].id);
-        
+
+        // 2. Mover os itens das cargas antigas
+        const itemsToUpdate = cargasSelecionadas.map(c => c.items[0].id);
         await supabaseRequest(`expedition_items?id=in.(${itemsToUpdate.join(',')})`, 'PATCH', {
             expedition_id: newExpeditionId
         });
@@ -3776,20 +3811,21 @@ async function agruparEAlocar() {
         // 3. Deletar as "cascas" das expedições antigas
         await supabaseRequest(`expeditions?id=in.(${idsDasCargas.join(',')})`, 'DELETE');
 
-        // 4. Atualizar status do veículo e motorista
+        // 4. Atualizar status do veículo, motorista E DA DOCA ESCOLHIDA
         await Promise.all([
             supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
-            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false)
+            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false),
+            supabaseRequest(`docas?id=eq.${docaAlvoId}`, 'PATCH', { status: 'em_uso' }, false) // <-- Ocupa a doca
         ]);
 
-        showNotification('Expedição montada e alocada com sucesso! Aguardando atribuição de doca.', 'success');
-        
-        // Limpa o formulário de alocação
+        showNotification('Expedição montada e alocada com sucesso! Doca definida automaticamente.', 'success');
+
         document.getElementById('alocar_veiculoSelect').value = '';
         document.getElementById('alocar_motoristaSelect').value = '';
         document.getElementById('alocar_observacoes').value = '';
-        
-        loadTransportList(); // Recarrega a lista de cargas disponíveis
+
+        loadTransportList();
+        await loadSelectData(); // Atualiza a lista de docas disponíveis
 
     } catch (error) {
         console.error('Erro ao agrupar e alocar:', error);
@@ -6691,106 +6727,11 @@ function showSubTab(tabName, subTabName) {
 }
         // ADICIONE ESTAS TRÊS NOVAS FUNÇÕES AO SEU SCRIPT
 
-async function loadAtribuicaoDoca() {
-    try {
-        const container = document.getElementById('atribuicaoDocaList');
-        container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando...</div>`;
 
-        const expeditions = await supabaseRequest("expeditions?status=eq.aguardando_doca&order=data_alocacao_veiculo.asc");
-        const items = await supabaseRequest('expedition_items');
 
-        const expeditionsWithDetails = expeditions.map(exp => {
-            const expItems = items.filter(item => item.expedition_id === exp.id);
-            const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
-            const motorista = motoristas.find(m => m.id === exp.motorista_id);
-            return {
-                ...exp,
-                items: expItems,
-                lojas_count: expItems.length,
-                total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
-                total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0),
-                veiculo_placa: veiculo ? veiculo.placa : 'N/A',
-                motorista_nome: motorista ? motorista.nome : 'N/A'
-            };
-        });
 
-        renderAtribuicaoDoca(expeditionsWithDetails);
 
-    } catch (error) {
-        debugLog.add(`Erro ao carregar atribuições de doca: ${error.message}`, 'error');
-        document.getElementById('atribuicaoDocaList').innerHTML = `<div class="alert alert-error">Erro ao carregar: ${error.message}</div>`;
-    }
-}
 
-function renderAtribuicaoDoca(expeditions) {
-    const container = document.getElementById('atribuicaoDocaList');
-    if (expeditions.length === 0) {
-        container.innerHTML = '<div class="alert alert-success">Nenhuma expedição aguardando doca.</div>';
-        return;
-    }
-
-    const docasDisponiveis = docas.filter(d => d.status === 'disponivel');
-
-    let html = '';
-    expeditions.forEach(exp => {
-        const alocadoEm = new Date(exp.data_alocacao_veiculo);
-        html += `
-            <div class="transport-card">
-                <div class="transport-grid">
-                    <div><strong>Veículo:</strong> ${exp.veiculo_placa}</div>
-                    <div><strong>Motorista:</strong> ${exp.motorista_nome}</div>
-                    <div><strong>Lojas:</strong> ${exp.lojas_count}</div>
-                    <div><strong>Carga:</strong> ${exp.total_pallets}P + ${exp.total_rolltrainers}R</div>
-                    <div><strong>Alocado em:</strong> ${alocadoEm.toLocaleTimeString('pt-BR')}</div>
-                </div>
-                <div class="transport-actions" style="margin-top: 15px;">
-                    <div class="form-group">
-                        <label for="doca_${exp.id}">Atribuir Doca:</label>
-                        <select id="doca_${exp.id}">
-                            <option value="">Selecione a doca</option>
-                            ${docasDisponiveis.map(d => `<option value="${d.id}">${d.nome}</option>`).join('')}
-                        </select>
-                    </div>
-                    <button class="btn btn-success" onclick="atribuirDoca('${exp.id}')">Confirmar Doca</button>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-async function atribuirDoca(expeditionId) {
-    const docaSelect = document.getElementById(`doca_${expeditionId}`);
-    const docaId = docaSelect.value;
-
-    if (!docaId) {
-        showNotification('Por favor, selecione uma doca!', 'error');
-        return;
-    }
-
-    try {
-        debugLog.add(`Atribuindo doca ${docaId} para expedição ${expeditionId}`, 'info');
-
-        await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-            doca_id: docaId,
-            status: 'aguardando_veiculo' // Agora sim, o motorista pode se dirigir à doca
-        });
-
-        // Ocupa a doca
-        await supabaseRequest(`docas?id=eq.${docaId}`, 'PATCH', { status: 'em_uso' });
-
-        showNotification('Doca atribuída com sucesso! Motorista notificado.', 'success');
-        
-        // Recarrega as listas
-        loadAtribuicaoDoca();
-        await loadSelectData(); // Para atualizar a lista de docas disponíveis
-
-    } catch (error) {
-        console.error('Erro ao atribuir doca:', error);
-        debugLog.add(`Erro ao atribuir doca: ${error.message}`, 'error');
-        showNotification(`Erro: ${error.message}`, 'error');
-    }
-}
         // NOVA FUNÇÃO PARA ATUALIZAÇÃO GERAL DE DADOS
         async function refreshAllData() {
             // Mostra notificação e ativa a animação do botão
