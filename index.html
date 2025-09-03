@@ -2730,6 +2730,7 @@ async function showTab(tabName) {
 
     // --- INÍCIO DA CORREÇÃO ---
  if (tabName === 'transporte') {
+      loadTransportList();
     } else if (tabName === 'faturamento') {
         loadFaturamento();
     } else if (tabName === 'acompanhamento') {
