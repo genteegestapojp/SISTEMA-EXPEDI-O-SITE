@@ -4608,33 +4608,37 @@ async function renderMotoristasStatusList() {
             }
         }
 async function finishLoading(expeditionId) {
-            try {
-                const doca = docas.find(d => d.coddoca === modalState.expectedCode);
-                if (!doca) {
-                    throw new Error(`Doca com código "${modalState.expectedCode}" não encontrada no cache local.`);
-                }
-                const dataSaida = new Date().toISOString();
+    try {
+        const doca = docas.find(d => d.coddoca === modalState.expectedCode);
+        if (!doca) {
+            throw new Error(`Doca com código "${modalState.expectedCode}" não encontrada no cache local.`);
+        }
+        const dataSaida = new Date().toISOString();
 
-                await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
-                    data_saida_veiculo: dataSaida,
-                    status: 'aguardando_faturamento'
-                });
+        // Operações em paralelo para mais eficiência
+        await Promise.all([
+            // Atualiza o status da expedição
+            supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', {
+                data_saida_veiculo: dataSaida,
+                status: 'aguardando_faturamento'
+            }),
+            // Libera a doca para ser usada novamente
+            supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'disponivel' }, false)
+        ]);
+        
+        debugLog.add(`Status da doca ${doca.nome} atualizado para 'disponivel'`, 'success');
+        debugLog.add(`Carregamento finalizado para expedição ${expeditionId}.`, 'success');
+        showNotification(`Carregamento finalizado! Doca ${doca.nome} liberada.`, 'success');
+        
+        // Recarrega os dados para que a doca apareça como disponível em outros locais do sistema
+        await loadSelectData();
+        consultarExpedicoesPorPlaca();
 
-                try {
-                    await supabaseRequest(`docas?id=eq.${doca.id}`, 'PATCH', { status: 'disponivel' });
-                    debugLog.add(`Status da doca atualizado para disponivel`, 'success');
-                } catch (docaError) {
-                    debugLog.add(`Aviso: Não foi possível atualizar status da doca: ${docaError.message}`, 'warning');
-                }
-                
-                debugLog.add(`Carregamento finalizado para expedição ${expeditionId}.`, 'success');
-                showNotification(`Carregamento finalizado! Expedição aguardando faturamento.`, 'success');
-                consultarExpedicoesPorPlaca();
-            } catch (error) {
-                debugLog.add(`Erro ao finalizar carregamento: ${error.message}`, 'error');
-                showNotification('Erro ao finalizar carregamento: ' + error.message, 'error');
-            }
-        }
+    } catch (error) {
+        debugLog.add(`Erro ao finalizar carregamento: ${error.message}`, 'error');
+        showNotification('Erro ao finalizar carregamento: ' + error.message, 'error');
+    }
+}
         
         // NOVO: Funções para controlar a descarga
         async function iniciarDescarga(itemId, expeditionId) {
