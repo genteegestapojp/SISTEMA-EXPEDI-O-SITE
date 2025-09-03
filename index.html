@@ -3659,7 +3659,7 @@ function renderCargasDisponiveis(cargas, veiculosList, motoristasList) {
                 <label for="carga_${carga.id}" style="display: flex; align-items: center; cursor: pointer;">
                     <input type="checkbox" id="carga_${carga.id}" value="${carga.id}" onchange="atualizarResumoAgrupamento()" style="margin-right: 10px; width: 20px; height: 20px;">
                     <div>
-                        <strong>${loja ? loja.nome : 'N/A'}</strong><br>
+                        <strong>${loja ? `${loja.nome} (${loja.codigo || 'S/C'})` : 'N/A'}</strong><br>
                         <span style="font-size: 0.8rem;">
                             ${carga.items[0].pallets}P + ${carga.items[0].rolltrainers}R | Lançado em: ${new Date(carga.data_hora).toLocaleTimeString('pt-BR')}
                         </span>
