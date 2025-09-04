@@ -591,6 +591,10 @@
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             if(element) element.classList.add('active');
 
+            // Limpa timers antigos ao trocar de view para não sobrecarregar
+            Object.values(activeTimers).forEach(clearInterval);
+            activeTimers = {};
+
             // Carrega os dados da view selecionada
             switch(viewId) {
                 case 'dashboard': loadDashboardData(); break;
@@ -1164,7 +1168,7 @@
                 if (!expeditionResponse || expeditionResponse.length === 0) {
                     throw new Error("A criação da expedição falhou e não retornou um ID.");
                 }
-                const newExpeditionId = expeditionResponse[0].id;
+                const newExpeditionId = newExpeditionResponse[0].id;
 
                 const itemData = {
                     expedition_id: newExpeditionId,
@@ -1542,6 +1546,8 @@
                 renderVeiculosConfig();
             } else if (tabName === 'configuracoes' && subTabName === 'motoristasConfig') {
                 renderMotoristasConfig();
+            } else if (tabName === 'motoristas' && subTabName === 'relatorioMotoristas') {
+                generateMotoristaReports();
             }
         }
 
@@ -1554,6 +1560,8 @@
             const container = document.getElementById('motoristasStatusList');
             if (!container) return;
             container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando status...</div>`;
+            Object.values(activeTimers).forEach(clearInterval);
+            activeTimers = {};
 
             const [activeExpeditions, recentlyCompletedExpeditions, allItems] = await Promise.all([
                  supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`),
@@ -1563,7 +1571,7 @@
             
             let html = `<div class="stats-grid">
                 <div class="stat-card"><div class="stat-number">${motoristas.filter(m => m.status === 'disponivel').length}</div><div class="stat-label">Disponíveis</div></div>
-                <div class="stat-card" style="background: var(--secondary-gradient);"><div class="stat-number">${motoristas.filter(m => ['em_viagem', 'descarregando_imobilizado'].includes(m.status)).length}</div><div class="stat-label">Em Atividade</div></div>
+                <div class="stat-card" style="background: var(--secondary-gradient);"><div class="stat-number">${motoristas.filter(m => ['em_viagem', 'descarregando_imobilizado', 'saiu_para_entrega'].includes(m.status)).length}</div><div class="stat-label">Em Atividade</div></div>
                 <div class="stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${motoristas.filter(m => ['retornando_cd', 'retornando_com_imobilizado'].includes(m.status)).length}</div><div class="stat-label">Retornando</div></div>
             </div>
             <h3 class="text-xl font-semibold text-gray-800 my-4">Status dos Motoristas</h3>
@@ -1573,25 +1581,7 @@
                 const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
                 if (activeExp) {
                     const itemsForExp = allItems.filter(i => i.expedition_id === activeExp.id);
-                    let tempoEmLoja = 0, tempoDeslocamento = 0;
-                    let lastEventTime = activeExp.data_saida_entrega ? new Date(activeExp.data_saida_entrega) : new Date(activeExp.data_hora);
-
-                    itemsForExp.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach(item => {
-                        if(item.data_inicio_descarga) {
-                           const inicio = new Date(item.data_inicio_descarga);
-                           tempoDeslocamento += (inicio - lastEventTime);
-                           if(item.data_fim_descarga) {
-                               const fim = new Date(item.data_fim_descarga);
-                               tempoEmLoja += (fim - inicio);
-                               lastEventTime = fim;
-                           } else {
-                               tempoEmLoja += (new Date() - inicio); // Tempo em loja até agora
-                               lastEventTime = new Date();
-                           }
-                        }
-                    });
-                    
-                    return { ...m, displayStatus: activeExp.status, veiculoId: activeExp.veiculo_id, tempoEmLoja: tempoEmLoja / 60000, tempoDeslocamento: tempoDeslocamento / 60000 };
+                    return { ...m, displayStatus: activeExp.status, veiculoId: activeExp.veiculo_id, activeExp: { ...activeExp, items: itemsForExp } };
                 } else {
                     const lastCompletedExp = recentlyCompletedExpeditions.find(exp => exp.motorista_id === m.id);
                     return { ...m, displayStatus: m.status, veiculoId: lastCompletedExp ? lastCompletedExp.veiculo_id : null };
@@ -1609,15 +1599,14 @@
                 }
 
                 let timeInfo = '';
-                if (m.displayStatus === 'saiu_para_entrega' || m.displayStatus === 'em_viagem') {
+                if (m.activeExp && m.displayStatus === 'saiu_para_entrega') {
                     timeInfo = `
                         <div class="text-xs text-gray-500 mt-1">
-                            <span>Loja: ${minutesToHHMM(m.tempoEmLoja)}</span> | 
-                            <span>Desloc.: ${minutesToHHMM(m.tempoDeslocamento)}</span>
+                            <span id="loja_timer_${m.id}">Loja: --:--</span> | 
+                            <span id="desloc_timer_${m.id}">Desloc.: --:--</span>
                         </div>
                     `;
                 }
-
 
                 html += `
                     <div class="motorista-status-item">
@@ -1626,12 +1615,47 @@
                             ${timeInfo}
                         </div>
                         <div class="flex items-center gap-4">
-                            <span class="status-badge status-${m.status.replace(/ /g, '_')}">${getStatusLabel(m.status)}</span>
+                            <span class="status-badge status-${m.displayStatus.replace(/ /g, '_')}">${getStatusLabel(m.displayStatus)}</span>
                             ${actionButton}
                         </div>
                     </div>`;
             });
             container.innerHTML = html;
+
+            // Iniciar timers
+            motoristasComStatus.forEach(m => {
+                if(m.activeExp && m.displayStatus === 'saiu_para_entrega') {
+                    const timerId = `motorista_${m.id}`;
+                    if(activeTimers[timerId]) clearInterval(activeTimers[timerId]);
+                    
+                    activeTimers[timerId] = setInterval(() => {
+                        let tempoEmLoja = 0, tempoDeslocamento = 0;
+                        let lastEventTime = new Date(m.activeExp.data_saida_entrega);
+
+                        m.activeExp.items.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach(item => {
+                            if(item.data_inicio_descarga) {
+                               const inicio = new Date(item.data_inicio_descarga);
+                               tempoDeslocamento += (inicio - lastEventTime);
+                               if(item.data_fim_descarga) {
+                                   const fim = new Date(item.data_fim_descarga);
+                                   tempoEmLoja += (fim - inicio);
+                                   lastEventTime = fim;
+                               } else {
+                                   tempoEmLoja += (new Date() - inicio);
+                                   lastEventTime = new Date();
+                               }
+                            }
+                        });
+                        
+                        const elLoja = document.getElementById(`loja_timer_${m.id}`);
+                        const elDesloc = document.getElementById(`desloc_timer_${m.id}`);
+
+                        if(elLoja) elLoja.textContent = `Loja: ${minutesToHHMM(tempoEmLoja / 60000)}`;
+                        if(elDesloc) elDesloc.textContent = `Desloc.: ${minutesToHHMM(tempoDeslocamento / 60000)}`;
+
+                    }, 1000);
+                }
+            });
         }
 
         async function consultarExpedicoesPorPlaca() {
