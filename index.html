@@ -1383,7 +1383,7 @@
                 document.getElementById('alocar_observacoes').value = '';
 
                 loadTransportList();
-                await loadSelectData();
+                await loadSelectData(); // Atualiza a lista de docas disponíveis
 
             } catch (error) {
                 showNotification(`Erro ao agrupar: ${error.message}`, 'error');
@@ -2326,7 +2326,24 @@
             renderChart('lojasRankingChart', 'bar', {
                 labels: ranking.map(l => l.nome),
                 datasets: [{ label: 'Tempo Médio (min)', data: ranking.map(l => l.tempoMedio), backgroundColor: backgroundColors }]
-            }, { indexAxis: 'y' });
+            }, { 
+                indexAxis: 'y',
+                plugins: {
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: (value) => minutesToHHMM(value),
+                        color: '#333'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Tempo Médio: ${minutesToHHMM(context.raw)}`;
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function renderEntregasChart(fort, comper) {
