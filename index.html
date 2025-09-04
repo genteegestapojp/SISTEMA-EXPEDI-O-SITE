@@ -366,15 +366,19 @@
                             <form id="dashboardExpeditionForm" class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Loja</label>
-                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 loja-select" id="dashboardLojaSelect"></select>
+                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 loja-select" id="dashboardLojaSelect" required></select>
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Líder Responsável</label>
+                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="dashboardLiderSelect" required></select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Doca</label>
-                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="dashboardDocaSelect"></select>
+                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="dashboardDocaSelect" required></select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Pallets</label><input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md" id="dashboardPallets" min="0" placeholder="0"></div>
-                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">RollTrainers</label><input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md" id="dashboardRolltrainers" min="0" placeholder="0"></div>
+                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Pallets</label><input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md" id="dashboardPallets" min="0" value="0" required></div>
+                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">RollTrainers</label><input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md" id="dashboardRolltrainers" min="0" value="0" required></div>
                                 </div>
                                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">Lançar Expedição</button>
                             </form>
@@ -510,6 +514,8 @@
         // Inicializa bibliotecas
         AOS.init();
         feather.replace();
+        Chart.register(ChartDataLabels);
+
 
         // --- INÍCIO DO SCRIPT ADAPTADO ---
         
@@ -1050,14 +1056,16 @@
                 }
             });
 
-            // Popula select de líder
-            const liderSelect = document.getElementById('lancar_liderSelect');
-            if (liderSelect) {
-                liderSelect.innerHTML = '<option value="">Selecione o líder</option>';
-                lideres.forEach(lider => {
-                    liderSelect.innerHTML += `<option value="${lider.id}">${lider.nome}</option>`;
-                });
-            }
+            // Popula selects de líder
+            ['lancar_liderSelect', 'dashboardLiderSelect'].forEach(id => {
+                const liderSelect = document.getElementById(id);
+                 if (liderSelect) {
+                    liderSelect.innerHTML = '<option value="">Selecione o líder</option>';
+                    lideres.forEach(lider => {
+                        liderSelect.innerHTML += `<option value="${lider.id}">${lider.nome}</option>`;
+                    });
+                }
+            });
         }
         
         function getStatusLabel(status) {
@@ -1118,12 +1126,73 @@
         }
 
         document.getElementById('dashboardExpeditionForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showNotification('Funcionalidade de lançamento rápido em implementação.', 'info');
+             e.preventDefault();
+             lancarCargaDashboard();
         });
 
+        async function lancarCargaDashboard() {
+            const lojaId = document.getElementById('dashboardLojaSelect').value;
+            const docaId = document.getElementById('dashboardDocaSelect').value;
+            const pallets = parseInt(document.getElementById('dashboardPallets').value);
+            const rolltrainers = parseInt(document.getElementById('dashboardRolltrainers').value);
+            const liderId = document.getElementById('dashboardLiderSelect').value;
+
+            if (!lojaId || !liderId || !docaId) {
+                showNotification('Preencha Loja, Doca e Líder!', 'error');
+                return;
+            }
+            if (isNaN(pallets) || isNaN(rolltrainers) || (pallets === 0 && rolltrainers === 0)) {
+                showNotification('Informe ao menos uma quantidade de Pallets ou RollTrainers.', 'error');
+                return;
+            }
+
+            try {
+                const expeditionData = {
+                    data_hora: new Date().toISOString(),
+                    lider_id: liderId,
+                    doca_id: docaId,
+                    status: 'aguardando_agrupamento'
+                };
+                
+                const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
+                if (!expeditionResponse || expeditionResponse.length === 0) {
+                    throw new Error("A criação da expedição falhou e não retornou um ID.");
+                }
+                const newExpeditionId = expeditionResponse[0].id;
+
+                const itemData = {
+                    expedition_id: newExpeditionId,
+                    loja_id: lojaId,
+                    pallets: pallets || 0,
+                    rolltrainers: rolltrainers || 0,
+                    status_descarga: 'pendente'
+                };
+                await supabaseRequest('expedition_items', 'POST', itemData);
+
+                const lojaNome = lojas.find(l => l.id == lojaId)?.nome || 'Loja';
+                showNotification(`Carga rápida para ${lojaNome} lançada!`, 'success');
+
+                document.getElementById('dashboardExpeditionForm').reset();
+                
+                await loadDashboardData();
+                if(document.getElementById('transporte').classList.contains('active')) {
+                    await loadTransportList();
+                }
+
+            } catch (error) {
+                console.error('Erro ao lançar carga pelo dashboard:', error);
+                showNotification(`Erro ao lançar carga: ${error.message}`, 'error');
+            }
+        }
+
         function consultarExpedicoesDashboard() {
-            showNotification('Funcionalidade de consulta rápida em implementação.', 'info');
+            showView('motoristas', document.querySelector('a[href=\'#motoristas\']'));
+            const dashboardPlaca = document.getElementById('dashboardPlacaSelect').value;
+            if (dashboardPlaca) {
+                const motoristaPlacaSelect = document.getElementById('placaMotorista');
+                motoristaPlacaSelect.value = dashboardPlaca;
+                consultarExpedicoesPorPlaca();
+            }
         }
 
         // --- FUNCIONALIDADES DA ABA OPERAÇÃO ---
@@ -1147,7 +1216,10 @@
             try {
                 const expeditionData = { data_hora: new Date().toISOString(), lider_id: liderId, doca_id: docaId, observacoes: observacoes || null, status: 'aguardando_agrupamento' };
                 const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
-                const newExpeditionId = newExpeditionResponse[0].id;
+                if (!expeditionResponse || expeditionResponse.length === 0) {
+                    throw new Error("A criação da expedição falhou e não retornou um ID.");
+                }
+                const newExpeditionId = expeditionResponse[0].id;
 
                 const itemData = { expedition_id: newExpeditionId, loja_id: lojaId, pallets: pallets || 0, rolltrainers: rolltrainers || 0, status_descarga: 'pendente' };
                 await supabaseRequest('expedition_items', 'POST', itemData);
@@ -1160,6 +1232,7 @@
                 await loadSelectData();
 
             } catch (error) {
+                console.error('Erro ao lançar carga:', error);
                 showNotification(`Erro ao lançar carga: ${error.message}`, 'error');
             }
         }
@@ -1209,7 +1282,8 @@
                                 <span class="text-sm text-gray-500">${carga.items[0].pallets}P + ${carga.items[0].rolltrainers}R | ${new Date(carga.data_hora).toLocaleTimeString('pt-BR')}</span>
                             </div>
                         </label>
-                    </div>`;
+                    </div>
+                `;
             });
             html += '</div>';
             container.innerHTML = html;
@@ -1475,7 +1549,10 @@
             if (!container) return;
             container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando status...</div>`;
 
-            const activeExpeditions = await supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`);
+            const [activeExpeditions, recentlyCompletedExpeditions] = await Promise.all([
+                 supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`),
+                 supabaseRequest(`expeditions?status=eq.entregue&order=data_hora.desc&limit=50`)
+            ]);
             
             let html = `<div class="stats-grid">
                 <div class="stat-card"><div class="stat-number">${motoristas.filter(m => m.status === 'disponivel').length}</div><div class="stat-label">Disponíveis</div></div>
@@ -1487,16 +1564,21 @@
 
             const motoristasComStatus = motoristas.map(m => {
                 const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
-                return { ...m, displayStatus: activeExp ? activeExp.status : m.status, veiculoId: activeExp ? activeExp.veiculo_id : null };
+                if (activeExp) {
+                    return { ...m, displayStatus: activeExp.status, veiculoId: activeExp.veiculo_id };
+                } else {
+                    const lastCompletedExp = recentlyCompletedExpeditions.find(exp => exp.motorista_id === m.id);
+                    return { ...m, displayStatus: m.status, veiculoId: lastCompletedExp ? lastCompletedExp.veiculo_id : null };
+                }
             });
 
             motoristasComStatus.sort((a, b) => a.nome.localeCompare(b.nome));
 
             motoristasComStatus.forEach(m => {
                 let actionButton = '';
-                if ((m.displayStatus === 'retornando_cd' || m.displayStatus === 'retornando_com_imobilizado') && m.veiculoId) {
+                if ((m.status === 'retornando_cd' || m.status === 'retornando_com_imobilizado') && m.veiculoId) {
                     actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${m.id}', '${m.veiculoId}')">Cheguei no CD</button>`;
-                } else if (m.displayStatus === 'descarregando_imobilizado' && m.veiculoId) {
+                } else if (m.status === 'descarregando_imobilizado' && m.veiculoId) {
                     actionButton = `<button class="btn btn-warning btn-small" onclick="finalizarDescargaImobilizado('${m.id}', '${m.veiculoId}')">Finalizar Descarga</button>`;
                 }
 
@@ -1504,7 +1586,7 @@
                     <div class="motorista-status-item">
                         <strong class="text-gray-800">${m.nome}</strong>
                         <div class="flex items-center gap-4">
-                            <span class="status-badge status-${m.displayStatus.replace(/ /g, '_')}">${getStatusLabel(m.displayStatus)}</span>
+                            <span class="status-badge status-${m.status.replace(/ /g, '_')}">${getStatusLabel(m.status)}</span>
                             ${actionButton}
                         </div>
                     </div>`;
@@ -2135,11 +2217,14 @@
                                 <h3 class="text-lg font-bold">${new Date(exp.data_hora).toLocaleDateString('pt-BR')} - ${exp.veiculo_placa}</h3>
                                 <p class="text-sm text-gray-500">Motorista: ${exp.motorista_nome}</p>
                             </div>
-                            <div class="text-right">
-                                 <span class="status-badge status-entregue mb-2">Entregue</span>
-                                 <div class="font-bold text-sm">Ocupação: ${exp.ocupacao}%</div>
-                                 <div class="text-sm">Pallets: ${exp.total_pallets}</div>
+                            <div class="flex flex-col items-end gap-2">
+                                 <span class="status-badge status-entregue">Entregue</span>
+                                 <button class="btn btn-danger btn-small" onclick="deleteHistoricoExpedition('${exp.id}')">Excluir</button>
                             </div>
+                        </div>
+                        <div class="mt-2 grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Ocupação:</strong> <span class="font-bold">${exp.ocupacao}%</span></div>
+                            <div><strong>Pallets:</strong> <span class="font-bold">${exp.total_pallets}</span></div>
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4 text-xs">
                             <div class="time-display"><strong>T. Pátio:</strong> ${tempos.patio}</div>
@@ -2168,7 +2253,7 @@
         function generateHistoricoIndicators(data) {
             const summaryContainer = document.getElementById('indicadoresSummary');
             if (data.length === 0) {
-                summaryContainer.innerHTML = '<div class="alert alert-info">Sem dados para exibir.</div>';
+                summaryContainer.innerHTML = '<div class="alert alert-info">Sem dados para exibir indicadores.</div>';
                 destroyChart('lojasRankingChart');
                 destroyChart('entregasChart');
                 return;
