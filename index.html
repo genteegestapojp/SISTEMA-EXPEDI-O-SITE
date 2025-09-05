@@ -328,7 +328,7 @@
                     <h1 class="text-3xl font-bold text-gray-800 mb-6">Home</h1>
                     
                     <!-- Resumo dos Indicadores -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
                         <div class="stat-card-dash">
                             <div class="flex items-center">
                                 <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="truck" class="h-6 w-6 text-white"></i></div>
@@ -356,6 +356,15 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="stat-card-dash" style="background: linear-gradient(135deg, #FCBF49, #F77F00);">
+                            <div class="flex items-center">
+                                <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="shopping-bag" class="h-6 w-6 text-white"></i></div>
+                                <div class="ml-4">
+                                    <h3 class="text-2xl font-bold" id="homeTempoMedioLoja">00:00</h3>
+                                    <p class="text-white text-opacity-80">Tempo Médio em Loja</p>
+                                </div>
+                            </div>
+                        </div>
                         <div class="stat-card-dash" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
                             <div class="flex items-center">
                                 <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="pie-chart" class="h-6 w-6 text-white"></i></div>
@@ -364,6 +373,14 @@
                                     <p class="text-white text-opacity-80">Ocupação Média</p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Produtividade da Frota -->
+                    <div class="bg-white rounded-xl shadow-md p-6 mb-8" data-aos="fade-up">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Top 5 Produtividade de Motoristas (por Entregas)</h2>
+                        <div class="relative" style="height: 250px;">
+                            <canvas id="frotaProdutividadeChart"></canvas>
                         </div>
                     </div>
                     
@@ -392,11 +409,13 @@
                                     <tr>
                                         <th class="py-3 px-4">Loja</th>
                                         <th class="py-3 px-4 text-center">Total de Entregas</th>
+                                        <th class="py-3 px-4 text-center">Total Pallets</th>
+                                        <th class="py-3 px-4 text-center">Total Rolls</th>
                                         <th class="py-3 px-4 text-center">Tempo Médio em Loja (HH:mm)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="temposMediosLojaTbody">
-                                    <tr><td colspan="3" class="loading"><div class="spinner"></div></td></tr>
+                                    <tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1139,6 +1158,7 @@
             document.getElementById('homeEntregasRealizadas').textContent = '...';
             document.getElementById('homeTempoMedioPatio').textContent = '...';
             document.getElementById('homeOcupacaoMedia').textContent = '...';
+            document.getElementById('homeTempoMedioLoja').textContent = '...';
             document.getElementById('temposMediosLojaTbody').innerHTML = `<tr><td colspan="3" class="loading"><div class="spinner"></div></td></tr>`;
 
             try {
@@ -1148,9 +1168,11 @@
                     document.getElementById('homeEntregasRealizadas').textContent = '0';
                     document.getElementById('homeTempoMedioPatio').textContent = '00:00';
                     document.getElementById('homeOcupacaoMedia').textContent = '0%';
-                    document.getElementById('temposMediosLojaTbody').innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Nenhum dado de viagem concluída encontrado.</td></tr>';
-                    destroyChart('ocupacaoTotalChart');
-                    destroyChart('lojaDesempenhoChart');
+                document.getElementById('homeTempoMedioLoja').textContent = '00:00';
+                document.getElementById('temposMediosLojaTbody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum dado de viagem concluída encontrado.</td></tr>';
+                destroyChart('ocupacaoTotalChart');
+                destroyChart('lojaDesempenhoChart');
+                destroyChart('frotaProdutividadeChart');
                     return;
                 }
 
@@ -1183,29 +1205,61 @@
                 document.getElementById('homeTempoMedioPatio').textContent = minutesToHHMM(tempoMedioPatio);
                 document.getElementById('homeOcupacaoMedia').textContent = `${ocupacaoMedia.toFixed(1)}%`;
 
+                const temposLojaGeral = [];
                 const lojasStats = {};
+                const motoristasStats = {};
+
                 items.forEach(item => {
                     if (item.data_inicio_descarga && item.data_fim_descarga) {
+                        const tempo = (new Date(item.data_fim_descarga) - new Date(item.data_inicio_descarga)) / 60000;
+                        temposLojaGeral.push(tempo);
+                        
                         const lojaId = item.loja_id;
                         if (!lojasStats[lojaId]) {
                             const lojaInfo = lojas.find(l => l.id === lojaId);
                             lojasStats[lojaId] = {
                                 nome: lojaInfo ? `${lojaInfo.codigo} - ${lojaInfo.nome}` : 'Desconhecida',
+                                codigo: lojaInfo ? lojaInfo.codigo : 'N/A',
                                 tempos: [],
-                                entregas: 0
+                                entregas: 0,
+                                totalPallets: 0,
+                                totalRolls: 0
                             };
                         }
-                        const tempo = (new Date(item.data_fim_descarga) - new Date(item.data_inicio_descarga)) / 60000;
                         lojasStats[lojaId].tempos.push(tempo);
                         lojasStats[lojaId].entregas++;
+                        lojasStats[lojaId].totalPallets += item.pallets || 0;
+                        lojasStats[lojaId].totalRolls += item.rolltrainers || 0;
                     }
                 });
+
+                expeditions.forEach(exp => {
+                    if (exp.motorista_id) {
+                        const motorista = motoristas.find(m => m.id === exp.motorista_id);
+                        if (motorista) {
+                            if (!motoristasStats[exp.motorista_id]) {
+                                motoristasStats[exp.motorista_id] = {
+                                    nome: motorista.nome,
+                                    entregas: 0
+                                };
+                            }
+                            const expItemsCount = items.filter(i => i.expedition_id === exp.id).length;
+                            motoristasStats[exp.motorista_id].entregas += expItemsCount;
+                        }
+                    }
+                });
+
+                const tempoMedioLoja = temposLojaGeral.length > 0 ? temposLojaGeral.reduce((a, b) => a + b, 0) / temposLojaGeral.length : 0;
+                document.getElementById('homeTempoMedioLoja').textContent = minutesToHHMM(tempoMedioLoja);
 
                 const lojasData = Object.values(lojasStats).map(loja => ({
                     ...loja,
                     tempoMedio: loja.tempos.reduce((a, b) => a + b, 0) / loja.tempos.length
                 })).sort((a, b) => b.tempoMedio - a.tempoMedio);
 
+                const motoristasData = Object.values(motoristasStats).sort((a, b) => b.entregas - a.entregas);
+
+                renderFrotaProdutividadeChart(motoristasData.slice(0, 5));
                 renderOcupacaoTotalChart(ocupacaoMedia);
                 renderLojaDesempenhoChart(lojasData.slice(0, 5));
                 renderTemposMediosTable(lojasData);
@@ -1253,13 +1307,62 @@
             }, [ocupacaoText]);
         }
 
+        function renderFrotaProdutividadeChart(motoristasData) {
+            if (!motoristasData || motoristasData.length === 0) {
+                destroyChart('frotaProdutividadeChart');
+                return;
+            }
+            const data = {
+                labels: motoristasData.map(f => f.nome),
+                datasets: [{
+                    label: 'Total de Entregas',
+                    data: motoristasData.map(f => f.entregas),
+                    backgroundColor: '#00D4AA',
+                    borderColor: '#00B4D8',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            };
+
+            renderChart('frotaProdutividadeChart', 'bar', data, {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        color: '#023047',
+                        font: { weight: 'bold' },
+                        anchor: 'end',
+                        align: 'end',
+                        offset: -5,
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Total de Entregas: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Número de Entregas' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Motorista' }
+                    }
+                }
+            });
+        }
+
         function renderLojaDesempenhoChart(lojasData) {
             if (!lojasData || lojasData.length === 0) {
                 destroyChart('lojaDesempenhoChart');
                 return;
             }
             const data = {
-                labels: lojasData.map(l => (l.nome.split('-')[1] || l.nome).trim()),
+                labels: lojasData.map(l => l.nome),
                 datasets: [{
                     label: 'Tempo Médio em Loja',
                     data: lojasData.map(l => l.tempoMedio),
@@ -1267,7 +1370,8 @@
                     borderColor: '#0077B6',
                     borderWidth: 1,
                     borderRadius: 4,
-                    entregas: lojasData.map(l => l.entregas)
+                    entregas: lojasData.map(l => l.entregas),
+                    nomes: lojasData.map(l => l.nome)
                 }]
             };
             
@@ -1277,25 +1381,31 @@
                 plugins: {
                     legend: { display: false },
                     datalabels: {
-                        display: true,
-                        color: '#023047',
-                        font: { weight: 'bold' },
-                        formatter: (value) => minutesToHHMM(value),
-                        anchor: 'end',
-                        align: 'end',
-                        offset: -5,
-                        labels: {
-                            value: {
-                                anchor: 'center',
-                                align: 'center',
-                                color: 'white',
-                                font: { weight: 'bold', size: 14 },
-                                formatter: (value, context) => context.dataset.entregas[context.dataIndex]
+                        tempo: {
+                            color: '#023047',
+                            font: { weight: 'bold' },
+                            formatter: (value) => minutesToHHMM(value),
+                            anchor: 'end',
+                            align: 'end',
+                            offset: -5,
+                        },
+                        entregas: {
+                            display: true,
+                            anchor: 'center',
+                            align: 'center',
+                            color: 'white',
+                            font: { weight: 'bold', size: 14 },
+                            formatter: (value, context) => {
+                                const entregasCount = context.dataset.entregas[context.dataIndex];
+                                return entregasCount > 0 ? entregasCount : '';
                             }
                         }
                     },
                     tooltip: {
                         callbacks: {
+                            title: function(context) {
+                                return context[0].dataset.nomes[context[0].dataIndex];
+                            },
                             label: function(context) {
                                 const loja = lojasData[context.dataIndex];
                                 return [ `Tempo Médio: ${minutesToHHMM(context.raw)}`, `Total de Entregas: ${loja.entregas}` ];
@@ -1305,24 +1415,28 @@
                 },
                 scales: {
                     y: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'Tempo Médio (HH:mm)' },
-                         ticks: { callback: (value) => minutesToHHMM(value) }
+                        display: false,
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: { display: true, text: 'Loja' }
                     }
                 }
             });
         }
-        
+
         function renderTemposMediosTable(lojasData) {
             const tbody = document.getElementById('temposMediosLojaTbody');
             if (!lojasData || lojasData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Nenhum dado de loja encontrado.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum dado de loja encontrado.</td></tr>';
                 return;
             }
             tbody.innerHTML = lojasData.map(loja => `
                 <tr class="hover:bg-gray-50">
                     <td class="py-3 px-4 font-medium text-gray-800">${loja.nome}</td>
                     <td class="py-3 px-4 text-center">${loja.entregas}</td>
+                    <td class="py-3 px-4 text-center">${loja.totalPallets}</td>
+                    <td class="py-3 px-4 text-center">${loja.totalRolls}</td>
                     <td class="py-3 px-4 text-center font-semibold">${minutesToHHMM(loja.tempoMedio)}</td>
                 </tr>
             `).join('');
@@ -2192,7 +2306,6 @@
                     datalabels: {
                         anchor: 'end',
                         align: 'end',
-                        formatter: (value) => value,
                         color: '#333',
                         font: { weight: 'bold' }
                     },
@@ -3233,4 +3346,16 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
 
