@@ -7,7 +7,6 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="favicon.png">
     
-    <!-- Scripts e Estilos -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -256,20 +255,16 @@
 </head>
 <body class="bg-gray-100 font-sans">
     
-    <!-- Tela de Seleção de Filial -->
     <div id="filialSelectionContainer" class="filial-selection-container">
         <div id="filialSelection" class="filial-selection">
             <h2>Selecione a Filial</h2>
             <p>Escolha a filial para acessar o sistema de expedição</p>
             <div id="filiaisGrid" class="filiais-grid">
-                <!-- Cards das filiais serão inseridos aqui pelo JS -->
-            </div>
+                </div>
         </div>
     </div>
 
-    <!-- Layout Principal do Sistema -->
     <div id="mainSystem" class="flex min-h-screen" style="display: none;">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="p-6 border-b border-gray-700">
                 <div class="flex items-center">
@@ -319,15 +314,29 @@
             </nav>
         </aside>
 
-        <!-- Conteúdo Principal -->
         <main class="flex-1 overflow-auto bg-gray-100 main-content">
             <div class="container mx-auto px-6 py-8">
                 
-                <!-- View: Home -->
                 <div id="home" class="view-content active">
                     <h1 class="text-3xl font-bold text-gray-800 mb-6">Home</h1>
                     
-                    <!-- Resumo dos Indicadores -->
+                    <div class="filters-section">
+                        <div class="filters-grid">
+                            <div class="form-group">
+                                <label for="homeDataInicio">Data Início:</label>
+                                <input type="date" id="homeDataInicio" onchange="loadHomeData()">
+                            </div>
+                            <div class="form-group">
+                                <label for="homeDataFim">Data Fim:</label>
+                                <input type="date" id="homeDataFim" onchange="loadHomeData()">
+                            </div>
+                            <div class="form-group">
+                                <label for="homeSearchInput">Busca Aberta:</label>
+                                <input type="text" id="homeSearchInput" placeholder="Buscar..." onkeyup="loadHomeData()">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
                         <div class="stat-card-dash">
                             <div class="flex items-center">
@@ -376,7 +385,6 @@
                         </div>
                     </div>
                     
-                    <!-- Gráfico de Produtividade da Frota -->
                     <div class="bg-white rounded-xl shadow-md p-6 mb-8" data-aos="fade-up">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Top 5 Produtividade de Motoristas (por Entregas)</h2>
                         <div class="relative" style="height: 250px;">
@@ -384,7 +392,6 @@
                         </div>
                     </div>
                     
-                    <!-- Gráficos Resumidos -->
                     <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-12">
                         <div class="lg:col-span-2 bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
                             <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Ocupação Média da Frota</h2>
@@ -400,7 +407,13 @@
                         </div>
                     </div>
 
-                    <!-- Tabela de Tempos por Loja -->
+                    <div class="bg-white rounded-xl shadow-md p-6 mb-12" data-aos="fade-up">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">% de Utilização por Frota (Viagens)</h2>
+                        <div class="relative mx-auto" style="height: 250px; max-width: 300px;">
+                            <canvas id="fleetUtilizationChart"></canvas>
+                        </div>
+                    </div>
+
                     <div class="bg-white rounded-xl shadow-md p-6 mb-12" data-aos="fade-up">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Tempos Médios por Loja</h2>
                         <div class="table-container">
@@ -421,7 +434,6 @@
                         </div>
                     </div>
                     
-                    <!-- Lançamento Rápido -->
                     <div class="max-w-2xl mx-auto mb-12">
                         <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
                             <h2 class="text-xl font-semibold text-gray-800 mb-4">Lançamento Rápido</h2>
@@ -449,36 +461,26 @@
                     </div>
                 </div>
 
-                <!-- View: Operacao -->
                 <div id="operacao" class="view-content">
-                    <!-- Conteúdo da aba Operação será inserido aqui -->
-                </div>
+                    </div>
                 
-                <!-- View: Transporte -->
                 <div id="transporte" class="view-content">
-                    <!-- Conteúdo da aba Transporte será inserido aqui -->
-                </div>
+                    </div>
 
-                <!-- View: Faturamento -->
                 <div id="faturamento" class="view-content"></div>
 
-                <!-- View: Motoristas -->
                 <div id="motoristas" class="view-content"></div>
 
-                <!-- View: Acompanhamento -->
                 <div id="acompanhamento" class="view-content"></div>
 
-                <!-- View: Historico -->
                 <div id="historico" class="view-content"></div>
 
-                <!-- Outras Views -->
                 <div id="configuracoes" class="view-content"></div>
 
             </div>
         </main>
     </div>
 
-    <!-- Modais (QR Code, Edição, etc.) -->
     <div id="qrModal" class="modal-overlay">
         <div class="modal-content">
             <h3 class="modal-title" id="qrModalTitle"></h3>
@@ -979,8 +981,7 @@
                         </div>
                     </div>
                     <div id="indicadoresSummary" class="time-stats-grid">
-                        <!-- Cards de indicadores serão inseridos aqui -->
-                    </div>
+                        </div>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
                         <div class="bg-white p-4 rounded-lg shadow-md">
                             <h3 class="text-lg font-semibold text-center mb-4">Ranking de Lojas por Tempo de Descarga</h3>
@@ -1154,31 +1155,49 @@
 
         // --- Lógica do Home ---
         async function loadHomeData() {
+            // Define datas padrão se não estiverem preenchidas
+            const dataInicioInput = document.getElementById('homeDataInicio');
+            const dataFimInput = document.getElementById('homeDataFim');
+            if (!dataInicioInput.value || !dataFimInput.value) {
+                const hoje = new Date().toISOString().split('T')[0];
+                dataInicioInput.value = hoje;
+                dataFimInput.value = hoje;
+            }
+
+            // Mostra loading
             document.getElementById('homeViagensConcluidas').textContent = '...';
             document.getElementById('homeEntregasRealizadas').textContent = '...';
             document.getElementById('homeTempoMedioPatio').textContent = '...';
             document.getElementById('homeOcupacaoMedia').textContent = '...';
             document.getElementById('homeTempoMedioLoja').textContent = '...';
-            document.getElementById('temposMediosLojaTbody').innerHTML = `<tr><td colspan="3" class="loading"><div class="spinner"></div></td></tr>`;
+            document.getElementById('temposMediosLojaTbody').innerHTML = `<tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>`;
 
             try {
-                const expeditions = await supabaseRequest('expeditions?status=eq.entregue&order=data_hora.desc');
+                // Monta a query com base nos filtros
+                const dataInicio = dataInicioInput.value;
+                const dataFim = dataFimInput.value;
+                let query = `expeditions?status=eq.entregue&data_hora=gte.${dataInicio}T00:00:00&data_hora=lte.${dataFim}T23:59:59&order=data_hora.desc`;
+                
+                const expeditions = await supabaseRequest(query);
+                
                 if (!expeditions || expeditions.length === 0) {
                     document.getElementById('homeViagensConcluidas').textContent = '0';
                     document.getElementById('homeEntregasRealizadas').textContent = '0';
                     document.getElementById('homeTempoMedioPatio').textContent = '00:00';
                     document.getElementById('homeOcupacaoMedia').textContent = '0%';
-                document.getElementById('homeTempoMedioLoja').textContent = '00:00';
-                document.getElementById('temposMediosLojaTbody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum dado de viagem concluída encontrado.</td></tr>';
-                destroyChart('ocupacaoTotalChart');
-                destroyChart('lojaDesempenhoChart');
-                destroyChart('frotaProdutividadeChart');
+                    document.getElementById('homeTempoMedioLoja').textContent = '00:00';
+                    document.getElementById('temposMediosLojaTbody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum dado de viagem concluída encontrado para o período.</td></tr>';
+                    destroyChart('ocupacaoTotalChart');
+                    destroyChart('lojaDesempenhoChart');
+                    destroyChart('frotaProdutividadeChart');
+                    destroyChart('fleetUtilizationChart');
                     return;
                 }
 
                 const expeditionIds = expeditions.map(e => e.id);
                 const items = await supabaseRequest(`expedition_items?expedition_id=in.(${expeditionIds.join(',')})`);
 
+                // Cálculos dos cards
                 const totalViagens = expeditions.length;
                 const totalEntregas = items.length;
 
@@ -1188,14 +1207,22 @@
                 const tempoMedioPatio = temposPatio.length > 0 ? temposPatio.reduce((a, b) => a + b, 0) / temposPatio.length : 0;
 
                 const ocupacoes = [];
+                let perlogCount = 0;
+                let jjsCount = 0;
+
                 expeditions.forEach(exp => {
                     const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
-                    if (veiculo && veiculo.capacidade_pallets > 0) {
-                        const expItems = items.filter(i => i.expedition_id === exp.id);
-                        const totalPallets = expItems.reduce((sum, item) => sum + (item.pallets || 0), 0);
-                        const totalRolls = expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0);
-                        const cargaTotal = totalPallets + (totalRolls / 2);
-                        ocupacoes.push((cargaTotal / veiculo.capacidade_pallets) * 100);
+                    if (veiculo) {
+                        if (veiculo.tipo === 'PERLOG') perlogCount++;
+                        if (veiculo.tipo === 'JJS') jjsCount++;
+                        
+                        if (veiculo.capacidade_pallets > 0) {
+                            const expItems = items.filter(i => i.expedition_id === exp.id);
+                            const totalPallets = expItems.reduce((sum, item) => sum + (item.pallets || 0), 0);
+                            const totalRolls = expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0);
+                            const cargaTotal = totalPallets + (totalRolls / 2);
+                            ocupacoes.push((cargaTotal / veiculo.capacidade_pallets) * 100);
+                        }
                     }
                 });
                 const ocupacaoMedia = ocupacoes.length > 0 ? ocupacoes.reduce((a, b) => a + b, 0) / ocupacoes.length : 0;
@@ -1259,15 +1286,66 @@
 
                 const motoristasData = Object.values(motoristasStats).sort((a, b) => b.entregas - a.entregas);
 
+                // Renderizar todos os gráficos
                 renderFrotaProdutividadeChart(motoristasData.slice(0, 5));
                 renderOcupacaoTotalChart(ocupacaoMedia);
                 renderLojaDesempenhoChart(lojasData.slice(0, 5));
+                renderFleetUtilizationChart(perlogCount, jjsCount);
                 renderTemposMediosTable(lojasData);
 
             } catch (error) {
                 console.error("Erro ao carregar dados da home:", error);
-                 document.getElementById('temposMediosLojaTbody').innerHTML = `<tr><td colspan="3" class="alert alert-error">Erro ao carregar dados: ${error.message}</td></tr>`;
+                document.getElementById('temposMediosLojaTbody').innerHTML = `<tr><td colspan="5" class="alert alert-error">Erro ao carregar dados: ${error.message}</td></tr>`;
             }
+        }
+
+        function renderFleetUtilizationChart(perlogCount, jjsCount) {
+            const total = perlogCount + jjsCount;
+            if (total === 0) {
+                destroyChart('fleetUtilizationChart');
+                return;
+            }
+
+            const data = {
+                labels: ['PERLOG', 'JJS'],
+                datasets: [{
+                    label: 'Nº de Viagens',
+                    data: [perlogCount, jjsCount],
+                    backgroundColor: ['#0077B6', '#00D4AA'],
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                }]
+            };
+
+            renderChart('fleetUtilizationChart', 'doughnut', data, {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '50%',
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.label}: ${context.raw} viagens`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 14
+                        },
+                        formatter: (value, ctx) => {
+                            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            let percentage = (value * 100 / sum).toFixed(1) + '%';
+                            return percentage;
+                        },
+                    }
+                }
+            });
         }
 
         function renderOcupacaoTotalChart(ocupacaoPercent) {
@@ -3346,16 +3424,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
