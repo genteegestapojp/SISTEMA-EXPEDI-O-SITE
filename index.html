@@ -70,7 +70,7 @@
             color: white;
         }
         
-        /* Estilos dos Cards de Estatística do Dashboard */
+        /* Estilos dos Cards de Estatística do Home */
         .stat-card-dash {
             background: var(--primary-gradient);
             color: white;
@@ -79,7 +79,7 @@
             box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3);
         }
 
-        /* Grid do Dashboard */
+        /* Grid do Home */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -267,7 +267,7 @@
         </div>
     </div>
 
-    <!-- Layout Principal do Sistema (Dashboard) -->
+    <!-- Layout Principal do Sistema -->
     <div id="mainSystem" class="flex min-h-screen" style="display: none;">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -280,9 +280,9 @@
             </div>
 
             <nav class="p-4">
-                 <a href="#dashboard" class="nav-item p-3 rounded-lg mb-2 flex items-center cursor-pointer active" onclick="showView('dashboard', this)">
+                 <a href="#home" class="nav-item p-3 rounded-lg mb-2 flex items-center cursor-pointer active" onclick="showView('home', this)">
                     <i data-feather="home" class="h-5 w-5 mr-3"></i>
-                    <span>Dashboard</span>
+                    <span>Home</span>
                 </a>
                 <a href="#operacao" class="nav-item p-3 rounded-lg mb-2 flex items-center cursor-pointer" onclick="showView('operacao', this)">
                     <i data-feather="activity" class="h-5 w-5 mr-3"></i>
@@ -323,43 +323,87 @@
         <main class="flex-1 overflow-auto bg-gray-100 main-content">
             <div class="container mx-auto px-6 py-8">
                 
-                <!-- View: Dashboard -->
-                <div id="dashboard" class="view-content active">
-                    <h1 class="text-3xl font-bold text-gray-800 mb-6">Dashboard</h1>
+                <!-- View: Home -->
+                <div id="home" class="view-content active">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-6">Home</h1>
                     
-                    <!-- Stats Overview -->
-                    <div class="dashboard-grid mb-8">
+                    <!-- Resumo dos Indicadores -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <div class="stat-card-dash">
                             <div class="flex items-center">
                                 <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="truck" class="h-6 w-6 text-white"></i></div>
                                 <div class="ml-4">
-                                    <h3 class="text-2xl font-bold" id="dashboardVeiculos">0</h3>
-                                    <p class="text-white text-opacity-80">Veículos Disponíveis</p>
+                                    <h3 class="text-2xl font-bold" id="homeViagensConcluidas">0</h3>
+                                    <p class="text-white text-opacity-80">Viagens Concluídas</p>
                                 </div>
                             </div>
                         </div>
                         <div class="stat-card-dash" style="background: var(--secondary-gradient);">
                             <div class="flex items-center">
-                                <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="users" class="h-6 w-6 text-white"></i></div>
+                                <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="package" class="h-6 w-6 text-white"></i></div>
                                 <div class="ml-4">
-                                    <h3 class="text-2xl font-bold" id="dashboardMotoristas">0</h3>
-                                    <p class="text-white text-opacity-80">Motoristas Disponíveis</p>
+                                    <h3 class="text-2xl font-bold" id="homeEntregasRealizadas">0</h3>
+                                    <p class="text-white text-opacity-80">Entregas Realizadas</p>
                                 </div>
                             </div>
                         </div>
                         <div class="stat-card-dash" style="background: var(--accent-gradient);">
                             <div class="flex items-center">
-                                <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="package" class="h-6 w-6 text-white"></i></div>
+                                <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="clock" class="h-6 w-6 text-white"></i></div>
                                 <div class="ml-4">
-                                    <h3 class="text-2xl font-bold" id="dashboardCargas">0</h3>
-                                    <p class="text-white text-opacity-80">Cargas Carregadas</p>
+                                    <h3 class="text-2xl font-bold" id="homeTempoMedioPatio">00:00</h3>
+                                    <p class="text-white text-opacity-80">Tempo Médio Pátio</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card-dash" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
+                            <div class="flex items-center">
+                                <div class="bg-white bg-opacity-20 p-3 rounded-full"><i data-feather="pie-chart" class="h-6 w-6 text-white"></i></div>
+                                <div class="ml-4">
+                                    <h3 class="text-2xl font-bold" id="homeOcupacaoMedia">0%</h3>
+                                    <p class="text-white text-opacity-80">Ocupação Média</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Quick Actions -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <!-- Gráficos Resumidos -->
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-12">
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Ocupação Média da Frota</h2>
+                            <div class="relative mx-auto" style="max-width: 250px; height: 150px;">
+                                <canvas id="ocupacaoTotalChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-3 bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-4">Desempenho por Loja (Top 5 com maior tempo)</h2>
+                            <div class="relative" style="height: 250px;">
+                                <canvas id="lojaDesempenhoChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Tempos por Loja -->
+                    <div class="bg-white rounded-xl shadow-md p-6 mb-12" data-aos="fade-up">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Tempos Médios por Loja</h2>
+                        <div class="table-container">
+                            <table class="w-full min-w-max">
+                                <thead>
+                                    <tr>
+                                        <th class="py-3 px-4">Loja</th>
+                                        <th class="py-3 px-4 text-center">Total de Entregas</th>
+                                        <th class="py-3 px-4 text-center">Tempo Médio em Loja (HH:mm)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="temposMediosLojaTbody">
+                                    <tr><td colspan="3" class="loading"><div class="spinner"></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Lançamento Rápido -->
+                    <div class="max-w-2xl mx-auto mb-12">
                         <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
                             <h2 class="text-xl font-semibold text-gray-800 mb-4">Lançamento Rápido</h2>
                             <p class="text-gray-600 text-sm mb-4">A data e hora serão registradas automaticamente.</p>
@@ -382,32 +426,6 @@
                                 </div>
                                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">Lançar Expedição</button>
                             </form>
-                        </div>
-                        <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
-                            <h2 class="text-xl font-semibold text-gray-800 mb-4">Área do Motorista</h2>
-                            <p class="text-gray-600 text-sm mb-4">Consulte expedições por placa do veículo</p>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Placa do Veículo</label>
-                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="dashboardPlacaSelect"></select>
-                                </div>
-                                <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors" onclick="consultarExpedicoesDashboard()">Consultar</button>
-                                <div class="bg-gray-50 p-4 rounded-md mt-4 hidden" id="dashboardResultados">
-                                    <h3 class="font-medium text-gray-800 mb-2">Suas Expedições</h3>
-                                    <div id="dashboardResultadosContent"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recent Activities -->
-                    <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Atividades Recentes</h2>
-                        <div class="table-container">
-                            <table class="w-full min-w-max">
-                                <thead><tr><th class="py-3 px-4">Data/Hora</th><th class="py-3 px-4">Lojas/Cargas</th><th class="py-3 px-4">Pallets</th><th class="py-3 px-4">Status</th><th class="py-3 px-4">Ações</th></tr></thead>
-                                <tbody id="dashboardTbody"></tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
@@ -597,7 +615,7 @@
 
             // Carrega os dados da view selecionada
             switch(viewId) {
-                case 'dashboard': loadDashboardData(); break;
+                case 'home': loadHomeData(); break;
                 case 'transporte': loadTransportList(); break;
                 case 'faturamento': loadFaturamento(); break;
                 case 'motoristas': loadMotoristaTab(); break;
@@ -639,8 +657,8 @@
             // Carrega todos os dados e conteúdos das abas
             await loadAllTabData();
             
-            // Inicia na view do dashboard
-            showView('dashboard', document.querySelector('.nav-item'));
+            // Inicia na view do home
+            showView('home', document.querySelector('.nav-item'));
             showNotification(`Bem-vindo à filial: ${filial.nome}!`, 'success');
         }
 
@@ -1022,6 +1040,7 @@
 
             // Adicionar event listeners aos formulários
             document.getElementById('expeditionForm').addEventListener('submit', (e) => { e.preventDefault(); lancarCarga(); });
+            document.getElementById('dashboardExpeditionForm').addEventListener('submit', (e) => { e.preventDefault(); lancarCargaDashboard(); });
             document.getElementById('editExpeditionForm').addEventListener('submit', (e) => { e.preventDefault(); saveEditedExpedition(); });
             document.getElementById('passwordForm').addEventListener('submit', (e) => { e.preventDefault(); checkPassword(); });
             document.getElementById('addForm').addEventListener('submit', (e) => { e.preventDefault(); handleSave(); });
@@ -1114,47 +1133,200 @@
             return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
         }
 
-        // Lógica do Dashboard
-        async function loadDashboardData() {
+        // --- Lógica do Home ---
+        async function loadHomeData() {
+            document.getElementById('homeViagensConcluidas').textContent = '...';
+            document.getElementById('homeEntregasRealizadas').textContent = '...';
+            document.getElementById('homeTempoMedioPatio').textContent = '...';
+            document.getElementById('homeOcupacaoMedia').textContent = '...';
+            document.getElementById('temposMediosLojaTbody').innerHTML = `<tr><td colspan="3" class="loading"><div class="spinner"></div></td></tr>`;
+
             try {
-                const [veiculosDisp, motoristasDisp, cargas, expeditionsRecentes] = await Promise.all([
-                    supabaseRequest('veiculos?status=eq.disponivel&select=id'),
-                    supabaseRequest('motoristas?status=eq.disponivel&select=id'),
-                    supabaseRequest('expeditions?status=eq.carregado&select=id'),
-                    supabaseRequest('expeditions?order=data_hora.desc&limit=5')
-                ]);
+                const expeditions = await supabaseRequest('expeditions?status=eq.entregue&order=data_hora.desc');
+                if (!expeditions || expeditions.length === 0) {
+                    document.getElementById('homeViagensConcluidas').textContent = '0';
+                    document.getElementById('homeEntregasRealizadas').textContent = '0';
+                    document.getElementById('homeTempoMedioPatio').textContent = '00:00';
+                    document.getElementById('homeOcupacaoMedia').textContent = '0%';
+                    document.getElementById('temposMediosLojaTbody').innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Nenhum dado de viagem concluída encontrado.</td></tr>';
+                    destroyChart('ocupacaoTotalChart');
+                    destroyChart('lojaDesempenhoChart');
+                    return;
+                }
 
-                document.getElementById('dashboardVeiculos').textContent = veiculosDisp.length;
-                document.getElementById('dashboardMotoristas').textContent = motoristasDisp.length;
-                document.getElementById('dashboardCargas').textContent = cargas.length;
+                const expeditionIds = expeditions.map(e => e.id);
+                const items = await supabaseRequest(`expedition_items?expedition_id=in.(${expeditionIds.join(',')})`);
 
-                renderRecentExpeditions(expeditionsRecentes);
+                const totalViagens = expeditions.length;
+                const totalEntregas = items.length;
+
+                const temposPatio = expeditions
+                    .filter(e => e.data_hora && e.data_saida_veiculo)
+                    .map(e => (new Date(e.data_saida_veiculo) - new Date(e.data_hora)) / 60000);
+                const tempoMedioPatio = temposPatio.length > 0 ? temposPatio.reduce((a, b) => a + b, 0) / temposPatio.length : 0;
+
+                const ocupacoes = [];
+                expeditions.forEach(exp => {
+                    const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+                    if (veiculo && veiculo.capacidade_pallets > 0) {
+                        const expItems = items.filter(i => i.expedition_id === exp.id);
+                        const totalPallets = expItems.reduce((sum, item) => sum + (item.pallets || 0), 0);
+                        const totalRolls = expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0);
+                        const cargaTotal = totalPallets + (totalRolls / 2);
+                        ocupacoes.push((cargaTotal / veiculo.capacidade_pallets) * 100);
+                    }
+                });
+                const ocupacaoMedia = ocupacoes.length > 0 ? ocupacoes.reduce((a, b) => a + b, 0) / ocupacoes.length : 0;
+
+                document.getElementById('homeViagensConcluidas').textContent = totalViagens;
+                document.getElementById('homeEntregasRealizadas').textContent = totalEntregas;
+                document.getElementById('homeTempoMedioPatio').textContent = minutesToHHMM(tempoMedioPatio);
+                document.getElementById('homeOcupacaoMedia').textContent = `${ocupacaoMedia.toFixed(1)}%`;
+
+                const lojasStats = {};
+                items.forEach(item => {
+                    if (item.data_inicio_descarga && item.data_fim_descarga) {
+                        const lojaId = item.loja_id;
+                        if (!lojasStats[lojaId]) {
+                            const lojaInfo = lojas.find(l => l.id === lojaId);
+                            lojasStats[lojaId] = {
+                                nome: lojaInfo ? `${lojaInfo.codigo} - ${lojaInfo.nome}` : 'Desconhecida',
+                                tempos: [],
+                                entregas: 0
+                            };
+                        }
+                        const tempo = (new Date(item.data_fim_descarga) - new Date(item.data_inicio_descarga)) / 60000;
+                        lojasStats[lojaId].tempos.push(tempo);
+                        lojasStats[lojaId].entregas++;
+                    }
+                });
+
+                const lojasData = Object.values(lojasStats).map(loja => ({
+                    ...loja,
+                    tempoMedio: loja.tempos.reduce((a, b) => a + b, 0) / loja.tempos.length
+                })).sort((a, b) => b.tempoMedio - a.tempoMedio);
+
+                renderOcupacaoTotalChart(ocupacaoMedia);
+                renderLojaDesempenhoChart(lojasData.slice(0, 5));
+                renderTemposMediosTable(lojasData);
+
             } catch (error) {
-                console.error('Erro ao carregar dados do dashboard:', error);
+                console.error("Erro ao carregar dados da home:", error);
+                 document.getElementById('temposMediosLojaTbody').innerHTML = `<tr><td colspan="3" class="alert alert-error">Erro ao carregar dados: ${error.message}</td></tr>`;
             }
         }
 
-        function renderRecentExpeditions(expeditions) {
-            const tbody = document.getElementById('dashboardTbody');
-            if (!expeditions || expeditions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">Nenhuma atividade recente.</td></tr>';
+        function renderOcupacaoTotalChart(ocupacaoPercent) {
+            const data = {
+                datasets: [{
+                    data: [ocupacaoPercent, 100 - ocupacaoPercent],
+                    backgroundColor: ['#0077B6', '#E5E7EB'],
+                    borderColor: ['#fff'],
+                    borderWidth: 2,
+                    circumference: 180,
+                    rotation: 270,
+                }]
+            };
+
+            const ocupacaoText = {
+                id: 'ocupacaoText',
+                beforeDraw(chart) {
+                    const { ctx, chartArea: { width, height } } = chart;
+                    ctx.save();
+                    ctx.font = `bold ${height / 4}px Inter, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#023047';
+                    ctx.fillText(`${ocupacaoPercent.toFixed(1)}%`, width / 2, height * 0.85);
+                    ctx.restore();
+                }
+            };
+
+            renderChart('ocupacaoTotalChart', 'doughnut', data, {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false },
+                    datalabels: { display: false }
+                }
+            }, [ocupacaoText]);
+        }
+
+        function renderLojaDesempenhoChart(lojasData) {
+            if (!lojasData || lojasData.length === 0) {
+                destroyChart('lojaDesempenhoChart');
                 return;
             }
-            tbody.innerHTML = expeditions.map(exp => `
+            const data = {
+                labels: lojasData.map(l => (l.nome.split('-')[1] || l.nome).trim()),
+                datasets: [{
+                    label: 'Tempo Médio em Loja',
+                    data: lojasData.map(l => l.tempoMedio),
+                    backgroundColor: '#00B4D8',
+                    borderColor: '#0077B6',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    entregas: lojasData.map(l => l.entregas)
+                }]
+            };
+            
+            renderChart('lojaDesempenhoChart', 'bar', data, {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        display: true,
+                        color: '#023047',
+                        font: { weight: 'bold' },
+                        formatter: (value) => minutesToHHMM(value),
+                        anchor: 'end',
+                        align: 'end',
+                        offset: -5,
+                        labels: {
+                            value: {
+                                anchor: 'center',
+                                align: 'center',
+                                color: 'white',
+                                font: { weight: 'bold', size: 14 },
+                                formatter: (value, context) => context.dataset.entregas[context.dataIndex]
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const loja = lojasData[context.dataIndex];
+                                return [ `Tempo Médio: ${minutesToHHMM(context.raw)}`, `Total de Entregas: ${loja.entregas}` ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Tempo Médio (HH:mm)' },
+                         ticks: { callback: (value) => minutesToHHMM(value) }
+                    }
+                }
+            });
+        }
+        
+        function renderTemposMediosTable(lojasData) {
+            const tbody = document.getElementById('temposMediosLojaTbody');
+            if (!lojasData || lojasData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Nenhum dado de loja encontrado.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = lojasData.map(loja => `
                 <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-4">${new Date(exp.data_hora).toLocaleString('pt-BR')}</td>
-                    <td class="py-3 px-4"> Viagem para ${exp.lojas_count || 1} loja(s)</td>
-                    <td class="py-3 px-4">${exp.total_pallets || 0}</td>
-                    <td class="py-3 px-4"><span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span></td>
-                    <td class="py-3 px-4"><a href="#acompanhamento" onclick="showView('acompanhamento', document.querySelector('a[href=\\'#acompanhamento\\']'))" class="text-blue-600 hover:underline">Ver detalhes</a></td>
+                    <td class="py-3 px-4 font-medium text-gray-800">${loja.nome}</td>
+                    <td class="py-3 px-4 text-center">${loja.entregas}</td>
+                    <td class="py-3 px-4 text-center font-semibold">${minutesToHHMM(loja.tempoMedio)}</td>
                 </tr>
             `).join('');
         }
-
-        document.getElementById('dashboardExpeditionForm').addEventListener('submit', async (e) => {
-             e.preventDefault();
-             lancarCargaDashboard();
-        });
 
         async function lancarCargaDashboard() {
             const lojaId = document.getElementById('dashboardLojaSelect').value;
@@ -1200,7 +1372,6 @@
 
                 document.getElementById('dashboardExpeditionForm').reset();
                 
-                await loadDashboardData();
                 if(document.getElementById('transporte').classList.contains('active')) {
                     await loadTransportList();
                 }
@@ -1208,16 +1379,6 @@
             } catch (error) {
                 console.error('Erro ao lançar carga pelo dashboard:', error);
                 showNotification(`Erro ao lançar carga: ${error.message}`, 'error');
-            }
-        }
-
-        function consultarExpedicoesDashboard() {
-            showView('motoristas', document.querySelector('a[href=\'#motoristas\']'));
-            const dashboardPlaca = document.getElementById('dashboardPlacaSelect').value;
-            if (dashboardPlaca) {
-                const motoristaPlacaSelect = document.getElementById('placaMotorista');
-                motoristaPlacaSelect.value = dashboardPlaca;
-                consultarExpedicoesPorPlaca();
             }
         }
 
@@ -1255,9 +1416,7 @@
 
                 document.getElementById('expeditionForm').reset();
                 document.getElementById('lancar_lojaSelect').focus();
-                await loadSelectData();
-
-                // Atualiza o home se estiver ativo
+                
                 if(document.getElementById('home').classList.contains('active')) {
                     await loadHomeData();
                 }
@@ -1381,6 +1540,8 @@
 
             try {
                 const cargasSelecionadas = cargasDisponiveis.filter(c => idsDasCargas.includes(String(c.id)));
+                const originalDocaIds = [...new Set(cargasSelecionadas.map(c => c.doca_id).filter(id => id))];
+
                 const dockPalletCounts = {};
                 cargasSelecionadas.forEach(carga => {
                     const docaId = carga.doca_id;
@@ -1391,7 +1552,7 @@
                 const docaAlvoId = rankedDocks.find(docaId => docas.find(d => d.id == docaId)?.status === 'disponivel');
 
                 if (!docaAlvoId) {
-                    showNotification(`Nenhuma das docas necessárias está disponível. Aguarde e tente novamente.`, 'error');
+                    showNotification(`Nenhuma das docas de destino está disponível. Aguarde e tente novamente.`, 'error');
                     return;
                 }
 
@@ -1402,11 +1563,20 @@
                 const itemsToUpdate = cargasSelecionadas.flatMap(c => c.items.map(i => i.id));
                 await supabaseRequest(`expedition_items?id=in.(${itemsToUpdate.join(',')})`, 'PATCH', { expedition_id: newExpeditionId });
                 await supabaseRequest(`expeditions?id=in.(${idsDasCargas.join(',')})`, 'DELETE');
-                await Promise.all([
+                
+                const updatePromises = [
                     supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
                     supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false),
                     supabaseRequest(`docas?id=eq.${docaAlvoId}`, 'PATCH', { status: 'em_uso' }, false)
-                ]);
+                ];
+
+                originalDocaIds.forEach(docaId => {
+                    if (docaId !== docaAlvoId) {
+                        updatePromises.push(supabaseRequest(`docas?id=eq.${docaId}`, 'PATCH', { status: 'disponivel' }, false));
+                    }
+                });
+
+                await Promise.all(updatePromises);
 
                 showNotification('Expedição montada e alocada com sucesso!', 'success');
                 document.getElementById('alocar_veiculoSelect').value = '';
@@ -2720,10 +2890,12 @@
             });
         }
 
-        function renderChart(canvasId, type, data, options = {}) {
+        function renderChart(canvasId, type, data, options = {}, plugins = []) {
             if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            chartInstances[canvasId] = new Chart(ctx, { type, data, options });
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (ctx) {
+                chartInstances[canvasId] = new Chart(ctx, { type, data, options, plugins });
+            }
         }
 
         function destroyChart(canvasId) {
@@ -3061,3 +3233,4 @@
     </script>
 </body>
 </html>
+
