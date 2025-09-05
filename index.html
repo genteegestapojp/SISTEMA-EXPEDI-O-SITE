@@ -332,7 +332,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="homeSearchInput">Busca Aberta:</label>
-                                <input type="text" id="homeSearchInput" placeholder="Buscar..." onkeyup="loadHomeData()">
+                                <input type="text" id="homeSearchInput" placeholder="Buscar por Loja, Motorista..." onkeyup="loadHomeData()">
                             </div>
                         </div>
                     </div>
@@ -1155,16 +1155,16 @@
 
         // --- Lógica do Home ---
         async function loadHomeData() {
-            // Define datas padrão se não estiverem preenchidas
             const dataInicioInput = document.getElementById('homeDataInicio');
             const dataFimInput = document.getElementById('homeDataFim');
+            const searchInput = document.getElementById('homeSearchInput').value.toLowerCase();
+
             if (!dataInicioInput.value || !dataFimInput.value) {
                 const hoje = new Date().toISOString().split('T')[0];
                 dataInicioInput.value = hoje;
                 dataFimInput.value = hoje;
             }
 
-            // Mostra loading
             document.getElementById('homeViagensConcluidas').textContent = '...';
             document.getElementById('homeEntregasRealizadas').textContent = '...';
             document.getElementById('homeTempoMedioPatio').textContent = '...';
@@ -1173,20 +1173,29 @@
             document.getElementById('temposMediosLojaTbody').innerHTML = `<tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>`;
 
             try {
-                // Monta a query com base nos filtros
                 const dataInicio = dataInicioInput.value;
                 const dataFim = dataFimInput.value;
                 let query = `expeditions?status=eq.entregue&data_hora=gte.${dataInicio}T00:00:00&data_hora=lte.${dataFim}T23:59:59&order=data_hora.desc`;
                 
-                const expeditions = await supabaseRequest(query);
+                let allExpeditionsInPeriod = await supabaseRequest(query);
                 
-                if (!expeditions || expeditions.length === 0) {
+                // Filtro de busca aberta (pós-consulta)
+                if (searchInput) {
+                    allExpeditionsInPeriod = allExpeditionsInPeriod.filter(exp => {
+                        const motorista = motoristas.find(m => m.id === exp.motorista_id);
+                        const searchableMotorista = motorista ? motorista.nome.toLowerCase() : '';
+                        // Futuramente, podemos adicionar a busca por loja aqui, mas requereria mais uma consulta ou join.
+                        return searchableMotorista.includes(searchInput);
+                    });
+                }
+
+                if (!allExpeditionsInPeriod || allExpeditionsInPeriod.length === 0) {
                     document.getElementById('homeViagensConcluidas').textContent = '0';
                     document.getElementById('homeEntregasRealizadas').textContent = '0';
                     document.getElementById('homeTempoMedioPatio').textContent = '00:00';
                     document.getElementById('homeOcupacaoMedia').textContent = '0%';
                     document.getElementById('homeTempoMedioLoja').textContent = '00:00';
-                    document.getElementById('temposMediosLojaTbody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum dado de viagem concluída encontrado para o período.</td></tr>';
+                    document.getElementById('temposMediosLojaTbody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum dado encontrado para os filtros selecionados.</td></tr>';
                     destroyChart('ocupacaoTotalChart');
                     destroyChart('lojaDesempenhoChart');
                     destroyChart('frotaProdutividadeChart');
@@ -1194,14 +1203,13 @@
                     return;
                 }
 
-                const expeditionIds = expeditions.map(e => e.id);
+                const expeditionIds = allExpeditionsInPeriod.map(e => e.id);
                 const items = await supabaseRequest(`expedition_items?expedition_id=in.(${expeditionIds.join(',')})`);
 
-                // Cálculos dos cards
-                const totalViagens = expeditions.length;
+                const totalViagens = allExpeditionsInPeriod.length;
                 const totalEntregas = items.length;
 
-                const temposPatio = expeditions
+                const temposPatio = allExpeditionsInPeriod
                     .filter(e => e.data_hora && e.data_saida_veiculo)
                     .map(e => (new Date(e.data_saida_veiculo) - new Date(e.data_hora)) / 60000);
                 const tempoMedioPatio = temposPatio.length > 0 ? temposPatio.reduce((a, b) => a + b, 0) / temposPatio.length : 0;
@@ -1210,7 +1218,7 @@
                 let perlogCount = 0;
                 let jjsCount = 0;
 
-                expeditions.forEach(exp => {
+                allExpeditionsInPeriod.forEach(exp => {
                     const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
                     if (veiculo) {
                         if (veiculo.tipo === 'PERLOG') perlogCount++;
@@ -1260,7 +1268,7 @@
                     }
                 });
 
-                expeditions.forEach(exp => {
+                allExpeditionsInPeriod.forEach(exp => {
                     if (exp.motorista_id) {
                         const motorista = motoristas.find(m => m.id === exp.motorista_id);
                         if (motorista) {
@@ -1286,7 +1294,6 @@
 
                 const motoristasData = Object.values(motoristasStats).sort((a, b) => b.entregas - a.entregas);
 
-                // Renderizar todos os gráficos
                 renderFrotaProdutividadeChart(motoristasData.slice(0, 5));
                 renderOcupacaoTotalChart(ocupacaoMedia);
                 renderLojaDesempenhoChart(lojasData.slice(0, 5));
@@ -1424,8 +1431,8 @@
                 },
                 scales: {
                     y: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'Número de Entregas' }
+                        display: false, // EIXO Y REMOVIDO
+                        beginAtZero: true
                     },
                     x: {
                         title: { display: true, text: 'Motorista' }
