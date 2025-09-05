@@ -783,6 +783,22 @@
                 </div>
 
                 <div id="statusFrota" class="sub-tab-content active">
+                    <div class="transport-card mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Consulta por Placa</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="placaMotorista">Placa do Veículo:</label>
+                                <select id="placaMotorista" class="w-full">
+                                    <option value="">Selecione a placa</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <button class="btn btn-primary w-full" onclick="consultarExpedicoesPorPlaca()">Consultar Expedições</button>
+                            </div>
+                        </div>
+                        <div id="resultadosMotorista" class="mt-4"></div>
+                    </div>
+                    
                      <div id="motoristasStatusList">
                          <div class="loading"><div class="spinner"></div>Carregando status...</div>
                     </div>
@@ -1168,7 +1184,7 @@
                 if (!expeditionResponse || expeditionResponse.length === 0) {
                     throw new Error("A criação da expedição falhou e não retornou um ID.");
                 }
-                const newExpeditionId = newExpeditionResponse[0].id;
+                const newExpeditionId = expeditionResponse[0].id;
 
                 const itemData = {
                     expedition_id: newExpeditionId,
@@ -1240,6 +1256,11 @@
                 document.getElementById('expeditionForm').reset();
                 document.getElementById('lancar_lojaSelect').focus();
                 await loadSelectData();
+
+                // Atualiza o home se estiver ativo
+                if(document.getElementById('home').classList.contains('active')) {
+                    await loadHomeData();
+                }
 
             } catch (error) {
                 console.error('Erro ao lançar carga:', error);
@@ -1554,6 +1575,20 @@
         async function loadMotoristaTab() {
             showSubTab('motoristas', 'statusFrota', document.querySelector('#motoristas .sub-tab'));
             await renderMotoristasStatusList();
+            
+            // Definir datas padrão para o relatório (últimos 30 dias)
+            const hoje = new Date();
+            const ha30Dias = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            const dataInicio = document.getElementById('relatorioMotoristaDataInicio');
+            const dataFim = document.getElementById('relatorioMotoristaDataFim');
+            
+            if (dataInicio && !dataInicio.value) {
+                dataInicio.value = ha30Dias.toISOString().split('T')[0];
+            }
+            if (dataFim && !dataFim.value) {
+                dataFim.value = hoje.toISOString().split('T')[0];
+            }
         }
 
         async function renderMotoristasStatusList() {
@@ -1815,6 +1850,257 @@
             } catch (error) {
                 showNotification('Erro ao finalizar descarga: ' + error.message, 'error');
             }
+        }
+
+        // --- FUNCIONALIDADES DO RELATÓRIO DE MOTORISTAS ---
+        
+        async function generateMotoristaReports() {
+            const dataInicio = document.getElementById('relatorioMotoristaDataInicio').value;
+            const dataFim = document.getElementById('relatorioMotoristaDataFim').value;
+            
+            // Se não há filtros de data, usar últimos 30 dias
+            const hoje = new Date();
+            const inicioAnalise = dataInicio ? new Date(dataInicio + 'T00:00:00.000Z') : new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const fimAnalise = dataFim ? new Date(dataFim + 'T23:59:59.999Z') : hoje;
+
+            try {
+                // Buscar expedições entregues no período
+                const expeditions = await supabaseRequest('expeditions?status=eq.entregue&order=data_hora.desc');
+                const items = await supabaseRequest('expedition_items');
+                
+                // Filtrar por período
+                const expedicoesFiltradas = expeditions.filter(exp => {
+                    const dataExp = new Date(exp.data_hora);
+                    return dataExp >= inicioAnalise && dataExp <= fimAnalise;
+                });
+
+                // Processar dados dos motoristas
+                const motoristasStats = {};
+                
+                expedicoesFiltradas.forEach(exp => {
+                    if (!exp.motorista_id) return;
+                    
+                    const motorista = motoristas.find(m => m.id === exp.motorista_id);
+                    if (!motorista) return;
+                    
+                    const expItems = items.filter(item => item.expedition_id === exp.id);
+                    const totalEntregas = expItems.length;
+                    const totalPallets = expItems.reduce((sum, item) => sum + (item.pallets || 0), 0);
+                    
+                    // Calcular tempo total da viagem (da criação até última entrega)
+                    let tempoTotalViagem = 0;
+                    const ultimaEntrega = expItems.reduce((ultima, item) => {
+                        const fimDescarga = item.data_fim_descarga ? new Date(item.data_fim_descarga) : null;
+                        return fimDescarga && (!ultima || fimDescarga > ultima) ? fimDescarga : ultima;
+                    }, null);
+                    
+                    if (ultimaEntrega) {
+                        tempoTotalViagem = (ultimaEntrega - new Date(exp.data_hora)) / 60000; // em minutos
+                    }
+                    
+                    if (!motoristasStats[exp.motorista_id]) {
+                        motoristasStats[exp.motorista_id] = {
+                            nome: motorista.nome,
+                            produtivo: motorista.PRODUTIVO || 'N/A',
+                            viagens: 0,
+                            entregas: 0,
+                            totalPallets: 0,
+                            temposTotalViagem: [],
+                            ocupacaoMedia: []
+                        };
+                    }
+                    
+                    const stats = motoristasStats[exp.motorista_id];
+                    stats.viagens++;
+                    stats.entregas += totalEntregas;
+                    stats.totalPallets += totalPallets;
+                    
+                    if (tempoTotalViagem > 0) {
+                        stats.temposTotalViagem.push(tempoTotalViagem);
+                    }
+                    
+                    // Calcular ocupação do veículo
+                    if (exp.veiculo_id) {
+                        const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+                        if (veiculo && veiculo.capacidade_pallets > 0) {
+                            const totalRolls = expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0);
+                            const cargaTotal = totalPallets + (totalRolls / 2);
+                            const ocupacao = (cargaTotal / veiculo.capacidade_pallets) * 100;
+                            stats.ocupacaoMedia.push(ocupacao);
+                        }
+                    }
+                });
+
+                // Calcular médias e preparar dados finais
+                const motoristasData = Object.values(motoristasStats).map(stats => ({
+                    ...stats,
+                    tempoMedioViagem: stats.temposTotalViagem.length > 0 ? 
+                        stats.temposTotalViagem.reduce((a, b) => a + b, 0) / stats.temposTotalViagem.length : 0,
+                    ocupacaoMediaCalc: stats.ocupacaoMedia.length > 0 ? 
+                        stats.ocupacaoMedia.reduce((a, b) => a + b, 0) / stats.ocupacaoMedia.length : 0,
+                    entregasPorViagem: stats.viagens > 0 ? (stats.entregas / stats.viagens).toFixed(1) : 0
+                }));
+
+                // Ordenar por número de entregas (ranking)
+                motoristasData.sort((a, b) => b.entregas - a.entregas);
+
+                renderMotoristaReportSummary(motoristasData, expedicoesFiltradas.length);
+                renderMotoristaRankingChart(motoristasData.slice(0, 10)); // Top 10
+                renderMotoristaTable(motoristasData);
+
+            } catch (error) {
+                console.error('Erro ao gerar relatório de motoristas:', error);
+                document.getElementById('motoristaReportSummary').innerHTML = 
+                    `<div class="alert alert-error">Erro ao carregar relatório: ${error.message}</div>`;
+            }
+        }
+
+        function renderMotoristaReportSummary(motoristasData, totalExpedicoes) {
+            const summaryContainer = document.getElementById('motoristaReportSummary');
+            
+            if (motoristasData.length === 0) {
+                summaryContainer.innerHTML = '<div class="alert alert-info">Nenhum dado encontrado para o período selecionado.</div>';
+                summaryContainer.style.display = 'block';
+                return;
+            }
+
+            const totalEntregas = motoristasData.reduce((sum, m) => sum + m.entregas, 0);
+            const totalPallets = motoristasData.reduce((sum, m) => sum + m.totalPallets, 0);
+            const motoristasAtivos = motoristasData.length;
+            const mediaEntregasPorMotorista = motoristasAtivos > 0 ? (totalEntregas / motoristasAtivos).toFixed(1) : 0;
+            
+            summaryContainer.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${motoristasAtivos}</div>
+                    <div class="stat-label">Motoristas Ativos</div>
+                </div>
+                <div class="stat-card" style="background: var(--secondary-gradient);">
+                    <div class="stat-number">${totalExpedicoes}</div>
+                    <div class="stat-label">Total Viagens</div>
+                </div>
+                <div class="stat-card" style="background: var(--accent-gradient);">
+                    <div class="stat-number">${totalEntregas}</div>
+                    <div class="stat-label">Total Entregas</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
+                    <div class="stat-number">${totalPallets}</div>
+                    <div class="stat-label">Total Pallets</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+                    <div class="stat-number">${mediaEntregasPorMotorista}</div>
+                    <div class="stat-label">Média Entregas/Motorista</div>
+                </div>
+            `;
+            summaryContainer.style.display = 'grid';
+        }
+
+        function renderMotoristaRankingChart(motoristasData) {
+            if (motoristasData.length === 0) {
+                destroyChart('motoristasRankingChart');
+                return;
+            }
+
+            const backgroundColors = motoristasData.map((_, index) => {
+                if (index === 0) return 'rgba(255, 215, 0, 0.8)'; // Ouro para 1º lugar
+                if (index === 1) return 'rgba(192, 192, 192, 0.8)'; // Prata para 2º lugar  
+                if (index === 2) return 'rgba(205, 127, 50, 0.8)'; // Bronze para 3º lugar
+                return 'rgba(0, 119, 182, 0.7)'; // Azul padrão para os demais
+            });
+
+            renderChart('motoristasRankingChart', 'bar', {
+                labels: motoristasData.map(m => m.nome),
+                datasets: [{
+                    label: 'Número de Entregas',
+                    data: motoristasData.map(m => m.entregas),
+                    backgroundColor: backgroundColors,
+                    borderColor: backgroundColors.map(color => color.replace('0.7', '1').replace('0.8', '1')),
+                    borderWidth: 2
+                }]
+            }, {
+                indexAxis: 'y',
+                plugins: {
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: (value) => value,
+                        color: '#333',
+                        font: { weight: 'bold' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const motorista = motoristasData[context.dataIndex];
+                                return [
+                                    `Entregas: ${context.raw}`,
+                                    `Viagens: ${motorista.viagens}`,
+                                    `Tempo Médio: ${minutesToHHMM(motorista.tempoMedioViagem)}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Número de Entregas'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMotoristaTable(motoristasData) {
+            const container = document.getElementById('motoristaTableContainer');
+            
+            if (motoristasData.length === 0) {
+                container.innerHTML = '<div class="alert alert-info p-4">Nenhum dado encontrado para o período selecionado.</div>';
+                return;
+            }
+
+            let tableHtml = `
+                <table class="w-full">
+                    <thead>
+                        <tr>
+                            <th class="text-left p-3">Ranking</th>
+                            <th class="text-left p-3">Nome</th>
+                            <th class="text-left p-3">Produtivo</th>
+                            <th class="text-left p-3">Viagens</th>
+                            <th class="text-left p-3">Entregas</th>
+                            <th class="text-left p-3">Entregas/Viagem</th>
+                            <th class="text-left p-3">Total Pallets</th>
+                            <th class="text-left p-3">Tempo Médio Viagem</th>
+                            <th class="text-left p-3">Ocupação Média</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            motoristasData.forEach((motorista, index) => {
+                let rankingIcon = '';
+                if (index === 0) rankingIcon = '🥇';
+                else if (index === 1) rankingIcon = '🥈';
+                else if (index === 2) rankingIcon = '🥉';
+                else rankingIcon = `${index + 1}º`;
+
+                tableHtml += `
+                    <tr class="hover:bg-gray-50 border-b">
+                        <td class="p-3 font-bold">${rankingIcon}</td>
+                        <td class="p-3 font-medium">${motorista.nome}</td>
+                        <td class="p-3">${motorista.produtivo}</td>
+                        <td class="p-3 text-center">${motorista.viagens}</td>
+                        <td class="p-3 text-center font-bold text-blue-600">${motorista.entregas}</td>
+                        <td class="p-3 text-center">${motorista.entregasPorViagem}</td>
+                        <td class="p-3 text-center">${motorista.totalPallets}</td>
+                        <td class="p-3 text-center">${minutesToHHMM(motorista.tempoMedioViagem)}</td>
+                        <td class="p-3 text-center">${motorista.ocupacaoMediaCalc.toFixed(1)}%</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</tbody></table>';
+            container.innerHTML = tableHtml;
         }
         
         // --- FUNÇÕES DO MODAL DE QR CODE ---
@@ -2574,6 +2860,11 @@
                 console.error(err);
             }
         }
+
+        function showAlert(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        }
         
         function showAddForm(type) {
             const modal = document.getElementById('addFormModal');
@@ -2763,7 +3054,6 @@
             }
         }
 
-
         // Inicialização
         document.addEventListener('DOMContentLoaded', async () => {
             await loadFiliais();
@@ -2771,4 +3061,3 @@
     </script>
 </body>
 </html>
-
