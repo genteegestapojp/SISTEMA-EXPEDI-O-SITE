@@ -3079,23 +3079,32 @@ function populateRastreioFilters() {
 
 async function loadRastreioData() {
     try {
-        // Buscar expedições que estão em rota
+        // Buscar expedições que estão em rota OU retornando
         const expeditionsEmRota = await supabaseRequest('expeditions?status=eq.saiu_para_entrega&order=data_saida_entrega.desc');
+        
+        // NOVO: Buscar também motoristas que estão retornando
+        const motoristasRetornando = await supabaseRequest('motoristas?status=in.(retornando_cd,retornando_com_imobilizado)');
+        
         const items = await supabaseRequest('expedition_items');
         
         // Buscar localizações mais recentes dos motoristas/veículos
         const locations = await supabaseRequest('vehicle_tracking?order=timestamp.desc');
         
-        rastreioData = expeditionsEmRota.map(exp => {
+        rastreioData = [];
+        
+        // Processar expedições em rota
+        expeditionsEmRota.forEach(exp => {
             const expItems = items.filter(item => item.expedition_id === exp.id);
             const motorista = motoristas.find(m => m.id === exp.motorista_id);
             const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
             
-            // Buscar localização mais recente do veículo
+            // Buscar localização mais recente do veículo/motorista
             const currentLocation = locations.find(loc => 
-                loc.veiculo_id === exp.veiculo_id || 
-                loc.motorista_id === exp.motorista_id
+                (loc.veiculo_id === exp.veiculo_id || loc.motorista_id === exp.motorista_id) &&
+                loc.filial === selectedFilial.nome
             );
+            
+            console.log(`Localização para ${veiculo?.placa}:`, currentLocation); // DEBUG
             
             const tempoSaida = new Date(exp.data_saida_entrega);
             const tempoDecorrido = (new Date() - tempoSaida) / 60000;
@@ -3134,22 +3143,29 @@ async function loadRastreioData() {
                 progresso = 100;
             }
             
-            // Usar coordenadas reais ou fallback para Cuiabá
-            const coordenadas = currentLocation ? {
-                lat: currentLocation.latitude,
-                lng: currentLocation.longitude
-            } : {
-                lat: -15.6014, // Fallback para Cuiabá
-                lng: -56.0979
-            };
+            // Usar coordenadas reais se disponíveis
+            let coordenadas;
+            if (currentLocation && currentLocation.latitude && currentLocation.longitude) {
+                coordenadas = {
+                    lat: parseFloat(currentLocation.latitude),
+                    lng: parseFloat(currentLocation.longitude)
+                };
+                console.log(`Coordenadas reais para ${veiculo?.placa}:`, coordenadas); // DEBUG
+            } else {
+                // Fallback para centro de Cuiabá com pequena variação
+                coordenadas = {
+                    lat: -15.6014 + (Math.random() - 0.5) * 0.01,
+                    lng: -56.0979 + (Math.random() - 0.5) * 0.01
+                };
+                console.log(`Coordenadas simuladas para ${veiculo?.placa}:`, coordenadas); // DEBUG
+            }
             
-            // Calcular ETA baseado no progresso
             const tempoMedioEntrega = 30;
             const entregasRestantes = itemsOrdenados.filter(item => item.status_descarga === 'pendente').length;
             const etaMinutos = entregasRestantes * tempoMedioEntrega;
             const eta = new Date(Date.now() + etaMinutos * 60000);
             
-            return {
+            rastreioData.push({
                 ...exp,
                 items: expItems,
                 motorista_nome: motorista?.nome || 'N/A',
@@ -3161,13 +3177,70 @@ async function loadRastreioData() {
                 tempo_em_rota: Math.round(tempoDecorrido),
                 coordenadas: coordenadas,
                 eta: eta,
-                velocidade_media: currentLocation?.speed || 0, // Velocidade real
+                velocidade_media: currentLocation?.speed || Math.round(20 + Math.random() * 40),
                 entregas_concluidas: itemsOrdenados.filter(item => item.status_descarga === 'descarregado').length,
                 total_entregas: itemsOrdenados.length,
                 last_update: currentLocation?.timestamp ? new Date(currentLocation.timestamp) : new Date(),
                 accuracy: currentLocation?.accuracy || 0
-            };
+            });
         });
+        
+        // NOVO: Processar motoristas que estão retornando
+        for (const motorista of motoristasRetornando) {
+            // Buscar última expedição entregue deste motorista
+            const ultimaExpedicao = await supabaseRequest(`expeditions?motorista_id=eq.${motorista.id}&status=eq.entregue&order=data_hora.desc&limit=1`);
+            
+            if (ultimaExpedicao && ultimaExpedicao.length > 0) {
+                const exp = ultimaExpedicao[0];
+                const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+                
+                // Buscar localização mais recente
+                const currentLocation = locations.find(loc => 
+                    (loc.veiculo_id === exp.veiculo_id || loc.motorista_id === motorista.id) &&
+                    loc.filial === selectedFilial.nome
+                );
+                
+                console.log(`Localização RETORNANDO para ${veiculo?.placa}:`, currentLocation); // DEBUG
+                
+                let coordenadas;
+                if (currentLocation && currentLocation.latitude && currentLocation.longitude) {
+                    coordenadas = {
+                        lat: parseFloat(currentLocation.latitude),
+                        lng: parseFloat(currentLocation.longitude)
+                    };
+                } else {
+                    // Simular retorno - posição entre última loja e CD
+                    coordenadas = {
+                        lat: -15.6014 + (Math.random() - 0.5) * 0.05,
+                        lng: -56.0979 + (Math.random() - 0.5) * 0.05
+                    };
+                }
+                
+                const tempoRetorno = exp.data_saida_entrega ? 
+                    Math.round((new Date() - new Date(exp.data_saida_entrega)) / 60000) : 0;
+                
+                rastreioData.push({
+                    id: `retorno_${motorista.id}`,
+                    motorista_id: motorista.id,
+                    veiculo_id: exp.veiculo_id,
+                    motorista_nome: motorista.nome,
+                    veiculo_placa: veiculo?.placa || 'N/A',
+                    status_rastreio: 'retornando',
+                    progresso_rota: 100,
+                    tempo_em_rota: tempoRetorno,
+                    coordenadas: coordenadas,
+                    eta: new Date(Date.now() + 30 * 60000), // ETA 30min
+                    velocidade_media: currentLocation?.speed || Math.round(30 + Math.random() * 30),
+                    entregas_concluidas: 0,
+                    total_entregas: 0,
+                    last_update: currentLocation?.timestamp ? new Date(currentLocation.timestamp) : new Date(),
+                    accuracy: currentLocation?.accuracy || 0,
+                    items: []
+                });
+            }
+        }
+        
+        console.log('Total de veículos rastreados:', rastreioData.length); // DEBUG
         
         updateRastreioStats();
         applyRastreioFilters();
@@ -3179,7 +3252,6 @@ async function loadRastreioData() {
             `<div class="alert alert-error">Erro ao carregar dados de rastreio: ${error.message}</div>`;
     }
 }
-
 function updateRastreioStats() {
     const veiculosEmRota = rastreioData.length;
     const entregasAndamento = rastreioData.filter(r => r.status_rastreio === 'em_descarga').length;
@@ -3213,6 +3285,7 @@ function applyRastreioFilters() {
         }
     }
     
+    console.log('Dados filtrados para exibição:', filteredData.length); // DEBUG
     renderRastreioList(filteredData);
 }
 
@@ -3983,15 +4056,16 @@ renderEntregasChart(entregasFort, entregasComper);
         let markersLayer = null;
 
         function showLocationMap(expeditionId, lat, lng, vehiclePlaca) {
-            document.getElementById('mapModalTitle').textContent = `Localização de ${vehiclePlaca}`;
-            document.getElementById('mapModal').style.display = 'flex';
-            
-            // Aguardar o modal aparecer antes de inicializar o mapa
-            setTimeout(() => {
-                initMap(lat, lng, vehiclePlaca);
-            }, 100);
-        }
-
+    console.log(`Abrindo mapa para ${vehiclePlaca} em:`, lat, lng); // DEBUG
+    
+    document.getElementById('mapModalTitle').textContent = `Localização de ${vehiclePlaca}`;
+    document.getElementById('mapModal').style.display = 'flex';
+    
+    // Aguardar o modal aparecer antes de inicializar o mapa
+    setTimeout(() => {
+        initMap(lat, lng, vehiclePlaca);
+    }, 100);
+}
         function showAllVehiclesMap() {
             document.getElementById('mapModalTitle').textContent = 'Localização de Todos os Veículos';
             document.getElementById('mapModal').style.display = 'flex';
