@@ -3088,7 +3088,7 @@ async function loadRastreioData() {
         const items = await supabaseRequest('expedition_items');
         
         // Buscar localizações mais recentes dos motoristas/veículos
-        const locations = await supabaseRequest('vehicle_tracking?order=timestamp.desc');
+        const locations = await supabaseRequest(`gps_tracking?select=latitude,longitude,velocidade,precisao,data_gps,expedition_id,motorista_id&filial=eq.${selectedFilial.nome}&order=data_gps.desc&limit=100`, 'GET', null, false);
         
         rastreioData = [];
         
