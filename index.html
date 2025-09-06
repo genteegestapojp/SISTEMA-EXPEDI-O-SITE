@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-ar_EG">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Controle de Expedição</title>
     <link rel="manifest" href="manifest.json">
@@ -255,6 +255,83 @@
         .progress-orange { background-color: #f59e0b; }
         .progress-red { background-color: #ef4444; }
 
+        /* NOVO: Estilos para o sistema de notificação */
+        #notificationContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 2000;
+        }
+
+        .notification {
+            width: 300px;
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            animation: slideIn 0.5s forwards;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        @keyframes slideIn {
+            to { transform: translateX(0); }
+        }
+
+        .notification.hide {
+            animation: slideOut 0.5s forwards;
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        .notification.success { border-left: 4px solid var(--primary); }
+        .notification.error { border-left: 4px solid #D62828; }
+        .notification.info { border-left: 4px solid var(--accent); }
+
+        .notification-header {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .notification.success .notification-header { color: var(--primary); }
+        .notification.error .notification-header { color: #D62828; }
+        .notification.info .notification-header { color: var(--accent); }
+
+        .notification-body { font-size: 0.9rem; color: #555; }
+        /* Estilos para rastreio em tempo real */
+.tracking-card {
+    background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #3b82f6; transition: all 0.3s ease; padding: 1.5rem;
+}
+.tracking-card.in-transit { border-left-color: #3b82f6; }
+.tracking-card.unloading { border-left-color: #f59e0b; }
+.tracking-card.returning { border-left-color: #10b981; }
+.status-indicator {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;
+}
+.status-indicator.transit { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.status-indicator.unloading { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.status-indicator.returning { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
+.pulse-dot.blue { background-color: #3b82f6; }
+.pulse-dot.orange { background-color: #f59e0b; }
+.pulse-dot.green { background-color: #10b981; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.route-item { display: flex; align-items: center; padding: 0.5rem; border-radius: 0.5rem; transition: background-color 0.2s; }
+.route-item:hover { background-color: #f9fafb; }
+.route-item.completed { background-color: #ecfdf5; }
+.route-item.current { background-color: #fef3c7; }
+.gps-coords { font-family: 'Courier New', monospace; font-size: 0.75rem; color: #6b7280; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -551,6 +628,8 @@
             <div id="addFormAlert" class="mt-4"></div>
         </div>
     </div>
+    
+    <div id="notificationContainer"></div>
 
 
     <script>
@@ -580,6 +659,8 @@
         let activeTimers = {};
         let modalState = { action: null, scannedValue: null, mainId: null, secondaryId: null, expectedCode: null };
         let editLojaLineCounter = 0;
+        let rastreioTimer = null;
+let rastreioData = [];
 
         // Função de requisição ao Supabase (do sistema original, adaptada)
         async function supabaseRequest(endpoint, method = 'GET', data = null, includeFilialFilter = true) {
@@ -615,15 +696,42 @@
             }
         }
 
-        // Função para mostrar notificações (do sistema original)
-        function showNotification(message, type = 'info') {
+        // NOVO: Função de notificação aprimorada
+        function showNotification(message, type = 'info', timeout = 4000) {
+            const container = document.getElementById('notificationContainer');
+            if (!container) return;
+
             const notification = document.createElement('div');
-            notification.className = `fixed top-5 right-5 bg-white shadow-lg rounded-lg p-4 z-[2000] border-l-4 border-${type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue'}-500`;
-            notification.innerHTML = `<p class="font-semibold">${type.toUpperCase()}</p><p class="text-gray-600">${message}</p>`;
-            document.body.appendChild(notification);
+            notification.className = `notification ${type}`;
+            
+            let icon = '';
+            let title = '';
+            if (type === 'success') {
+                icon = '<i data-feather="check-circle" class="h-5 w-5 mr-2"></i>';
+                title = 'Sucesso!';
+            } else if (type === 'error') {
+                icon = '<i data-feather="x-circle" class="h-5 w-5 mr-2"></i>';
+                title = 'Erro!';
+            } else if (type === 'info') {
+                icon = '<i data-feather="info" class="h-5 w-5 mr-2"></i>';
+                title = 'Informação';
+            }
+            
+            notification.innerHTML = `
+                <div class="notification-header">
+                    ${icon}
+                    <span>${title}</span>
+                </div>
+                <div class="notification-body">${message}</div>
+            `;
+            
+            container.appendChild(notification);
+            feather.replace();
+
             setTimeout(() => {
-                notification.remove();
-            }, 4000);
+                notification.classList.add('hide');
+                notification.addEventListener('animationend', () => notification.remove());
+            }, timeout);
         }
 
         // NOVA: Função de navegação
@@ -634,9 +742,15 @@
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             if(element) element.classList.add('active');
 
-            // Limpa timers antigos ao trocar de view para não sobrecarregar
-            Object.values(activeTimers).forEach(clearInterval);
-            activeTimers = {};
+           // Limpa timers antigos ao trocar de view para não sobrecarregar
+Object.values(activeTimers).forEach(clearInterval);
+activeTimers = {};
+
+// Limpa timer específico do rastreio
+if (rastreioTimer) {
+    clearInterval(rastreioTimer);
+    rastreioTimer = null;
+}
 
             // Carrega os dados da view selecionada
             switch(viewId) {
@@ -872,10 +986,11 @@
 
             document.getElementById('acompanhamento').innerHTML = `
                  <h1 class="text-3xl font-bold text-gray-800 mb-6">Acompanhamento de Tempos</h1>
-                <div class="sub-tabs">
-                    <button class="sub-tab active" onclick="showSubTab('acompanhamento', 'expedicoesEmAndamento', this)">Expedições</button>
-                    <button class="sub-tab" onclick="showSubTab('acompanhamento', 'frota', this)">Frota</button>
-                </div>
+               <div class="sub-tabs">
+    <button class="sub-tab active" onclick="showSubTab('acompanhamento', 'expedicoesEmAndamento', this)">Expedições</button>
+    <button class="sub-tab" onclick="showSubTab('acompanhamento', 'rastreio', this)">Rastreio</button>
+    <button class="sub-tab" onclick="showSubTab('acompanhamento', 'frota', this)">Frota</button>
+</div>
 
                 <div id="expedicoesEmAndamento" class="sub-tab-content active">
                     <div class="stats-grid">
@@ -912,9 +1027,65 @@
                             <tbody id="acompanhamentoBody"></tbody>
                         </table>
                     </div>
-                </div>
+               </div>
 
-                <div id="frota" class="sub-tab-content">
+<div id="rastreio" class="sub-tab-content">
+    <div class="stats-grid mb-6">
+        <div class="stat-card">
+            <div class="stat-number" id="veiculosEmRota">0</div>
+            <div class="stat-label">Veículos em Rota</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #00D4AA, #00B4D8);">
+            <div class="stat-number" id="entregasAndamento">0</div>
+            <div class="stat-label">Entregas em Andamento</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #F77F00, #FCBF49);">
+            <div class="stat-number" id="proximasEntregas">0</div>
+            <div class="stat-label">Próximas Entregas</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #7209B7, #A663CC);">
+            <div class="stat-number" id="tempoMedioRota">--:--</div>
+            <div class="stat-label">Tempo Médio em Rota</div>
+        </div>
+    </div>
+
+    <div class="filters-section mb-6">
+        <div class="filters-grid">
+            <div class="form-group">
+                <label for="rastreioFiltroMotorista">Motorista:</label>
+                <select id="rastreioFiltroMotorista" onchange="applyRastreioFilters()">
+                    <option value="">Todos os Motoristas</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="rastreioFiltroStatus">Status:</label>
+                <select id="rastreioFiltroStatus" onchange="applyRastreioFilters()">
+                    <option value="">Todos</option>
+                    <option value="saiu_para_entrega">Em Rota</option>
+                    <option value="em_descarga">Em Descarga</option>
+                    <option value="retornando">Retornando</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Atualização:</label>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">Auto-refresh</span>
+                    <input type="checkbox" id="autoRefreshRastreio" checked onchange="toggleAutoRefresh()">
+                    <span class="text-xs text-green-600" id="lastUpdateRastreio">Última atualização: --:--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="rastreioList" class="space-y-4">
+        <div class="loading">
+            <div class="spinner"></div>
+            Carregando dados de rastreio...
+        </div>
+    </div>
+</div>
+
+<div id="frota" class="sub-tab-content">
                     <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Análise de Ociosidade da Frota</h2>
                     <div class="filters-section">
                         <div class="filters-grid">
@@ -1121,7 +1292,7 @@
                 if(placaSelect) {
                     placaSelect.innerHTML = '<option value="">Selecione o veículo</option>';
                     veiculos.forEach(v => {
-                        placaSelect.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.modelo}</option>`;
+                        placaSelect.innerHTML += `<option value="${v.id}">${v.placa} - ${v.modelo}</option>`;
                     });
                 }
             });
@@ -1951,7 +2122,17 @@
             document.getElementById(subTabName).classList.add('active');
             
             // Lógica para carregar dados específicos da sub-aba
-            if (tabName === 'acompanhamento' && subTabName === 'frota') {
+            if (tabName === 'acompanhamento') {
+    if (subTabName === 'frota') {
+        loadFrotaData();
+    } else if (subTabName === 'rastreio') {
+        loadRastreioData();
+        // Ativar auto-refresh por padrão
+        if (document.getElementById('autoRefreshRastreio')?.checked) {
+            toggleAutoRefresh();
+        }
+    }
+} else if (tabName === 'historico' && subTabName === 'indicadores') {
                 loadFrotaData();
             } else if (tabName === 'historico' && subTabName === 'indicadores') {
                 applyHistoricoFilters();
@@ -2621,7 +2802,10 @@
                 });
                 
                 populateStatusFilter();
-                applyFilters();
+applyFilters();
+
+// Popula filtro de motoristas para rastreio
+populateRastreioFilters();
 
             } catch(error) {
                 tbody.innerHTML = `<tr><td colspan="12" class="alert alert-error">Erro ao carregar dados: ${error.message}</td></tr>`;
@@ -2853,7 +3037,284 @@
                 `;
             }).join('');
         }
+// --- FUNCIONALIDADES DO RASTREIO EM TEMPO REAL ---
 
+function populateRastreioFilters() {
+    const motoristaFilter = document.getElementById('rastreioFiltroMotorista');
+    if (motoristaFilter) {
+        motoristaFilter.innerHTML = '<option value="">Todos os Motoristas</option>';
+        motoristas.forEach(m => {
+            motoristaFilter.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+        });
+    }
+}
+
+async function loadRastreioData() {
+    try {
+        // Buscar expedições que estão em rota (saiu_para_entrega)
+        const expeditionsEmRota = await supabaseRequest('expeditions?status=eq.saiu_para_entrega&order=data_saida_entrega.desc');
+        const items = await supabaseRequest('expedition_items');
+        
+        // Simular dados de GPS em tempo real (em produção, estes dados viriam do app do motorista)
+        rastreioData = expeditionsEmRota.map(exp => {
+            const expItems = items.filter(item => item.expedition_id === exp.id);
+            const motorista = motoristas.find(m => m.id === exp.motorista_id);
+            const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+            
+            // Simular posição atual e dados de rastreio
+            const tempoSaida = new Date(exp.data_saida_entrega);
+            const tempoDecorrido = (new Date() - tempoSaida) / 60000; // em minutos
+            
+            // Determinar status atual baseado nos itens
+            let statusAtual = 'em_transito';
+            let proximaLoja = null;
+            let lojaAtual = null;
+            let progresso = 0;
+            
+            const itemsOrdenados = expItems.sort((a, b) => {
+                const aInicio = a.data_inicio_descarga ? new Date(a.data_inicio_descarga) : new Date('2099-01-01');
+                const bInicio = b.data_inicio_descarga ? new Date(b.data_inicio_descarga) : new Date('2099-01-01');
+                return aInicio - bInicio;
+            });
+            
+            for (let i = 0; i < itemsOrdenados.length; i++) {
+                const item = itemsOrdenados[i];
+                if (item.status_descarga === 'em_descarga') {
+                    statusAtual = 'em_descarga';
+                    lojaAtual = lojas.find(l => l.id === item.loja_id);
+                    progresso = ((i + 0.5) / itemsOrdenados.length) * 100;
+                    break;
+                } else if (item.status_descarga === 'descarregado') {
+                    progresso = ((i + 1) / itemsOrdenados.length) * 100;
+                    continue;
+                } else {
+                    proximaLoja = lojas.find(l => l.id === item.loja_id);
+                    progresso = (i / itemsOrdenados.length) * 100;
+                    break;
+                }
+            }
+            
+            // Se todas as entregas foram feitas, está retornando
+            if (itemsOrdenados.every(item => item.status_descarga === 'descarregado')) {
+                statusAtual = 'retornando';
+                progresso = 100;
+            }
+            
+            // Simular coordenadas (em produção, viria do GPS real)
+            const baseLat = -15.6014; // Cuiabá
+            const baseLng = -56.0979;
+            const simulatedLat = baseLat + (Math.random() - 0.5) * 0.1;
+            const simulatedLng = baseLng + (Math.random() - 0.5) * 0.1;
+            
+            // Calcular ETA baseado no progresso
+            const tempoMedioEntrega = 30; // minutos por entrega
+            const entregasRestantes = itemsOrdenados.filter(item => item.status_descarga === 'pendente').length;
+            const etaMinutos = entregasRestantes * tempoMedioEntrega;
+            const eta = new Date(Date.now() + etaMinutos * 60000);
+            
+            return {
+                ...exp,
+                items: expItems,
+                motorista_nome: motorista?.nome || 'N/A',
+                veiculo_placa: veiculo?.placa || 'N/A',
+                status_rastreio: statusAtual,
+                loja_atual: lojaAtual,
+                proxima_loja: proximaLoja,
+                progresso_rota: Math.round(progresso),
+                tempo_em_rota: Math.round(tempoDecorrido),
+                coordenadas: { lat: simulatedLat, lng: simulatedLng },
+                eta: eta,
+                velocidade_media: Math.round(20 + Math.random() * 40), // km/h simulada
+                entregas_concluidas: itemsOrdenados.filter(item => item.status_descarga === 'descarregado').length,
+                total_entregas: itemsOrdenados.length
+            };
+        });
+        
+        updateRastreioStats();
+        applyRastreioFilters();
+        updateLastRefreshTime();
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados de rastreio:', error);
+        document.getElementById('rastreioList').innerHTML = 
+            `<div class="alert alert-error">Erro ao carregar dados de rastreio: ${error.message}</div>`;
+    }
+}
+
+function updateRastreioStats() {
+    const veiculosEmRota = rastreioData.length;
+    const entregasAndamento = rastreioData.filter(r => r.status_rastreio === 'em_descarga').length;
+    const proximasEntregas = rastreioData.reduce((sum, r) => sum + (r.total_entregas - r.entregas_concluidas), 0);
+    const tempoMedioRota = rastreioData.length > 0 ? 
+        rastreioData.reduce((sum, r) => sum + r.tempo_em_rota, 0) / rastreioData.length : 0;
+    
+    document.getElementById('veiculosEmRota').textContent = veiculosEmRota;
+    document.getElementById('entregasAndamento').textContent = entregasAndamento;
+    document.getElementById('proximasEntregas').textContent = proximasEntregas;
+    document.getElementById('tempoMedioRota').textContent = minutesToHHMM(tempoMedioRota);
+}
+
+function applyRastreioFilters() {
+    const motoristaFilter = document.getElementById('rastreioFiltroMotorista')?.value;
+    const statusFilter = document.getElementById('rastreioFiltroStatus')?.value;
+    
+    let filteredData = rastreioData;
+    
+    if (motoristaFilter) {
+        filteredData = filteredData.filter(r => r.motorista_id === motoristaFilter);
+    }
+    
+    if (statusFilter) {
+        if (statusFilter === 'saiu_para_entrega') {
+            filteredData = filteredData.filter(r => r.status_rastreio === 'em_transito');
+        } else if (statusFilter === 'em_descarga') {
+            filteredData = filteredData.filter(r => r.status_rastreio === 'em_descarga');
+        } else if (statusFilter === 'retornando') {
+            filteredData = filteredData.filter(r => r.status_rastreio === 'retornando');
+        }
+    }
+    
+    renderRastreioList(filteredData);
+}
+
+function renderRastreioList(data) {
+    const container = document.getElementById('rastreioList');
+    
+    if (data.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">Nenhum veículo em rota no momento.</div>';
+        return;
+    }
+    
+    container.innerHTML = data.map(rastreio => {
+        let statusInfo = '';
+        let locationInfo = '';
+        let nextActionInfo = '';
+        
+        if (rastreio.status_rastreio === 'em_transito') {
+            statusInfo = `<div class="flex items-center gap-2 text-blue-600"><div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div><span class="font-semibold">Em Trânsito</span></div>`;
+            locationInfo = `<div class="text-sm text-gray-600">Próxima parada: <strong>${rastreio.proxima_loja?.nome || 'N/A'}</strong></div>`;
+            nextActionInfo = `<div class="text-xs text-gray-500">ETA: ${rastreio.eta.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</div>`;
+        } else if (rastreio.status_rastreio === 'em_descarga') {
+            statusInfo = `<div class="flex items-center gap-2 text-orange-600"><div class="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div><span class="font-semibold">Descarregando</span></div>`;
+            locationInfo = `<div class="text-sm text-gray-600">Local atual: <strong>${rastreio.loja_atual?.nome || 'N/A'}</strong></div>`;
+            
+            const item = rastreio.items.find(i => i.status_descarga === 'em_descarga');
+            if (item && item.data_inicio_descarga) {
+                const tempoDescarga = Math.round((new Date() - new Date(item.data_inicio_descarga)) / 60000);
+                nextActionInfo = `<div class="text-xs text-gray-500">Tempo de descarga: ${minutesToHHMM(tempoDescarga)}</div>`;
+            }
+        } else if (rastreio.status_rastreio === 'retornando') {
+            statusInfo = `<div class="flex items-center gap-2 text-green-600"><div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div><span class="font-semibold">Retornando ao CD</span></div>`;
+            locationInfo = `<div class="text-sm text-gray-600">Todas as entregas concluídas</div>`;
+            nextActionInfo = `<div class="text-xs text-gray-500">ETA CD: ${rastreio.eta.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</div>`;
+        }
+        
+        return `
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 ${rastreio.status_rastreio === 'em_transito' ? 'border-blue-500' : rastreio.status_rastreio === 'em_descarga' ? 'border-orange-500' : 'border-green-500'}">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">${rastreio.veiculo_placa} - ${rastreio.motorista_nome}</h3>
+                        <p class="text-sm text-gray-500">Saiu às ${new Date(rastreio.data_saida_entrega).toLocaleTimeString('pt-BR')}</p>
+                    </div>
+                    <div class="text-right">
+                        ${statusInfo}
+                        <div class="text-xs text-gray-500 mt-1">Velocidade: ${rastreio.velocidade_media} km/h</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600">${rastreio.entregas_concluidas}</div>
+                        <div class="text-xs text-gray-500">Entregas Feitas</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600">${rastreio.total_entregas - rastreio.entregas_concluidas}</div>
+                        <div class="text-xs text-gray-500">Restantes</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600">${minutesToHHMM(rastreio.tempo_em_rota)}</div>
+                        <div class="text-xs text-gray-500">Tempo em Rota</div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Progresso da Rota</span>
+                        <span>${rastreio.progresso_rota}%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar ${rastreio.progresso_rota === 100 ? 'progress-green' : rastreio.progresso_rota > 50 ? 'progress-orange' : 'progress-red'}" 
+                             style="width: ${rastreio.progresso_rota}%;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        ${locationInfo}
+                        ${nextActionInfo}
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">Posição GPS</div>
+                        <div class="text-sm font-mono text-gray-600">${rastreio.coordenadas.lat.toFixed(6)}, ${rastreio.coordenadas.lng.toFixed(6)}</div>
+                        <button class="btn btn-primary btn-small mt-2" onclick="showLocationMap('${rastreio.id}', ${rastreio.coordenadas.lat}, ${rastreio.coordenadas.lng})">
+                            Ver no Mapa
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <h4 class="font-semibold text-gray-700 mb-2">Roteiro de Entregas</h4>
+                    <div class="space-y-1">
+                        ${rastreio.items.map((item, index) => {
+                            const loja = lojas.find(l => l.id === item.loja_id);
+                            let iconStatus = '';
+                            if (item.status_descarga === 'descarregado') iconStatus = '✅';
+                            else if (item.status_descarga === 'em_descarga') iconStatus = '🚚';
+                            else iconStatus = '⏳';
+                            
+                            return `<div class="flex items-center text-sm ${item.status_descarga === 'descarregado' ? 'text-green-600' : item.status_descarga === 'em_descarga' ? 'text-orange-600' : 'text-gray-600'}">
+                                <span class="mr-2">${iconStatus}</span>
+                                <span>${index + 1}. ${loja?.nome || 'N/A'}</span>
+                                ${item.data_fim_descarga ? `<span class="ml-auto text-xs">${new Date(item.data_fim_descarga).toLocaleTimeString('pt-BR')}</span>` : ''}
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function showLocationMap(expeditionId, lat, lng) {
+    // Em uma implementação real, isso abriria um mapa (Google Maps, OpenStreetMap, etc.)
+    const mapUrl = `https://www.google.com/maps?q=${lat},${lng}&z=15`;
+    window.open(mapUrl, '_blank');
+}
+
+function toggleAutoRefresh() {
+    const autoRefresh = document.getElementById('autoRefreshRastreio').checked;
+    
+    if (autoRefresh) {
+        // Atualizar a cada 30 segundos
+        rastreioTimer = setInterval(() => {
+            loadRastreioData();
+        }, 30000);
+        showNotification('Auto-refresh ativado (30s)', 'success');
+    } else {
+        if (rastreioTimer) {
+            clearInterval(rastreioTimer);
+            rastreioTimer = null;
+        }
+        showNotification('Auto-refresh desativado', 'info');
+    }
+}
+
+function updateLastRefreshTime() {
+    const now = new Date();
+    document.getElementById('lastUpdateRastreio').textContent = 
+        `Última atualização: ${now.toLocaleTimeString('pt-BR')}`;
+}
         // --- FUNCIONALIDADES DA ABA HISTÓRICO ---
         async function loadHistorico() {
             showSubTab('historico', 'listaEntregas', document.querySelector('#historico .sub-tab'));
@@ -3053,7 +3514,7 @@
             `;
 
             renderLojasRankingChart(lojasData);
-            renderEntregasChart(entregasFort, entregasComper);
+            renderEntregasChart(fort, comper);
         }
         
         function renderLojasRankingChart(lojasData) {
