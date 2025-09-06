@@ -6,7 +6,8 @@
     <title>Sistema de Controle de Expedição</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="favicon.png">
-    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -311,6 +312,24 @@
 .tracking-card {
     background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border-left: 4px solid #3b82f6; transition: all 0.3s ease; padding: 1.5rem;
+}
+/* Adicionar no final do CSS existente */
+.custom-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.leaflet-popup-content {
+    margin: 8px 12px !important;
+    line-height: 1.4 !important;
+}
+
+#map {
+    z-index: 1;
+}
+
+.modal-overlay {
+    z-index: 1001;
 }
 .tracking-card.in-transit { border-left-color: #3b82f6; }
 .tracking-card.unloading { border-left-color: #f59e0b; }
@@ -630,7 +649,16 @@
     </div>
     
     <div id="notificationContainer"></div>
-
+<!-- 🔽 INSERIR AQUI O MODAL DO MAPA 🔽 -->
+    <div id="mapModal" class="modal-overlay">
+        <div class="modal-content" style="width: 90vw; max-width: 1200px; height: 80vh;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold" id="mapModalTitle">Localização em Tempo Real</h3>
+                <button class="btn btn-danger btn-small" onclick="closeMapModal()">Fechar</button>
+            </div>
+            <div id="map" style="height: calc(100% - 60px); width: 100%; border-radius: 8px;"></div>
+        </div>
+    </div>
 
     <script>
         // Inicializa bibliotecas
@@ -3051,19 +3079,26 @@ function populateRastreioFilters() {
 
 async function loadRastreioData() {
     try {
-        // Buscar expedições que estão em rota (saiu_para_entrega)
+        // Buscar expedições que estão em rota
         const expeditionsEmRota = await supabaseRequest('expeditions?status=eq.saiu_para_entrega&order=data_saida_entrega.desc');
         const items = await supabaseRequest('expedition_items');
         
-        // Simular dados de GPS em tempo real (em produção, estes dados viriam do app do motorista)
+        // Buscar localizações mais recentes dos motoristas/veículos
+        const locations = await supabaseRequest('vehicle_tracking?order=timestamp.desc');
+        
         rastreioData = expeditionsEmRota.map(exp => {
             const expItems = items.filter(item => item.expedition_id === exp.id);
             const motorista = motoristas.find(m => m.id === exp.motorista_id);
             const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
             
-            // Simular posição atual e dados de rastreio
+            // Buscar localização mais recente do veículo
+            const currentLocation = locations.find(loc => 
+                loc.veiculo_id === exp.veiculo_id || 
+                loc.motorista_id === exp.motorista_id
+            );
+            
             const tempoSaida = new Date(exp.data_saida_entrega);
-            const tempoDecorrido = (new Date() - tempoSaida) / 60000; // em minutos
+            const tempoDecorrido = (new Date() - tempoSaida) / 60000;
             
             // Determinar status atual baseado nos itens
             let statusAtual = 'em_transito';
@@ -3094,20 +3129,22 @@ async function loadRastreioData() {
                 }
             }
             
-            // Se todas as entregas foram feitas, está retornando
             if (itemsOrdenados.every(item => item.status_descarga === 'descarregado')) {
                 statusAtual = 'retornando';
                 progresso = 100;
             }
             
-            // Simular coordenadas (em produção, viria do GPS real)
-            const baseLat = -15.6014; // Cuiabá
-            const baseLng = -56.0979;
-            const simulatedLat = baseLat + (Math.random() - 0.5) * 0.1;
-            const simulatedLng = baseLng + (Math.random() - 0.5) * 0.1;
+            // Usar coordenadas reais ou fallback para Cuiabá
+            const coordenadas = currentLocation ? {
+                lat: currentLocation.latitude,
+                lng: currentLocation.longitude
+            } : {
+                lat: -15.6014, // Fallback para Cuiabá
+                lng: -56.0979
+            };
             
             // Calcular ETA baseado no progresso
-            const tempoMedioEntrega = 30; // minutos por entrega
+            const tempoMedioEntrega = 30;
             const entregasRestantes = itemsOrdenados.filter(item => item.status_descarga === 'pendente').length;
             const etaMinutos = entregasRestantes * tempoMedioEntrega;
             const eta = new Date(Date.now() + etaMinutos * 60000);
@@ -3122,11 +3159,13 @@ async function loadRastreioData() {
                 proxima_loja: proximaLoja,
                 progresso_rota: Math.round(progresso),
                 tempo_em_rota: Math.round(tempoDecorrido),
-                coordenadas: { lat: simulatedLat, lng: simulatedLng },
+                coordenadas: coordenadas,
                 eta: eta,
-                velocidade_media: Math.round(20 + Math.random() * 40), // km/h simulada
+                velocidade_media: currentLocation?.speed || 0, // Velocidade real
                 entregas_concluidas: itemsOrdenados.filter(item => item.status_descarga === 'descarregado').length,
-                total_entregas: itemsOrdenados.length
+                total_entregas: itemsOrdenados.length,
+                last_update: currentLocation?.timestamp ? new Date(currentLocation.timestamp) : new Date(),
+                accuracy: currentLocation?.accuracy || 0
             };
         });
         
@@ -3209,16 +3248,22 @@ function renderRastreioList(data) {
             nextActionInfo = `<div class="text-xs text-gray-500">ETA CD: ${rastreio.eta.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</div>`;
         }
         
+        // Calcular tempo desde a última atualização
+        const tempoUltimaAtualizacao = rastreio.last_update ? 
+            Math.round((new Date() - rastreio.last_update) / 60000) : null;
+        
         return `
             <div class="bg-white rounded-lg shadow-md p-6 border-l-4 ${rastreio.status_rastreio === 'em_transito' ? 'border-blue-500' : rastreio.status_rastreio === 'em_descarga' ? 'border-orange-500' : 'border-green-500'}">
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h3 class="text-lg font-bold text-gray-800">${rastreio.veiculo_placa} - ${rastreio.motorista_nome}</h3>
                         <p class="text-sm text-gray-500">Saiu às ${new Date(rastreio.data_saida_entrega).toLocaleTimeString('pt-BR')}</p>
+                        ${tempoUltimaAtualizacao !== null ? `<p class="text-xs text-gray-400">Última localização: ${tempoUltimaAtualizacao < 1 ? 'agora' : tempoUltimaAtualizacao + 'min atrás'}</p>` : ''}
                     </div>
                     <div class="text-right">
                         ${statusInfo}
                         <div class="text-xs text-gray-500 mt-1">Velocidade: ${rastreio.velocidade_media} km/h</div>
+                        ${rastreio.accuracy > 0 ? `<div class="text-xs text-gray-400">Precisão: ${rastreio.accuracy}m</div>` : ''}
                     </div>
                 </div>
                 
@@ -3257,9 +3302,14 @@ function renderRastreioList(data) {
                     <div class="text-right">
                         <div class="text-xs text-gray-500">Posição GPS</div>
                         <div class="text-sm font-mono text-gray-600">${rastreio.coordenadas.lat.toFixed(6)}, ${rastreio.coordenadas.lng.toFixed(6)}</div>
-                        <button class="btn btn-primary btn-small mt-2" onclick="showLocationMap('${rastreio.id}', ${rastreio.coordenadas.lat}, ${rastreio.coordenadas.lng})">
-                            Ver no Mapa
-                        </button>
+                        <div class="flex gap-2 mt-2">
+                            <button class="btn btn-primary btn-small" onclick="showLocationMap('${rastreio.id}', ${rastreio.coordenadas.lat}, ${rastreio.coordenadas.lng}, '${rastreio.veiculo_placa}')">
+                                Ver no Mapa
+                            </button>
+                            <button class="btn btn-success btn-small" onclick="showAllVehiclesMap()">
+                                Mapa Geral
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -3296,11 +3346,11 @@ function toggleAutoRefresh() {
     const autoRefresh = document.getElementById('autoRefreshRastreio').checked;
     
     if (autoRefresh) {
-        // Atualizar a cada 30 segundos
+        // Atualizar a cada 15 segundos para dados em tempo real
         rastreioTimer = setInterval(() => {
             loadRastreioData();
-        }, 30000);
-        showNotification('Auto-refresh ativado (30s)', 'success');
+        }, 15000);
+        showNotification('Auto-refresh ativado (15s)', 'success');
     } else {
         if (rastreioTimer) {
             clearInterval(rastreioTimer);
@@ -3928,7 +3978,117 @@ function updateLastRefreshTime() {
                 `;
             }
         }
+ // Variável global para o mapa
+        let mapInstance = null;
+        let markersLayer = null;
 
+        function showLocationMap(expeditionId, lat, lng, vehiclePlaca) {
+            document.getElementById('mapModalTitle').textContent = `Localização de ${vehiclePlaca}`;
+            document.getElementById('mapModal').style.display = 'flex';
+            
+            // Aguardar o modal aparecer antes de inicializar o mapa
+            setTimeout(() => {
+                initMap(lat, lng, vehiclePlaca);
+            }, 100);
+        }
+
+        function showAllVehiclesMap() {
+            document.getElementById('mapModalTitle').textContent = 'Localização de Todos os Veículos';
+            document.getElementById('mapModal').style.display = 'flex';
+            
+            setTimeout(() => {
+                initAllVehiclesMap();
+            }, 100);
+        }
+
+        function initMap(lat, lng, vehiclePlaca) {
+            // Destruir mapa existente se houver
+            if (mapInstance) {
+                mapInstance.remove();
+            }
+            
+            // Criar novo mapa
+            mapInstance = L.map('map').setView([lat, lng], 15);
+            
+            // Adicionar camada do OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(mapInstance);
+            
+            // Criar ícone personalizado para veículo
+            const vehicleIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${vehiclePlaca}</div>`,
+                iconSize: [80, 30],
+                iconAnchor: [40, 15]
+            });
+            
+            // Adicionar marcador do veículo
+            L.marker([lat, lng], { icon: vehicleIcon })
+                .addTo(mapInstance)
+                .bindPopup(`<b>${vehiclePlaca}</b><br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`);
+        }
+
+        function initAllVehiclesMap() {
+            // Destruir mapa existente se houver
+            if (mapInstance) {
+                mapInstance.remove();
+            }
+            
+            // Criar novo mapa centrado em Cuiabá
+            mapInstance = L.map('map').setView([-15.6014, -56.0979], 11);
+            
+            // Adicionar camada do OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(mapInstance);
+            
+            // Adicionar marcadores para todos os veículos
+            const bounds = L.latLngBounds();
+            
+            rastreioData.forEach(rastreio => {
+                const { lat, lng } = rastreio.coordenadas;
+                
+                // Definir cor baseada no status
+                let color = '#0077B6'; // azul padrão
+                if (rastreio.status_rastreio === 'em_descarga') color = '#F59E0B'; // laranja
+                else if (rastreio.status_rastreio === 'retornando') color = '#10B981'; // verde
+                
+                const vehicleIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${color}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${rastreio.veiculo_placa}</div>`,
+                    iconSize: [70, 25],
+                    iconAnchor: [35, 12]
+                });
+                
+                const marker = L.marker([lat, lng], { icon: vehicleIcon })
+                    .addTo(mapInstance)
+                    .bindPopup(`
+                        <div style="text-align: center;">
+                            <b>${rastreio.veiculo_placa}</b><br>
+                            <small>${rastreio.motorista_nome}</small><br>
+                            <span style="color: ${color}; font-weight: bold;">${getStatusLabel(rastreio.status_rastreio)}</span><br>
+                            <small>Progresso: ${rastreio.progresso_rota}%</small><br>
+                            <small>Entregas: ${rastreio.entregas_concluidas}/${rastreio.total_entregas}</small>
+                        </div>
+                    `);
+                
+                bounds.extend([lat, lng]);
+            });
+            
+            // Ajustar zoom para mostrar todos os veículos
+            if (rastreioData.length > 0) {
+                mapInstance.fitBounds(bounds, { padding: [20, 20] });
+            }
+        }
+
+        function closeMapModal() {
+            document.getElementById('mapModal').style.display = 'none';
+            if (mapInstance) {
+                mapInstance.remove();
+                mapInstance = null;
+            }
+        }
         // Inicialização
         document.addEventListener('DOMContentLoaded', async () => {
             await loadFiliais();
