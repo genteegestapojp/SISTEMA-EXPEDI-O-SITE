@@ -1299,6 +1299,25 @@ await loadPontosInteresse();
     <div class="transport-card">
         <h3 class="text-xl font-semibold mb-4">Status do Sistema</h3>
         <pre id="systemStatus" class="bg-gray-100 p-4 rounded-md text-sm whitespace-pre-wrap"></pre>
+        
+    </div>
+</div>
+<div id="transporteConfig" class="sub-tab-content">
+    <div class="transport-card">
+        <h3 class="text-xl font-semibold mb-4">Gerenciar Frota</h3>
+        <div id="veiculosConfigContainer" class="table-container bg-white rounded-lg shadow-md">
+            <table class="w-full">
+                <thead>
+                    <tr><th>Placa</th><th>Modelo</th><th>Tipo</th><th>Capacidade (P)</th><th>Status</th><th>Ações</th></tr>
+                </thead>
+                <tbody id="veiculosConfigBody">
+                    <tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando veículos...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 text-right">
+            <button class="btn btn-success" onclick="showAddForm('veiculo')">Adicionar Novo Veículo</button>
+        </div>
     </div>
 </div>
 
@@ -2230,11 +2249,11 @@ await loadPontosInteresse();
 
         // --- FUNCIONALIDADES DA ABA MOTORISTAS ---
         function showSubTab(tabName, subTabName, element) {
-            const tabContent = document.getElementById(tabName);
-            if (!tabContent) return; 
-
-            tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
-            tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
+    const tabContent = document.getElementById(tabName);
+    if (!tabContent) return; // Adicione esta linha de verificação
+    
+    tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
+    tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
 
             if(element) element.classList.add('active');
             document.getElementById(subTabName).classList.add('active');
