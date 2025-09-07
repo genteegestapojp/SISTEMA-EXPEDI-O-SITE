@@ -842,24 +842,31 @@ if (rastreioTimer) {
 
         // Selecionar filial (ADAPTADO)
         async function selectFilial(filial) {
-            selectedFilial = filial;
-            document.getElementById('sidebarFilial').textContent = filial.nome;
-
-            // Esconde a seleção e mostra o sistema principal
-            document.getElementById('filialSelectionContainer').style.display = 'none';
-            document.getElementById('mainSystem').style.display = 'flex';
-
-            // Carrega todos os dados e conteúdos das abas
-await loadAllTabData();
-
-// Carregar pontos de interesse
-await loadPontosInteresse();
-
-// Inicia na view do home
-            showView('home', document.querySelector('.nav-item'));
-            showNotification(`Bem-vindo à filial: ${filial.nome}!`, 'success');
-        }
-
+    // Busca a filial completa para garantir que temos as coordenadas
+    try {
+        const fullFilialData = await supabaseRequest(`filiais?nome=eq.${filial.nome}`, 'GET', null, false);
+        selectedFilial = fullFilialData[0];
+    } catch (error) {
+        showNotification('Erro ao carregar dados da filial. Verifique as configurações.', 'error');
+        return;
+    }
+    
+    document.getElementById('sidebarFilial').textContent = selectedFilial.nome;
+    
+    // Esconde a seleção e mostra o sistema principal
+    document.getElementById('filialSelectionContainer').style.display = 'none';
+    document.getElementById('mainSystem').style.display = 'flex';
+    
+    // Carrega todos os dados e conteúdos das abas
+    await loadAllTabData();
+    
+    // Carregar pontos de interesse
+    await loadPontosInteresse();
+    
+    // Inicia na view do home
+    showView('home', document.querySelector('.nav-item'));
+    showNotification(`Bem-vindo à filial: ${selectedFilial.nome}!`, 'success');
+}
         // Trocar filial (ADAPTADO)
         function trocarFilial() {
             selectedFilial = null;
@@ -2249,7 +2256,7 @@ await loadPontosInteresse();
 
        function showSubTab(tabName, subTabName, element) {
     const tabContent = document.getElementById(tabName);
-    if (!tabContent) return; // Adicione esta linha de verificação
+    if (!tabContent) return; 
     
     tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
     tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
@@ -2259,12 +2266,19 @@ await loadPontosInteresse();
     
     // Lógica para carregar dados específicos da sub-aba
     if (tabName === 'acompanhamento') {
-        // ...
+        if (subTabName === 'frota') {
+            loadFrotaData();
+        } else if (subTabName === 'rastreio') {
+            loadRastreioData();
+            if (document.getElementById('autoRefreshRastreio')?.checked) {
+                toggleAutoRefresh();
+            }
+        }
     } else if (tabName === 'historico' && subTabName === 'indicadores') {
-        // ...
+        applyHistoricoFilters();
     } else if (tabName === 'configuracoes') {
         if (subTabName === 'transporteConfig') {
-            renderVeiculosConfig();
+            renderVeiculosConfig(); 
         } else if (subTabName === 'geral') {
             renderLojasConfig();
         } else if (subTabName === 'motoristasConfig') {
@@ -2273,8 +2287,9 @@ await loadPontosInteresse();
             loadPontosInteresse();
         }
     } else if (tabName === 'motoristas' && subTabName === 'relatorioMotoristas') {
-        // ...
+        generateMotoristaReports();
     }
+    feather.replace();
 }
 
         async function loadMotoristaTab() {
@@ -3930,73 +3945,112 @@ renderEntregasChart(entregasFort, entregasComper);
         }
         
         function showAddForm(type) {
-            const modal = document.getElementById('addFormModal');
-            const title = document.getElementById('addFormTitle');
-            const fieldsContainer = document.getElementById('addFormFields');
-            fieldsContainer.innerHTML = ''; // Limpa campos anteriores
+    const modal = document.getElementById('addFormModal');
+    const title = document.getElementById('addFormTitle');
+    const fieldsContainer = document.getElementById('addFormFields');
+    fieldsContainer.innerHTML = ''; // Limpa campos anteriores
 
-            let formHtml = '';
-            if (type === 'filial') {
-                title.textContent = `Adicionar Nova Filial`;
-                formHtml = `
-                    <div class="form-group"><label>Nome da Filial (Ex: 464):</label><input type="text" id="add_nome" required></div>
-                    <div class="form-group"><label>Descrição (Ex: MT):</label><input type="text" id="add_descricao" required></div>
-                `;
-            } else if (type === 'loja') {
-    title.textContent = `Adicionar Nova Loja`;
-    formHtml = `
-        <div class="form-group"><label>Nome da Loja:</label><input type="text" id="add_nome" required></div>
-        <div class="form-group"><label>Código da Loja:</label><input type="text" id="add_codigo" required></div>
-        <div class="form-group"><label>Cidade:</label><input type="text" id="add_cidade" required></div>
-        <div class="form-group"><label>Código QR:</label><input type="text" id="add_codlojaqr" required></div>
-        <div class="form-group md:col-span-2"><label>Endereço Completo:</label><input type="text" id="add_endereco_completo" placeholder="Rua, Número, Bairro, CEP" required></div>
-        <div class="form-group"><label>Latitude:</label><input type="number" id="add_latitude" step="0.000001" placeholder="-15.601400"></div>
-        <div class="form-group"><label>Longitude:</label><input type="number" id="add_longitude" step="0.000001" placeholder="-56.097900"></div>
-        <div class="text-center mt-4 md:col-span-2">
-            <button type="button" class="btn btn-secondary mr-2" onclick="getCurrentLocation()">📍 Usar Localização Atual</button>
-            <button type="button" class="btn btn-primary" onclick="geocodeAddress()">🌍 Buscar por Endereço</button>
-        </div>
-    `;
-            } else if (type === 'doca') {
-                title.textContent = `Adicionar Nova Doca`;
-                formHtml = `
-                    <div class="form-group"><label>Nome da Doca:</label><input type="text" id="add_nome" required></div>
-                    <div class="form-group"><label>Capacidade (Pallets):</label><input type="number" id="add_capacidade_pallets" min="0" required></div>
-                    <div class="form-group"><label>Código QR:</label><input type="text" id="add_coddoca" required></div>
-                `;
-            } else if (type === 'lider') {
-                title.textContent = `Adicionar Novo Líder`;
-                formHtml = `
-                    <div class="form-group"><label>Nome do Líder:</label><input type="text" id="add_nome" required></div>
-                    <div class="form-group"><label>Matrícula:</label><input type="text" id="add_codigo_funcionario" required></div>
-                `;
-            } else if (type === 'veiculo') {
-                title.textContent = `Adicionar Novo Veículo`;
-                formHtml = `
-                    <div class="form-group"><label>Placa:</label><input type="text" id="add_placa" required></div>
-                    <div class="form-group"><label>Modelo:</label><input type="text" id="add_modelo" required></div>
-                    <div class="form-group"><label>Capacidade (Pallets):</label><input type="number" id="add_capacidade_pallets" min="1" required></div>
-                    <div class="form-group"><label>Tipo:</label><select id="add_tipo" required><option value="JJS">JJS</option><option value="PERLOG">PERLOG</option></select></div>
-                    <div class="form-group"><label>Status:</label><select id="add_status" required><option value="disponivel">Disponível</option><option value="em_uso">Em Uso</option><option value="manutencao">Manutenção</option></select></div>
-                `;
-            } else if (type === 'motorista') {
-                title.textContent = `Adicionar Novo Motorista`;
-                formHtml = `
-                    <div class="form-group"><label>Nome:</label><input type="text" id="add_nome" required></div>
-                    <div class="form-group"><label>Produtivo (Matrícula):</label><input type="text" id="add_produtivo" required></div>
-                    <div class="form-group"><label>Status:</label><select id="add_status" required><option value="disponivel">Disponível</option><option value="em_viagem">Em Viagem</option><option value="folga">Folga</option></select></div>
-                `;
-            } else if (type === 'acesso') {
-                title.textContent = `Adicionar Novo Acesso`;
-                formHtml = `
-                    <div class="form-group"><label>Nome de Usuário:</label><input type="text" id="add_nome" required></div>
-                    <div class="form-group"><label>Senha:</label><input type="password" id="add_senha" required></div>
-                    <div class="form-group"><label>Tipo de Acesso:</label><select id="add_tipo_acesso" required><option value="ALL">ALL (Master)</option><option value="${selectedFilial.nome}">${selectedFilial.nome}</option></select></div>
-                `;
-            }
-            fieldsContainer.innerHTML = formHtml;
-            modal.style.display = 'flex';
-        }
+    let formHtml = '';
+    if (type === 'filial') {
+        title.textContent = `Adicionar Nova Filial`;
+        formHtml = `
+            <div class="form-group"><label>Nome da Filial (Ex: 464):</label><input type="text" id="add_nome" required></div>
+            <div class="form-group"><label>Descrição (Ex: MT):</label><input type="text" id="add_descricao" required></div>
+            <div class="form-group md:col-span-2"><label>Endereço do CD (Ponto de Partida):</label><input type="text" id="add_endereco_cd" placeholder="Rua, Número, Cidade" required></div>
+            <div class="form-group"><label>Latitude do CD:</label><input type="number" id="add_latitude_cd" step="0.000001" placeholder="-15.601400"></div>
+            <div class="form-group"><label>Longitude do CD:</label><input type="number" id="add_longitude_cd" step="0.000001" placeholder="-56.097900"></div>
+            <div class="text-center mt-4 md:col-span-2">
+                <button type="button" class="btn btn-secondary mr-2" onclick="getCurrentLocationFilial()">📍 Usar Localização Atual</button>
+                <button type="button" class="btn btn-primary" onclick="geocodeAddressFilial()">🌍 Buscar por Endereço</button>
+            </div>
+        `;
+    } else if (type === 'loja') {
+        title.textContent = `Adicionar Nova Loja`;
+        formHtml = `
+            <div class="form-group"><label>Nome da Loja:</label><input type="text" id="add_nome" required></div>
+            <div class="form-group"><label>Código da Loja:</label><input type="text" id="add_codigo" required></div>
+            <div class="form-group"><label>Cidade:</label><input type="text" id="add_cidade" required></div>
+            <div class="form-group"><label>Código QR:</label><input type="text" id="add_codlojaqr" required></div>
+            <div class="form-group md:col-span-2"><label>Endereço Completo:</label><input type="text" id="add_endereco_completo" placeholder="Rua, Número, Bairro, CEP" required></div>
+            <div class="form-group"><label>Latitude:</label><input type="number" id="add_latitude" step="0.000001" placeholder="-15.601400"></div>
+            <div class="form-group"><label>Longitude:</label><input type="number" id="add_longitude" step="0.000001" placeholder="-56.097900"></div>
+            <div class="form-group"><label>Status:</label><select id="add_ativo"><option value="true">Ativa</option><option value="false">Inativa</option></select></div>
+            <div class="text-center mt-4 md:col-span-2">
+                <button type="button" class="btn btn-secondary mr-2" onclick="getCurrentLocation()">📍 Usar Localização Atual</button>
+                <button type="button" class="btn btn-primary" onclick="geocodeAddress()">🌍 Buscar por Endereço</button>
+            </div>
+        `;
+    } else if (type === 'doca') {
+        title.textContent = `Adicionar Nova Doca`;
+        formHtml = `
+            <div class="form-group"><label>Nome da Doca:</label><input type="text" id="add_nome" required></div>
+            <div class="form-group"><label>Capacidade (Pallets):</label><input type="number" id="add_capacidade_pallets" min="0" required></div>
+            <div class="form-group"><label>Código QR:</label><input type="text" id="add_coddoca" required></div>
+        `;
+    } else if (type === 'lider') {
+        title.textContent = `Adicionar Novo Líder`;
+        formHtml = `
+            <div class="form-group"><label>Nome do Líder:</label><input type="text" id="add_nome" required></div>
+            <div class="form-group"><label>Matrícula:</label><input type="text" id="add_codigo_funcionario" required></div>
+        `;
+    } else if (type === 'veiculo') {
+        title.textContent = `Adicionar Novo Veículo`;
+        formHtml = `
+            <div class="form-group"><label>Placa:</label><input type="text" id="add_placa" required></div>
+            <div class="form-group"><label>Modelo:</label><input type="text" id="add_modelo" required></div>
+            <div class="form-group"><label>Capacidade (Pallets):</label><input type="number" id="add_capacidade_pallets" min="1" required></div>
+            <div class="form-group"><label>Tipo:</label><select id="add_tipo" required><option value="JJS">JJS</option><option value="PERLOG">PERLOG</option></select></div>
+            <div class="form-group"><label>Status:</label><select id="add_status" required><option value="disponivel">Disponível</option><option value="em_uso">Em Uso</option><option value="manutencao">Manutenção</option></select></div>
+        `;
+    } else if (type === 'motorista') {
+        title.textContent = `Adicionar Novo Motorista`;
+        formHtml = `
+            <div class="form-group"><label>Nome:</label><input type="text" id="add_nome" required></div>
+            <div class="form-group"><label>Produtivo (Matrícula):</label><input type="text" id="add_produtivo" required></div>
+            <div class="form-group"><label>Status:</label><select id="add_status" required><option value="disponivel">Disponível</option><option value="em_viagem">Em Viagem</option><option value="folga">Folga</option></select></div>
+        `;
+    } else if (type === 'acesso') {
+        title.textContent = `Adicionar Novo Acesso`;
+        formHtml = `
+            <div class="form-group"><label>Nome de Usuário:</label><input type="text" id="add_nome" required></div>
+            <div class="form-group"><label>Senha:</label><input type="password" id="add_senha" required></div>
+            <div class="form-group"><label>Tipo de Acesso:</label><select id="add_tipo_acesso" required><option value="ALL">ALL (Master)</option><option value="${selectedFilial.nome}">${selectedFilial.nome}</option></select></div>
+        `;
+    } else if (type === 'pontoInteresse') {
+        title.textContent = 'Adicionar Ponto de Interesse';
+        formHtml = `
+            <div class="form-group md:col-span-2">
+                <label>Selecionar Loja (opcional):</label>
+                <select id="add_loja_id" class="w-full">
+                    <option value="">-- Ou insira um ponto manualmente --</option>
+                    ${lojas.map(loja => `<option value="${loja.id}">${loja.codigo} - ${loja.nome}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group"><label>Nome do Ponto:</label><input type="text" id="add_nome" placeholder="Ex: CD Principal, Loja 123, etc." required></div>
+            <div class="form-group"><label>Tipo:</label><select id="add_tipo" required>
+                <option value="CD">Centro de Distribuição</option>
+                <option value="LOJA">Loja</option>
+                <option value="POSTO">Posto de Combustível</option>
+                <option value="CASA">Casa/Residência</option>
+                <option value="OUTRO">Outro</option>
+            </select></div>
+            <div class="form-group"><label>Latitude:</label><input type="number" id="add_latitude" step="0.000001" placeholder="-15.601400" required></div>
+            <div class="form-group"><label>Longitude:</label><input type="number" id="add_longitude" step="0.000001" value="" placeholder="-56.097900" required></div>
+            <div class="form-group"><label>Raio de Detecção (metros):</label><input type="number" id="add_raio_deteccao" min="50" max="2000" value="200" required></div>
+            <div class="form-group"><label>Cor no Mapa:</label><select id="add_cor">
+                <option value="#0077B6">Azul</option>
+                <option value="#EF4444">Vermelho</option>
+                <option value="#10B981">Verde</option>
+                <option value="#F59E0B">Laranja</option>
+                <option value="#8B5CF6">Roxo</option>
+                <option value="#EC4899">Rosa</option>
+            </select></div>
+            <div class="form-group" style="display:none;"><label>Status:</label><select id="add_ativo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
+        `;
+    }
+    fieldsContainer.innerHTML = formHtml;
+    modal.style.display = 'flex';
+}
 
         function hideAddForm() {
             document.getElementById('addFormModal').style.display = 'none';
@@ -4036,14 +4090,17 @@ else if (title.includes('Ponto de Interesse')) success = await savePontoInteress
         }
 
         async function saveFilial() {
-            const data = { 
-                nome: document.getElementById('add_nome').value, 
-                descricao: document.getElementById('add_descricao').value,
-                ativo: true 
-            };
-            await supabaseRequest('filiais', 'POST', data, false); // includeFilialFilter = false
-            return true;
-        }
+    const data = { 
+        nome: document.getElementById('add_nome').value, 
+        descricao: document.getElementById('add_descricao').value,
+        endereco_cd: document.getElementById('add_endereco_cd').value,
+        latitude_cd: parseFloat(document.getElementById('add_latitude_cd').value),
+        longitude_cd: parseFloat(document.getElementById('add_longitude_cd').value),
+        ativo: true 
+    };
+    await supabaseRequest('filiais', 'POST', data, false);
+    return true;
+}
         async function saveLoja() {
     const isEdit = !!document.getElementById('edit_loja_id');
     const lojaId = isEdit ? document.getElementById('edit_loja_id').value : null;
@@ -4095,23 +4152,32 @@ else if (title.includes('Ponto de Interesse')) success = await savePontoInteress
             return true;
         }
         async function renderVeiculosConfig() {
-            const tbody = document.getElementById('veiculosConfigBody');
-            tbody.innerHTML = `<tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando...</td></tr>`;
-            const veiculosFilial = await supabaseRequest('veiculos');
-            tbody.innerHTML = veiculosFilial.map(v => `
-                <tr>
-                    <td>${v.placa}</td> <td>${v.modelo}</td> <td>${v.tipo}</td> <td>${v.capacidade_pallets}</td>
-                    <td><span class="status-badge status-${v.status}">${getStatusLabel(v.status)}</span></td>
-                    <td>
-                        <select onchange="updateVeiculoStatus('${v.id}', this.value)" class="w-full p-2 border rounded-md">
-                            <option value="disponivel" ${v.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
-                            <option value="em_uso" ${v.status === 'em_uso' ? 'selected' : ''}>Em Uso</option>
-                            <option value="manutencao" ${v.status === 'manutencao' ? 'selected' : ''}>Manutenção</option>
-                        </select>
-                    </td>
-                </tr>
-            `).join('');
+    const tbody = document.getElementById('veiculosConfigBody');
+    tbody.innerHTML = `<tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando...</td></tr>`;
+    try {
+        const veiculosFilial = await supabaseRequest('veiculos');
+        if (!veiculosFilial || veiculosFilial.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">Nenhum veículo cadastrado nesta filial.</td></tr>`;
+            return;
         }
+
+        tbody.innerHTML = veiculosFilial.map(v => `
+            <tr>
+                <td>${v.placa}</td> <td>${v.modelo}</td> <td>${v.tipo}</td> <td>${v.capacidade_pallets}</td>
+                <td><span class="status-badge status-${v.status}">${getStatusLabel(v.status)}</span></td>
+                <td>
+                    <select onchange="updateVeiculoStatus('${v.id}', this.value)" class="w-full p-2 border rounded-md">
+                        <option value="disponivel" ${v.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+                        <option value="em_uso" ${v.status === 'em_uso' ? 'selected' : ''}>Em Uso</option>
+                        <option value="manutencao" ${v.status === 'manutencao' ? 'selected' : ''}>Manutenção</option>
+                    </select>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="6" class="alert alert-error">Erro ao carregar veículos: ${error.message}</td></tr>`;
+    }
+}
         async function updateVeiculoStatus(veiculoId, novoStatus) {
             try {
                 await supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: novoStatus }, false);
@@ -4498,51 +4564,54 @@ function showAddPontoInteresse() {
     
     title.textContent = 'Adicionar Ponto de Interesse';
     fieldsContainer.innerHTML = `
-        <div class="form-group">
-            <label>Nome do Ponto:</label>
-            <input type="text" id="add_nome" placeholder="Ex: CD Principal, Loja 123, etc." required>
-        </div>
-        <div class="form-group">
-            <label>Tipo:</label>
-            <select id="add_tipo" required>
-                <option value="CD">Centro de Distribuição</option>
-                <option value="LOJA">Loja</option>
-                <option value="POSTO">Posto de Combustível</option>
-                <option value="CASA">Casa/Residência</option>
-                <option value="OUTRO">Outro</option>
+        <div class="form-group md:col-span-2">
+            <label>Selecionar Loja (opcional):</label>
+            <select id="add_loja_id" class="w-full">
+                <option value="">-- Ou insira um ponto manualmente --</option>
+                ${lojas.map(loja => `<option value="${loja.id}">${loja.codigo} - ${loja.nome}</option>`).join('')}
             </select>
         </div>
-        <div class="form-group">
-            <label>Latitude:</label>
-            <input type="number" id="add_latitude" step="0.000001" placeholder="-15.601400" required>
-        </div>
-        <div class="form-group">
-            <label>Longitude:</label>
-            <input type="number" id="add_longitude" step="0.000001" placeholder="-56.097900" required>
-        </div>
-        <div class="form-group">
-            <label>Raio de Detecção (metros):</label>
-            <input type="number" id="add_raio_deteccao" min="50" max="2000" value="200" required>
-        </div>
-        <div class="form-group">
-            <label>Cor no Mapa:</label>
-            <select id="add_cor">
-                <option value="#0077B6">Azul</option>
-                <option value="#EF4444">Vermelho</option>
-                <option value="#10B981">Verde</option>
-                <option value="#F59E0B">Laranja</option>
-                <option value="#8B5CF6">Roxo</option>
-                <option value="#EC4899">Rosa</option>
-            </select>
-        </div>
-        <div class="text-center mt-4">
-            <button type="button" class="btn btn-secondary" onclick="getCurrentLocation()">📍 Usar Localização Atual</button>
+        <div class="form-group"><label>Nome do Ponto:</label><input type="text" id="add_nome" placeholder="Ex: CD Principal, Loja 123, etc." required></div>
+        <div class="form-group"><label>Tipo:</label><select id="add_tipo" required>
+            <option value="CD">Centro de Distribuição</option>
+            <option value="LOJA">Loja</option>
+            <option value="POSTO">Posto de Combustível</option>
+            <option value="CASA">Casa/Residência</option>
+            <option value="OUTRO">Outro</option>
+        </select></div>
+        <div class="form-group"><label>Latitude:</label><input type="number" id="add_latitude" step="0.000001" placeholder="-15.601400" required></div>
+        <div class="form-group"><label>Longitude:</label><input type="number" id="add_longitude" step="0.000001" value="" placeholder="-56.097900" required></div>
+        <div class="form-group"><label>Raio de Detecção (metros):</label><input type="number" id="add_raio_deteccao" min="50" max="2000" value="200" required></div>
+        <div class="form-group"><label>Cor no Mapa:</label><select id="add_cor">
+            <option value="#0077B6">Azul</option>
+            <option value="#EF4444">Vermelho</option>
+            <option value="#10B981">Verde</option>
+            <option value="#F59E0B">Laranja</option>
+            <option value="#8B5CF6">Roxo</option>
+            <option value="#EC4899">Rosa</option>
+        </select></div>
+        <div class="form-group" style="display:none;"><label>Status:</label><select id="add_ativo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
+        <div class="text-center mt-4 md:col-span-2">
+            <button type="button" class="btn btn-secondary mr-2" onclick="getCurrentLocation()">📍 Usar Localização Atual</button>
         </div>
     `;
     
+    document.getElementById('add_loja_id').addEventListener('change', (e) => {
+        const selectedLojaId = e.target.value;
+        if (selectedLojaId) {
+            const selectedLoja = lojas.find(l => l.id === selectedLojaId);
+            if (selectedLoja) {
+                document.getElementById('add_nome').value = selectedLoja.nome;
+                document.getElementById('add_latitude').value = selectedLoja.latitude;
+                document.getElementById('add_longitude').value = selectedLoja.longitude;
+                document.getElementById('add_tipo').value = 'LOJA';
+                document.getElementById('add_cor').value = selectedLoja.nome.toLowerCase().includes('fort') ? '#EF4444' : '#10B981';
+            }
+        }
+    });
+    
     modal.style.display = 'flex';
 }
-
 function getCurrentLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -4978,12 +5047,16 @@ function showAllLojasMap() {
     }, 100);
 }
 
+// Cerca da linha 2167
 function initAllLojasMap() {
     if (mapInstance) {
         mapInstance.remove();
     }
     
-    mapInstance = L.map('map').setView([-15.6014, -56.0979], 11);
+    // Ponto de partida dinâmico da filial
+    const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979]; 
+    
+    mapInstance = L.map('map').setView(cdCoords, 11);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -4996,12 +5069,12 @@ function initAllLojasMap() {
         iconAnchor: [30, 15]
     });
     
-    L.marker([-15.6014, -56.0979], { icon: cdIcon })
+    L.marker(cdCoords, { icon: cdIcon })
         .addTo(mapInstance)
-        .bindPopup('<h3><strong>Centro de Distribuição</strong></h3><p>Ponto de partida das expedições</p>');
+        .bindPopup(`<h3><strong>Centro de Distribuição</strong></h3><p>Filial ${selectedFilial.nome}</p>`);
     
     const bounds = L.latLngBounds();
-    bounds.extend([-15.6014, -56.0979]);
+    bounds.extend(cdCoords);
     
     let lojasComGPS = 0;
     let lojasSemGPS = 0;
@@ -5035,10 +5108,6 @@ function initAllLojasMap() {
                         <p><strong>Cidade:</strong> ${loja.cidade}</p>
                         ${loja.endereco_completo ? `<p><strong>Endereço:</strong><br>${loja.endereco_completo}</p>` : ''}
                         <p><strong>Coordenadas:</strong><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-                        <div style="margin-top: 8px;">
-                            <button onclick="editLoja('${loja.id}')" style="background: #F59E0B; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-right: 4px;">Editar</button>
-                            <button onclick="calculateRouteToLoja('${loja.id}')" style="background: #3B82F6; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Ver Rota</button>
-                        </div>
                     </div>
                 `);
             
@@ -5103,12 +5172,14 @@ function calculateRouteToLoja(lojaId) {
     }, 300);
 }
 
+// Cerca da linha 2269
 function showSimulatedRoute(loja) {
     if (mapInstance) {
         mapInstance.remove();
     }
     
-    const cdCoords = [-15.6014, -56.0979];
+    // Ponto de partida dinâmico da filial
+    const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979]; 
     const lojaCoords = [parseFloat(loja.latitude), parseFloat(loja.longitude)];
     
     const bounds = L.latLngBounds([cdCoords, lojaCoords]);
@@ -5118,63 +5189,52 @@ function showSimulatedRoute(loja) {
         attribution: '© OpenStreetMap contributors'
     }).addTo(mapInstance);
     
-    L.polyline([cdCoords, lojaCoords], {
-        color: '#0077B6',
-        weight: 4,
-        opacity: 0.8
-    }).addTo(mapInstance);
+    // Resto da implementação da função...
+}
+// Novas funções para geolocalização da filial
+async function geocodeAddressFilial() {
+    const endereco = document.getElementById('add_endereco_cd').value.trim();
     
-    const cdIcon = L.divIcon({
-        className: 'custom-marker',
-        html: '<div style="background: #10B981; color: white; padding: 6px 12px; border-radius: 50%; font-size: 12px; font-weight: bold;">🏭 INÍCIO</div>',
-        iconSize: [80, 30],
-        iconAnchor: [40, 15]
-    });
+    if (!endereco) {
+        showNotification('Digite um endereço para buscar as coordenadas', 'error');
+        return;
+    }
     
-    L.marker(cdCoords, { icon: cdIcon })
-        .addTo(mapInstance)
-        .bindPopup('<h3><strong>Centro de Distribuição</strong></h3><p>Ponto de partida</p>');
-    
-    const lojaIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background: #EF4444; color: white; padding: 6px 12px; border-radius: 50%; font-size: 12px; font-weight: bold;">🏪 ${loja.codigo}</div>`,
-        iconSize: [80, 30],
-        iconAnchor: [40, 15]
-    });
-    
-    L.marker(lojaCoords, { icon: lojaIcon })
-        .addTo(mapInstance)
-        .bindPopup(`
-            <div style="text-align: center;">
-                <h3><strong>${loja.nome}</strong></h3>
-                <p><strong>Código:</strong> ${loja.codigo}</p>
-                <p><strong>Destino da Entrega</strong></p>
-            </div>
-        `);
-    
-    const distance = calculateDistance(cdCoords[0], cdCoords[1], lojaCoords[0], lojaCoords[1]) / 1000;
-    const estimatedTime = (distance / 35) * 60;
-    
-    const routeInfoControl = L.control({ position: 'topright' });
-    routeInfoControl.onAdd = function() {
-        const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
-        div.style.background = 'white';
-        div.style.padding = '10px';
-        div.style.fontSize = '12px';
-        div.innerHTML = `
-            <div>
-                <h4 style="margin: 0 0 8px 0;"><strong>Informações da Rota</strong></h4>
-                <p><strong>Origem:</strong> CD</p>
-                <p><strong>Destino:</strong> ${loja.nome}</p>
-                <p><strong>Distância:</strong> ~${distance.toFixed(1)} km</p>
-                <p><strong>Tempo Est.:</strong> ~${minutesToHHMM(estimatedTime)}</p>
-                <hr style="margin: 8px 0;">
-                <p style="font-size: 10px; color: #666;">Esta é uma rota direta. Em uma expedição real, pode haver múltiplas paradas.</p>
-            </div>
-        `;
-        return div;
-    };
-    routeInfoControl.addTo(mapInstance);
+    try {
+        showNotification('Buscando coordenadas...', 'info');
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1&countrycodes=br`);
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+            const result = data[0];
+            document.getElementById('add_latitude_cd').value = parseFloat(result.lat).toFixed(6);
+            document.getElementById('add_longitude_cd').value = parseFloat(result.lon).toFixed(6);
+            showNotification(`Coordenadas encontradas: ${result.display_name}`, 'success');
+        } else {
+            showNotification('Endereço não encontrado. Verifique o endereço.', 'error');
+        }
+    } catch (error) {
+        showNotification('Erro ao buscar coordenadas. Tente novamente.', 'error');
+        console.error('Erro na geocodificação:', error);
+    }
+}
+
+function getCurrentLocationFilial() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                document.getElementById('add_latitude_cd').value = position.coords.latitude.toFixed(6);
+                document.getElementById('add_longitude_cd').value = position.coords.longitude.toFixed(6);
+                showNotification('Localização atual capturada!', 'success');
+            },
+            (error) => {
+                showNotification('Erro ao obter localização: ' + error.message, 'error');
+            }
+        );
+    } else {
+        showNotification('Geolocalização não suportada pelo navegador.', 'error');
+    }
 }
         // Inicialização
         document.addEventListener('DOMContentLoaded', async () => {
