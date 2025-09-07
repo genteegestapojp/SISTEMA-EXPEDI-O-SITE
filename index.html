@@ -4381,123 +4381,113 @@ async function showTrajectoryMap(expeditionId, vehiclePlaca) {
     }, 100);
 }
 
+// Remove a função antiga para recriá-la com as novas funcionalidades
 async function initTrajectoryMap(expeditionId, vehiclePlaca) {
     try {
         if (mapInstance) {
             mapInstance.remove();
         }
 
+        // 1. Buscar os dados GPS exatos do motorista para o trajeto
         let trajectoryData = await supabaseRequest(
             `gps_tracking?expedition_id=eq.${expeditionId}&order=data_gps.asc`,
             'GET', null, false
         );
-        
-        // NOVO: Buscar os itens da expedição para obter as lojas
+
+        // Buscar os itens da expedição para obter as lojas e a ordem de entrega
         const expeditionItems = await supabaseRequest(
-            `expedition_items?expedition_id=eq.${expeditionId}`,
+            `expedition_items?expedition_id=eq.${expeditionId}&order=data_inicio_descarga.asc`,
             'GET', null, false
         );
-
+        
+        // 2. Se não houver dados, exibir mensagem e parar
         if (!trajectoryData || trajectoryData.length === 0 || !expeditionItems || expeditionItems.length === 0) {
             showNotification('Não há dados de GPS ou itens de expedição suficientes para traçar o trajeto.', 'info');
-            // Como fallback, exibe o mapa no CD da filial
             const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
             mapInstance = L.map('map').setView(cdCoords, 11);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
             return;
         }
 
+        // 3. Centralizar o mapa no primeiro ponto de GPS
         const firstPoint = trajectoryData[0];
         const lastPoint = trajectoryData[trajectoryData.length - 1];
-        
-        const centerLat = (parseFloat(firstPoint.latitude) + parseFloat(lastPoint.latitude)) / 2;
-        const centerLng = (parseFloat(firstPoint.longitude) + parseFloat(lastPoint.longitude)) / 2;
-
-        mapInstance = L.map('map').setView([centerLat, centerLng], 12);
+        mapInstance = L.map('map').setView([parseFloat(firstPoint.latitude), parseFloat(firstPoint.longitude)], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
 
-        // NOVO: Criar a lista de waypoints na ordem correta
-        const waypoints = [];
-        
-        // Ponto de partida (CD)
-        const startPointCoords = [selectedFilial.latitude_cd, selectedFilial.longitude_cd];
-        if (startPointCoords[0] && startPointCoords[1]) {
-            waypoints.push(L.latLng(startPointCoords[0], startPointCoords[1]));
-        } else {
-            console.warn("Coordenadas do CD da filial não definidas. Usando o primeiro ponto do GPS como início.");
-            waypoints.push(L.latLng(parseFloat(firstPoint.latitude), parseFloat(firstPoint.longitude)));
-        }
-
-        // Adicionar as lojas como waypoints intermediários
-        // É importante que as lojas estejam ordenadas no banco de dados se a rota tiver uma sequência fixa
-        for (const item of expeditionItems) {
-            const loja = lojas.find(l => l.id === item.loja_id);
-            if (loja && loja.latitude && loja.longitude) {
-                waypoints.push(L.latLng(parseFloat(loja.latitude), parseFloat(loja.longitude)));
-            } else {
-                console.warn(`Loja ${loja?.nome} ignorada no trajeto: coordenadas não definidas.`);
-            }
-        }
-        
-        // Ponto de chegada (CD) - pode ser o mesmo do ponto de partida
-        if (startPointCoords[0] && startPointCoords[1]) {
-             waypoints.push(L.latLng(startPointCoords[0], startPointCoords[1]));
-        }
-
-        if (waypoints.length < 2) {
-            showNotification('Não há pontos suficientes para traçar uma rota completa.', 'info');
-            return;
-        }
-
-        // Criar a rota com o Leaflet Routing Machine
-        const routingControl = L.Routing.control({
-            waypoints: waypoints,
-            routeWhileDragging: false,
-            router: L.Routing.osrmv1({
-                language: 'pt-BR'
-            }),
-            lineOptions: {
-                styles: [{color: '#0077B6', opacity: 0.8, weight: 6}]
-            },
-            altLineOptions: {
-                styles: [
-                    {color: '#0077B6', opacity: 0.4, weight: 6},
-                    {color: '#0077B6', opacity: 0.2, weight: 10}
-                ]
-            },
-            show: true,
-            addWaypoints: false,
-            draggableWaypoints: false,
-            fitSelectedRoutes: true
+        // 4. Desenhar a rota real com os pontos GPS
+        const routePoints = trajectoryData.map(point => [parseFloat(point.latitude), parseFloat(point.longitude)]);
+        const polyline = L.polyline(routePoints, {
+            color: '#0077B6',
+            weight: 4,
+            opacity: 0.8
         }).addTo(mapInstance);
         
-        // Opcional: Adicionar os pontos de interesse (CD, lojas, etc.)
-        await addPontosInteresseToMap();
-
-        // Opcional: Adicionar um painel de informações da rota
-        routingControl.on('routesfound', function(e) {
-            const routes = e.routes;
-            const summary = routes[0].summary;
-            const totalDistance = (summary.totalDistance / 1000).toFixed(1); // em km
-            const totalTime = summary.totalTime; // em segundos
-            const durationFormatted = `${Math.floor(totalTime / 3600)}h ${Math.round((totalTime % 3600) / 60)}min`;
-
-            const statsControl = L.control({ position: 'topright' });
-            statsControl.onAdd = function() {
-                const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
-                div.style.background = 'white';
-                div.style.padding = '10px';
-                div.style.fontSize = '12px';
-                div.innerHTML = `
-                    <b>Estatísticas da Rota</b><br>
-                    <strong>Veículo:</strong> ${vehiclePlaca}<br>
-                    <strong>Distância:</strong> ~${totalDistance} km<br>
-                    <strong>Duração Estimada:</strong> ${durationFormatted}<br>
-                `;
-                return div;
-            };
-            statsControl.addTo(mapInstance);
+        // Ajusta o zoom para a rota completa
+        mapInstance.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+        
+        // 5. Adicionar marcadores com nome e código das lojas
+        const routeInfoContainer = L.DomUtil.create('div', 'leaflet-routing-alt');
+        const ul = document.createElement('ul');
+        ul.style.listStyle = 'none';
+        ul.style.padding = '0';
+        ul.style.margin = '0';
+        
+        const cdIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #0077B6; color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">🏭 CD</div>',
+            iconSize: [60, 30],
+            iconAnchor: [30, 15]
         });
+        
+        const cdMarker = L.marker([selectedFilial.latitude_cd, selectedFilial.longitude_cd], { icon: cdIcon }).addTo(mapInstance);
+        cdMarker.bindPopup(`<b>Centro de Distribuição</b><br>Filial: ${selectedFilial.nome}`).openPopup();
+
+        expeditionItems.forEach((item, index) => {
+            const loja = lojas.find(l => l.id === item.loja_id);
+            if (loja && loja.latitude && loja.longitude) {
+                const markerIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: #EF4444; color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">#${index + 1} - ${loja.codigo}</div>`,
+                    iconSize: [80, 25],
+                    iconAnchor: [40, 12]
+                });
+                
+                L.marker([loja.latitude, loja.longitude], { icon: markerIcon })
+                 .addTo(mapInstance)
+                 .bindPopup(`<b>${loja.nome}</b><br>Código: ${loja.codigo}<br>Entregue: ${item.data_fim_descarga ? 'Sim' : 'Não'}`);
+
+                const li = document.createElement('li');
+                li.innerHTML = `<span style="font-weight: bold;">#${index + 1}: ${loja.nome}</span> (Código: ${loja.codigo})`;
+                ul.appendChild(li);
+            }
+        });
+
+        // 6. Calcular e exibir estatísticas do trajeto real
+        const stats = calculateTripStats(trajectoryData);
+
+        const statsControl = L.control({ position: 'topright' });
+        statsControl.onAdd = function() {
+            const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
+            div.style.background = 'white';
+            div.style.padding = '10px';
+            div.style.fontSize = '12px';
+            
+            // Adiciona a lista de lojas ao painel
+            div.innerHTML = `
+                <p><b>Estatísticas da Viagem</b></p>
+                <p><strong>Veículo:</strong> ${vehiclePlaca}</p>
+                <p><strong>Distância:</strong> ~${stats.distancia.toFixed(1)} km</p>
+                <p><strong>Velocidade Média:</strong> ${stats.velocidadeMedia.toFixed(1)} km/h</p>
+                <p><strong>Duração:</strong> ${stats.duracao}</p>
+                <p><strong>Lojas Atendidas:</strong></p>
+                <div style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
+                    ${ul.innerHTML}
+                </div>
+            `;
+            return div;
+        };
+        statsControl.addTo(mapInstance);
 
     } catch (error) {
         console.error('Erro ao carregar trajeto:', error);
@@ -4505,6 +4495,7 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
     }
 }
 
+// A função calculateTripStats também precisa ser ajustada para usar os dados do GPS
 function calculateTripStats(trajectoryData) {
     let distanciaTotal = 0;
     let velocidades = [];
@@ -4513,25 +4504,26 @@ function calculateTripStats(trajectoryData) {
         const p1 = trajectoryData[i - 1];
         const p2 = trajectoryData[i];
         
-        // Calcular distância entre pontos (fórmula de Haversine simplificada)
-        const lat1 = parseFloat(p1.latitude);
-        const lon1 = parseFloat(p1.longitude);
-        const lat2 = parseFloat(p2.latitude);
-        const lon2 = parseFloat(p2.longitude);
-        
-        const R = 6371; // Raio da Terra em km
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                 Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distancia = R * c;
-        
-        distanciaTotal += distancia;
-        
-        // Calcular velocidade se há dados de velocidade
-        if (p2.velocidade && p2.velocidade > 0) {
+        // Apenas calcula a distância se a velocidade for > 0, para ignorar paradas longas
+        if (p2.velocidade > 0) {
+            const lat1 = parseFloat(p1.latitude);
+            const lon1 = parseFloat(p1.longitude);
+            const lat2 = parseFloat(p2.latitude);
+            const lon2 = parseFloat(p2.longitude);
+            
+            const R = 6371; // Raio da Terra em km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distancia = R * c;
+            
+            distanciaTotal += distancia;
+        }
+
+        if (p2.velocidade > 0) {
             velocidades.push(parseFloat(p2.velocidade));
         }
     }
