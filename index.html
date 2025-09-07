@@ -4446,23 +4446,22 @@ function calculateTripStats(trajectoryData) {
 
 async function loadPontosInteresse() {
     try {
-        // Carregar pontos do banco
-        pontosInteresse = await supabaseRequest('pontos_interesse?ativo=eq.true&order=nome', 'GET', null, false);
-        if (!pontosInteresse) pontosInteresse = [];
+        // Agora, a requisição busca os dados diretamente do banco de dados Supabase
+        const pontosInteresseData = await supabaseRequest('pontos_interesse?order=nome', 'GET', null, false);
         
-        // Se não há pontos, criar alguns padrão
-        if (pontosInteresse.length === 0) {
-            pontosInteresse = [
-                { id: 'cd', nome: 'Centro de Distribuição', tipo: 'CD', latitude: -15.6014, longitude: -56.0979, raio_deteccao: 500, ativo: true, cor: '#0077B6' },
-                { id: 'fort_cuiaba', nome: 'Fort Atacadista Cuiabá', tipo: 'LOJA', latitude: -15.5800, longitude: -56.0850, raio_deteccao: 200, ativo: true, cor: '#EF4444' },
-                { id: 'comper_arsenal', nome: 'Comper Arsenal', tipo: 'LOJA', latitude: -15.6200, longitude: -56.0700, raio_deteccao: 200, ativo: true, cor: '#10B981' }
-            ];
+        if (!pontosInteresseData) {
+            pontosInteresse = [];
+        } else {
+            pontosInteresse = pontosInteresseData;
         }
         
         renderPontosInteresseTable();
+        showNotification('Pontos de interesse carregados com sucesso!', 'success');
     } catch (error) {
         console.error('Erro ao carregar pontos de interesse:', error);
         pontosInteresse = [];
+        renderPontosInteresseTable();
+        showNotification(`Erro ao carregar pontos de interesse: ${error.message}`, 'error');
     }
 }
 
