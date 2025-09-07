@@ -4370,6 +4370,17 @@ async function showTrajectoryMap(expeditionId, vehiclePlaca) {
     }, 100);
 }
 
+// === FUNÇÕES PARA TRAJETO NO HISTÓRICO ===
+
+async function showTrajectoryMap(expeditionId, vehiclePlaca) {
+    document.getElementById('mapModalTitle').textContent = `Trajeto da Viagem - ${vehiclePlaca}`;
+    document.getElementById('mapModal').style.display = 'flex';
+    
+    setTimeout(async () => {
+        await initTrajectoryMap(expeditionId, vehiclePlaca);
+    }, 100);
+}
+
 async function initTrajectoryMap(expeditionId, vehiclePlaca) {
     try {
         if (mapInstance) {
@@ -4380,49 +4391,74 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             `gps_tracking?expedition_id=eq.${expeditionId}&order=data_gps.asc`,
             'GET', null, false
         );
+        
+        // NOVO: Buscar os itens da expedição para obter as lojas
+        const expeditionItems = await supabaseRequest(
+            `expedition_items?expedition_id=eq.${expeditionId}`,
+            'GET', null, false
+        );
 
-        if (!trajectoryData || trajectoryData.length < 2) {
-            showNotification('Não há dados de GPS suficientes para traçar o trajeto.', 'info');
-            // Como fallback, você pode exibir apenas a última localização conhecida ou um mapa sem rota.
-            const lastLocation = trajectoryData[trajectoryData.length - 1];
-            if (lastLocation) {
-                 initMap(parseFloat(lastLocation.latitude), parseFloat(lastLocation.longitude), vehiclePlaca);
-            } else {
-                 mapInstance = L.map('map').setView([-15.6014, -56.0979], 11);
-                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
-            }
+        if (!trajectoryData || trajectoryData.length === 0 || !expeditionItems || expeditionItems.length === 0) {
+            showNotification('Não há dados de GPS ou itens de expedição suficientes para traçar o trajeto.', 'info');
+            // Como fallback, exibe o mapa no CD da filial
+            const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
+            mapInstance = L.map('map').setView(cdCoords, 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
             return;
         }
 
-        const lats = trajectoryData.map(p => parseFloat(p.latitude));
-        const lngs = trajectoryData.map(p => parseFloat(p.longitude));
-        const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
-        const centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+        const firstPoint = trajectoryData[0];
+        const lastPoint = trajectoryData[trajectoryData.length - 1];
         
+        const centerLat = (parseFloat(firstPoint.latitude) + parseFloat(lastPoint.latitude)) / 2;
+        const centerLng = (parseFloat(firstPoint.longitude) + parseFloat(lastPoint.longitude)) / 2;
+
         mapInstance = L.map('map').setView([centerLat, centerLng], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
 
-        // Pontos de interesse da rota: início e fim
-        const startPoint = L.latLng(parseFloat(trajectoryData[0].latitude), parseFloat(trajectoryData[0].longitude));
-        const endPoint = L.latLng(parseFloat(trajectoryData[trajectoryData.length - 1].latitude), parseFloat(trajectoryData[trajectoryData.length - 1].longitude));
+        // NOVO: Criar a lista de waypoints na ordem correta
+        const waypoints = [];
         
-        // Usar o Leaflet Routing Machine para buscar a rota
-        L.Routing.control({
-            waypoints: [
-                startPoint,
-                endPoint
-            ],
+        // Ponto de partida (CD)
+        const startPointCoords = [selectedFilial.latitude_cd, selectedFilial.longitude_cd];
+        if (startPointCoords[0] && startPointCoords[1]) {
+            waypoints.push(L.latLng(startPointCoords[0], startPointCoords[1]));
+        } else {
+            console.warn("Coordenadas do CD da filial não definidas. Usando o primeiro ponto do GPS como início.");
+            waypoints.push(L.latLng(parseFloat(firstPoint.latitude), parseFloat(firstPoint.longitude)));
+        }
+
+        // Adicionar as lojas como waypoints intermediários
+        // É importante que as lojas estejam ordenadas no banco de dados se a rota tiver uma sequência fixa
+        for (const item of expeditionItems) {
+            const loja = lojas.find(l => l.id === item.loja_id);
+            if (loja && loja.latitude && loja.longitude) {
+                waypoints.push(L.latLng(parseFloat(loja.latitude), parseFloat(loja.longitude)));
+            } else {
+                console.warn(`Loja ${loja?.nome} ignorada no trajeto: coordenadas não definidas.`);
+            }
+        }
+        
+        // Ponto de chegada (CD) - pode ser o mesmo do ponto de partida
+        if (startPointCoords[0] && startPointCoords[1]) {
+             waypoints.push(L.latLng(startPointCoords[0], startPointCoords[1]));
+        }
+
+        if (waypoints.length < 2) {
+            showNotification('Não há pontos suficientes para traçar uma rota completa.', 'info');
+            return;
+        }
+
+        // Criar a rota com o Leaflet Routing Machine
+        const routingControl = L.Routing.control({
+            waypoints: waypoints,
             routeWhileDragging: false,
-            // A API de roteamento padrão do Leaflet Routing Machine é gratuita,
-            // mas você pode usar outras, como a OSRM.
-            // Para rotas mais complexas, você poderia usar o GraphHopper ou Mapbox Directions.
-            // Ex: router: L.Routing.mapbox('SUA_CHAVE_DO_MAPBOX')
-            lineOptions: {
-                styles: [{color: '#0077B6', opacity: 0.8, weight: 6}]
-            },
             router: L.Routing.osrmv1({
                 language: 'pt-BR'
             }),
+            lineOptions: {
+                styles: [{color: '#0077B6', opacity: 0.8, weight: 6}]
+            },
             altLineOptions: {
                 styles: [
                     {color: '#0077B6', opacity: 0.4, weight: 6},
@@ -4434,33 +4470,34 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             draggableWaypoints: false,
             fitSelectedRoutes: true
         }).addTo(mapInstance);
-
-        // Marcadores de início e fim da rota (opcional, pois o plugin já os adiciona)
-        // const startIcon = ...
-        // L.marker(startPoint, {icon: startIcon}).addTo(mapInstance).bindPopup(...).openPopup();
-
-        // Calcular estatísticas do trajeto
-        const stats = calculateTripStats(trajectoryData);
         
-        const statsControl = L.control({ position: 'topright' });
-        statsControl.onAdd = function() {
-            const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
-            div.style.background = 'white';
-            div.style.padding = '10px';
-            div.style.fontSize = '12px';
-            div.innerHTML = `
-                <b>Estatísticas da Viagem</b><br>
-                <strong>Veículo:</strong> ${vehiclePlaca}<br>
-                <strong>Distância:</strong> ~${stats.distancia.toFixed(1)} km<br>
-                <strong>Velocidade Média:</strong> ${stats.velocidadeMedia.toFixed(1)} km/h<br>
-                <strong>Duração:</strong> ${stats.duracao}<br>
-                <strong>Pontos GPS:</strong> ${trajectoryData.length}
-            `;
-            return div;
-        };
-        statsControl.addTo(mapInstance);
-        
+        // Opcional: Adicionar os pontos de interesse (CD, lojas, etc.)
         await addPontosInteresseToMap();
+
+        // Opcional: Adicionar um painel de informações da rota
+        routingControl.on('routesfound', function(e) {
+            const routes = e.routes;
+            const summary = routes[0].summary;
+            const totalDistance = (summary.totalDistance / 1000).toFixed(1); // em km
+            const totalTime = summary.totalTime; // em segundos
+            const durationFormatted = `${Math.floor(totalTime / 3600)}h ${Math.round((totalTime % 3600) / 60)}min`;
+
+            const statsControl = L.control({ position: 'topright' });
+            statsControl.onAdd = function() {
+                const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
+                div.style.background = 'white';
+                div.style.padding = '10px';
+                div.style.fontSize = '12px';
+                div.innerHTML = `
+                    <b>Estatísticas da Rota</b><br>
+                    <strong>Veículo:</strong> ${vehiclePlaca}<br>
+                    <strong>Distância:</strong> ~${totalDistance} km<br>
+                    <strong>Duração Estimada:</strong> ${durationFormatted}<br>
+                `;
+                return div;
+            };
+            statsControl.addTo(mapInstance);
+        });
 
     } catch (error) {
         console.error('Erro ao carregar trajeto:', error);
