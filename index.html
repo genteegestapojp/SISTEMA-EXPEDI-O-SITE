@@ -14,7 +14,8 @@
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
@@ -3196,38 +3197,47 @@ function populateRastreioFilters() {
     }
 }
 
+// --- FUNCIONALIDADES DO RASTREIO EM TEMPO REAL ---
+
+// Função de rastreio em tempo real (Versão corrigida)
 async function loadRastreioData() {
     try {
+        console.log("Iniciando carregamento dos dados de rastreio...");
+
         // Busca expedições que estão em rota ou retornando
         const expeditionsEmRota = await supabaseRequest('expeditions?status=eq.saiu_para_entrega&order=data_saida_entrega.desc');
-        const motoristasRetornando = await supabaseRequest('motoristas?status=in.(retornando_cd,retornando_com_imobilizado)');
-        const items = await supabaseRequest('expedition_items');
-        
-        // Coleta todos os IDs de motoristas e veículos ativos para a busca de GPS
-        const activeMotoristIds = [...expeditionsEmRota.map(e => e.motorista_id), ...motoristasRetornando.map(m => m.id)].filter(Boolean);
-        const activeExpeditionIds = expeditionsEmRota.map(e => e.id);
+        console.log("Expedições em rota encontradas:", expeditionsEmRota.length);
 
-        let locations = [];
-        if (activeExpeditionIds.length > 0) {
-            // Ajuste aqui para usar a coluna correta 'expedição_id'
-            locations = await supabaseRequest(
-    `gps_tracking?expedition_id=in.(${activeExpeditionIds.join(',')})&order=data_gps.desc`, 
-    'GET', null, false
-);
-        }
+        const items = await supabaseRequest('expedition_items');
+        console.log("Itens de expedição encontrados:", items.length);
 
         rastreioData = [];
+        
+        const expeditionIds = expeditionsEmRota.map(exp => exp.id);
+        
+        let locations = [];
+        if (expeditionIds.length > 0) {
+            const query = `gps_tracking?expedition_id=in.(${expeditionIds.join(',')})&order=data_gps.desc`;
+            locations = await supabaseRequest(query, 'GET', null, false);
+            console.log("Localizações GPS encontradas:", locations.length);
+        }
 
-        // Processar expedições em rota
+        if (expeditionsEmRota.length === 0) {
+            console.log("Nenhuma expedição em rota. Exibindo mensagem padrão.");
+        }
+
         expeditionsEmRota.forEach(exp => {
             const expItems = items.filter(item => item.expedition_id === exp.id);
             const motorista = motoristas.find(m => m.id === exp.motorista_id);
             const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
-
-           // Vincula a localização mais recente à expedição, usando 'expedition_id'
+            
             const currentLocation = locations.find(loc => loc.expedition_id === exp.id);
-
-            // ... (O resto da sua lógica para calcular status, progresso, etc.)
+            
+            if (!currentLocation || !currentLocation.latitude || !currentLocation.longitude) {
+                console.log(`Expedição ${exp.id} ignorada: sem dados de GPS válidos.`);
+                return; // Pula esta expedição se não houver dados de GPS
+            }
+            
             let statusAtual = 'em_transito';
             let proximaLoja = null;
             let lojaAtual = null;
@@ -3255,68 +3265,76 @@ async function loadRastreioData() {
                     break;
                 }
             }
-
-            const tempoSaida = new Date(exp.data_saida_entrega);
-            const tempoDecorrido = (new Date() - tempoSaida) / 60000;
             
             if (itemsOrdenados.every(item => item.status_descarga === 'descarregado')) {
                 statusAtual = 'retornando';
                 progresso = 100;
             }
 
-            let coordenadas;
-            let velocidade = 0;
-            let precisao = 0;
-            let lastUpdate = new Date();
-
-            if (currentLocation && currentLocation.latitude && currentLocation.longitude) {
-                coordenadas = {
+            const tempoSaida = new Date(exp.data_saida_entrega);
+            const tempoDecorrido = (new Date() - tempoSaida) / 60000;
+            
+            rastreioData.push({
+                ...exp,
+                items: expItems,
+                motorista_nome: motorista?.nome || 'N/A',
+                veiculo_placa: veiculo?.placa || 'N/A',
+                status_rastreio: statusAtual,
+                loja_atual: lojaAtual,
+                proxima_loja: proximaLoja,
+                progresso_rota: Math.round(progresso),
+                tempo_em_rota: Math.round(tempoDecorrido),
+                coordenadas: {
                     lat: parseFloat(currentLocation.latitude),
                     lng: parseFloat(currentLocation.longitude)
-                };
-                velocidade = currentLocation.velocidade;
-                precisao = currentLocation.precisao;
-                lastUpdate = new Date(currentLocation.data_gps);
-            } else {
-                // Fallback para centro de Cuiabá com pequena variação
-                coordenadas = {
-                    lat: -15.6014 + (Math.random() - 0.5) * 0.01,
-                    lng: -56.0979 + (Math.random() - 0.5) * 0.01
-                };
-            }
-
-            rastreioData.push({
-    ...exp,
-    items: expItems,
-    motorista_nome: motorista?.nome || 'N/A',
-    veiculo_placa: veiculo?.placa || 'N/A',
-    status_rastreio: statusAtual,
-    loja_atual: lojaAtual,
-    proxima_loja: proximaLoja,
-    progresso_rota: Math.round(progresso),
-    tempo_em_rota: Math.round(tempoDecorrido),
-    coordenadas: coordenadas,
-    eta: new Date(), // ETA precisa ser calculada de forma mais complexa
-    velocidade_media: velocidade,
-    entregas_concluidas: itemsOrdenados.filter(item => item.status_descarga === 'descarregado').length,
-    total_entregas: itemsOrdenados.length,
-    last_update: lastUpdate,
-    accuracy: precisao,
-    pontos_proximos: checkProximityToPontosInteresse(coordenadas.lat, coordenadas.lng)
-});
+                },
+                eta: new Date(), // ETA precisa ser calculada de forma mais complexa
+                velocidade_media: currentLocation.velocidade || 0,
+                entregas_concluidas: itemsOrdenados.filter(item => item.status_descarga === 'descarregado').length,
+                total_entregas: itemsOrdenados.length,
+                last_update: new Date(currentLocation.data_gps),
+                accuracy: currentLocation.precisao || 0,
+                pontos_proximos: checkProximityToPontosInteresse(currentLocation.latitude, currentLocation.longitude)
+            });
         });
 
-        // Processar motoristas que estão retornando
-        // ... (Esta parte da lógica pode ser simplificada. O ideal é que o 'status' do GPS tracking já indique 'retornando'.)
+        // Adiciona a lógica para motoristas retornando
+        const motoristasRetornando = await supabaseRequest('motoristas?status=in.(retornando_cd,retornando_com_imobilizado)');
+        const returningMotoristIds = motoristasRetornando.map(m => m.id);
 
+        let returningLocations = [];
+        if (returningMotoristIds.length > 0) {
+            const query = `gps_tracking?motorista_id=in.(${returningMotoristIds.join(',')})&order=data_gps.desc`;
+            returningLocations = await supabaseRequest(query, 'GET', null, false);
+        }
+
+        motoristasRetornando.forEach(m => {
+            const currentLocation = returningLocations.find(loc => loc.motorista_id === m.id);
+            if (currentLocation && currentLocation.latitude && currentLocation.longitude) {
+                 rastreioData.push({
+                    id: `return-${m.id}`,
+                    motorista_id: m.id,
+                    motorista_nome: m.nome,
+                    veiculo_placa: veiculos.find(v => v.id === m.veiculo_id)?.placa || 'N/A',
+                    status_rastreio: 'retornando',
+                    coordenadas: {
+                        lat: parseFloat(currentLocation.latitude),
+                        lng: parseFloat(currentLocation.longitude)
+                    },
+                    last_update: new Date(currentLocation.data_gps),
+                    pontos_proximos: checkProximityToPontosInteresse(currentLocation.latitude, currentLocation.longitude)
+                });
+            }
+        });
+        
+        console.log("Total de entradas para rastreio:", rastreioData.length);
         updateRastreioStats();
         applyRastreioFilters();
         updateLastRefreshTime();
 
     } catch (error) {
         console.error('Erro ao carregar dados de rastreio:', error);
-        document.getElementById('rastreioList').innerHTML =
-            `<div class="alert alert-error">Erro ao carregar dados de rastreio: ${error.message}</div>`;
+        document.getElementById('rastreioList').innerHTML = `<div class="alert alert-error">Erro ao carregar dados de rastreio: ${error.message}</div>`;
     }
 }
 function updateRastreioStats() {
@@ -4354,82 +4372,76 @@ async function showTrajectoryMap(expeditionId, vehiclePlaca) {
 
 async function initTrajectoryMap(expeditionId, vehiclePlaca) {
     try {
-        // Destruir mapa existente se houver
         if (mapInstance) {
             mapInstance.remove();
         }
-        
-        // Buscar dados GPS da expedição
+
         let trajectoryData = await supabaseRequest(
-            `gps_tracking?expedition_id=eq.${expeditionId}&order=data_gps.asc`, 
+            `gps_tracking?expedition_id=eq.${expeditionId}&order=data_gps.asc`,
             'GET', null, false
         );
-        
-        // Se não há dados reais, gerar dados simulados para demonstração
-        if (!trajectoryData || trajectoryData.length === 0) {
-            console.log('Gerando dados GPS simulados para demonstração...');
-            trajectoryData = generateMockGPSTrajectory(expeditionId);
+
+        if (!trajectoryData || trajectoryData.length < 2) {
+            showNotification('Não há dados de GPS suficientes para traçar o trajeto.', 'info');
+            // Como fallback, você pode exibir apenas a última localização conhecida ou um mapa sem rota.
+            const lastLocation = trajectoryData[trajectoryData.length - 1];
+            if (lastLocation) {
+                 initMap(parseFloat(lastLocation.latitude), parseFloat(lastLocation.longitude), vehiclePlaca);
+            } else {
+                 mapInstance = L.map('map').setView([-15.6014, -56.0979], 11);
+                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
+            }
+            return;
         }
-        
-        // Calcular centro do mapa baseado nos pontos
+
         const lats = trajectoryData.map(p => parseFloat(p.latitude));
         const lngs = trajectoryData.map(p => parseFloat(p.longitude));
         const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
         const centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
         
-        // Criar mapa
         mapInstance = L.map('map').setView([centerLat, centerLng], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
+
+        // Pontos de interesse da rota: início e fim
+        const startPoint = L.latLng(parseFloat(trajectoryData[0].latitude), parseFloat(trajectoryData[0].longitude));
+        const endPoint = L.latLng(parseFloat(trajectoryData[trajectoryData.length - 1].latitude), parseFloat(trajectoryData[trajectoryData.length - 1].longitude));
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        // Usar o Leaflet Routing Machine para buscar a rota
+        L.Routing.control({
+            waypoints: [
+                startPoint,
+                endPoint
+            ],
+            routeWhileDragging: false,
+            // A API de roteamento padrão do Leaflet Routing Machine é gratuita,
+            // mas você pode usar outras, como a OSRM.
+            // Para rotas mais complexas, você poderia usar o GraphHopper ou Mapbox Directions.
+            // Ex: router: L.Routing.mapbox('SUA_CHAVE_DO_MAPBOX')
+            lineOptions: {
+                styles: [{color: '#0077B6', opacity: 0.8, weight: 6}]
+            },
+            router: L.Routing.osrmv1({
+                language: 'pt-BR'
+            }),
+            altLineOptions: {
+                styles: [
+                    {color: '#0077B6', opacity: 0.4, weight: 6},
+                    {color: '#0077B6', opacity: 0.2, weight: 10}
+                ]
+            },
+            show: true,
+            addWaypoints: false,
+            draggableWaypoints: false,
+            fitSelectedRoutes: true
         }).addTo(mapInstance);
-        
-        // Preparar pontos da rota
-        const routePoints = trajectoryData.map(point => [
-            parseFloat(point.latitude), 
-            parseFloat(point.longitude)
-        ]);
-        
-        // Desenhar a linha da rota
-        const polyline = L.polyline(routePoints, {
-            color: '#0077B6',
-            weight: 4,
-            opacity: 0.8
-        }).addTo(mapInstance);
-        
-        // Adicionar marcador de início (verde)
-        if (routePoints.length > 0) {
-            const startIcon = L.divIcon({
-                className: 'custom-marker',
-                html: '<div style="background: #10B981; color: white; padding: 4px 8px; border-radius: 50%; font-size: 12px; font-weight: bold;">INÍCIO</div>',
-                iconSize: [60, 30],
-                iconAnchor: [30, 15]
-            });
-            
-            L.marker(routePoints[0], { icon: startIcon })
-                .addTo(mapInstance)
-                .bindPopup(`<b>Início da Viagem</b><br>${new Date(trajectoryData[0].data_gps).toLocaleString('pt-BR')}`);
-        }
-        
-        // Adicionar marcador de fim (vermelho)
-        if (routePoints.length > 1) {
-            const endIcon = L.divIcon({
-                className: 'custom-marker',
-                html: '<div style="background: #EF4444; color: white; padding: 4px 8px; border-radius: 50%; font-size: 12px; font-weight: bold;">FIM</div>',
-                iconSize: [60, 30],
-                iconAnchor: [30, 15]
-            });
-            
-            const lastIndex = routePoints.length - 1;
-            L.marker(routePoints[lastIndex], { icon: endIcon })
-                .addTo(mapInstance)
-                .bindPopup(`<b>Fim da Viagem</b><br>${new Date(trajectoryData[lastIndex].data_gps).toLocaleString('pt-BR')}`);
-        }
-        
+
+        // Marcadores de início e fim da rota (opcional, pois o plugin já os adiciona)
+        // const startIcon = ...
+        // L.marker(startPoint, {icon: startIcon}).addTo(mapInstance).bindPopup(...).openPopup();
+
         // Calcular estatísticas do trajeto
         const stats = calculateTripStats(trajectoryData);
         
-        // Adicionar painel de estatísticas
         const statsControl = L.control({ position: 'topright' });
         statsControl.onAdd = function() {
             const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
@@ -4448,12 +4460,8 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
         };
         statsControl.addTo(mapInstance);
         
-        // Ajustar zoom para mostrar toda a rota
-        mapInstance.fitBounds(polyline.getBounds(), { padding: [20, 20] });
-        
-        // Adicionar pontos de interesse se existirem
         await addPontosInteresseToMap();
-        
+
     } catch (error) {
         console.error('Erro ao carregar trajeto:', error);
         showNotification('Erro ao carregar dados do trajeto: ' + error.message, 'error');
