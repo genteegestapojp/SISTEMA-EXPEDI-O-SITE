@@ -3203,52 +3203,38 @@ function populateRastreioFilters() {
 async function loadRastreioData() {
     try {
         console.log("Iniciando carregamento dos dados de rastreio...");
-
-        // Busca expedições que estão em rota ou retornando
         const expeditionsEmRota = await supabaseRequest('expeditions?status=eq.saiu_para_entrega&order=data_saida_entrega.desc');
-        console.log("Expedições em rota encontradas:", expeditionsEmRota.length);
-
         const items = await supabaseRequest('expedition_items');
-        console.log("Itens de expedição encontrados:", items.length);
-
-        rastreioData = [];
-        
-        const expeditionIds = expeditionsEmRota.map(exp => exp.id);
         
         let locations = [];
+        const expeditionIds = expeditionsEmRota.map(exp => exp.id);
         if (expeditionIds.length > 0) {
             const query = `gps_tracking?expedition_id=in.(${expeditionIds.join(',')})&order=data_gps.desc`;
             locations = await supabaseRequest(query, 'GET', null, false);
-            console.log("Localizações GPS encontradas:", locations.length);
         }
 
-        if (expeditionsEmRota.length === 0) {
-            console.log("Nenhuma expedição em rota. Exibindo mensagem padrão.");
-        }
-
-        expeditionsEmRota.forEach(exp => {
+        const promessasRoteamento = expeditionsEmRota.map(async exp => {
             const expItems = items.filter(item => item.expedition_id === exp.id);
             const motorista = motoristas.find(m => m.id === exp.motorista_id);
             const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
-            
             const currentLocation = locations.find(loc => loc.expedition_id === exp.id);
             
             if (!currentLocation || !currentLocation.latitude || !currentLocation.longitude) {
-                console.log(`Expedição ${exp.id} ignorada: sem dados de GPS válidos.`);
-                return; // Pula esta expedição se não houver dados de GPS
+                return;
             }
-            
-            let statusAtual = 'em_transito';
-            let proximaLoja = null;
-            let lojaAtual = null;
-            let progresso = 0;
-            
+
             const itemsOrdenados = expItems.sort((a, b) => {
                 const aInicio = a.data_inicio_descarga ? new Date(a.data_inicio_descarga) : new Date('2099-01-01');
                 const bInicio = b.data_inicio_descarga ? new Date(b.data_inicio_descarga) : new Date('2099-01-01');
                 return aInicio - bInicio;
             });
-            
+
+            let statusAtual = 'em_transito';
+            let proximaLoja = null;
+            let lojaAtual = null;
+            let progresso = 0;
+            let entregasConcluidas = 0;
+
             for (let i = 0; i < itemsOrdenados.length; i++) {
                 const item = itemsOrdenados[i];
                 if (item.status_descarga === 'em_descarga') {
@@ -3257,15 +3243,16 @@ async function loadRastreioData() {
                     progresso = ((i + 0.5) / itemsOrdenados.length) * 100;
                     break;
                 } else if (item.status_descarga === 'descarregado') {
-                    progresso = ((i + 1) / itemsOrdenados.length) * 100;
+                    entregasConcluidas++;
+                    progresso = (entregasConcluidas / itemsOrdenados.length) * 100;
                     continue;
                 } else {
                     proximaLoja = lojas.find(l => l.id === item.loja_id);
-                    progresso = (i / itemsOrdenados.length) * 100;
+                    progresso = (entregasConcluidas / itemsOrdenados.length) * 100;
                     break;
                 }
             }
-            
+
             if (itemsOrdenados.every(item => item.status_descarga === 'descarregado')) {
                 statusAtual = 'retornando';
                 progresso = 100;
@@ -3274,7 +3261,17 @@ async function loadRastreioData() {
             const tempoSaida = new Date(exp.data_saida_entrega);
             const tempoDecorrido = (new Date() - tempoSaida) / 60000;
             
-            rastreioData.push({
+            let distanciaTotalKm = 0;
+            let eta = new Date();
+            
+            if (proximaLoja && proximaLoja.latitude && proximaLoja.longitude) {
+                const rota = await calculateSimulatedRoute(currentLocation.latitude, currentLocation.longitude, proximaLoja.latitude, proximaLoja.longitude);
+                distanciaTotalKm = rota.distance / 1000;
+                const tempoEstimadoMinutos = rota.duration / 60;
+                eta = new Date(new Date().getTime() + tempoEstimadoMinutos * 60000);
+            }
+            
+            return {
                 ...exp,
                 items: expItems,
                 motorista_nome: motorista?.nome || 'N/A',
@@ -3284,21 +3281,24 @@ async function loadRastreioData() {
                 proxima_loja: proximaLoja,
                 progresso_rota: Math.round(progresso),
                 tempo_em_rota: Math.round(tempoDecorrido),
+                distancia_total_km: distanciaTotalKm,
                 coordenadas: {
                     lat: parseFloat(currentLocation.latitude),
                     lng: parseFloat(currentLocation.longitude)
                 },
-                eta: new Date(), // ETA precisa ser calculada de forma mais complexa
+                eta: eta,
                 velocidade_media: currentLocation.velocidade || 0,
-                entregas_concluidas: itemsOrdenados.filter(item => item.status_descarga === 'descarregado').length,
+                entregas_concluidas: entregasConcluidas,
                 total_entregas: itemsOrdenados.length,
                 last_update: new Date(currentLocation.data_gps),
                 accuracy: currentLocation.precisao || 0,
                 pontos_proximos: checkProximityToPontosInteresse(currentLocation.latitude, currentLocation.longitude)
-            });
+            };
         });
 
-        // Adiciona a lógica para motoristas retornando
+        const results = await Promise.all(promessasRoteamento);
+        rastreioData = results.filter(Boolean);
+
         const motoristasRetornando = await supabaseRequest('motoristas?status=in.(retornando_cd,retornando_com_imobilizado)');
         const returningMotoristIds = motoristasRetornando.map(m => m.id);
 
@@ -3308,26 +3308,37 @@ async function loadRastreioData() {
             returningLocations = await supabaseRequest(query, 'GET', null, false);
         }
 
-        motoristasRetornando.forEach(m => {
+        const promessasRetorno = motoristasRetornando.map(async m => {
             const currentLocation = returningLocations.find(loc => loc.motorista_id === m.id);
             if (currentLocation && currentLocation.latitude && currentLocation.longitude) {
-                 rastreioData.push({
+                const cdCoords = { lat: selectedFilial.latitude_cd, lng: selectedFilial.longitude_cd };
+                const rota = await calculateSimulatedRoute(currentLocation.latitude, currentLocation.longitude, cdCoords.lat, cdCoords.lng);
+                const distanciaTotalKm = rota.distance / 1000;
+                const tempoEstimadoMinutos = rota.duration / 60;
+                const eta = new Date(new Date().getTime() + tempoEstimadoMinutos * 60000);
+                
+                return {
                     id: `return-${m.id}`,
                     motorista_id: m.id,
                     motorista_nome: m.nome,
                     veiculo_placa: veiculos.find(v => v.id === m.veiculo_id)?.placa || 'N/A',
                     status_rastreio: 'retornando',
+                    distancia_total_km: distanciaTotalKm,
                     coordenadas: {
                         lat: parseFloat(currentLocation.latitude),
                         lng: parseFloat(currentLocation.longitude)
                     },
+                    eta: eta,
                     last_update: new Date(currentLocation.data_gps),
                     pontos_proximos: checkProximityToPontosInteresse(currentLocation.latitude, currentLocation.longitude)
-                });
+                };
             }
+            return null;
         });
-        
-        console.log("Total de entradas para rastreio:", rastreioData.length);
+
+        const returningResults = await Promise.all(promessasRetorno);
+        rastreioData.push(...returningResults.filter(Boolean));
+
         updateRastreioStats();
         applyRastreioFilters();
         updateLastRefreshTime();
@@ -3449,20 +3460,26 @@ return `
 
 ${proximityInfo}
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-blue-600">${rastreio.entregas_concluidas}</div>
-                        <div class="text-xs text-gray-500">Entregas Feitas</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-orange-600">${rastreio.total_entregas - rastreio.entregas_concluidas}</div>
-                        <div class="text-xs text-gray-500">Restantes</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-purple-600">${minutesToHHMM(rastreio.tempo_em_rota)}</div>
-                        <div class="text-xs text-gray-500">Tempo em Rota</div>
-                    </div>
-                </div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+    <div class="text-center">
+        <div class="text-2xl font-bold text-blue-600">${rastreio.entregas_concluidas}</div>
+        <div class="text-xs text-gray-500">Entregas Feitas</div>
+    </div>
+    <div class="text-center">
+        <div class="text-2xl font-bold text-orange-600">${rastreio.total_entregas - rastreio.entregas_concluidas}</div>
+        <div class="text-xs text-gray-500">Restantes</div>
+    </div>
+    <div class="text-center">
+        <div class="text-2xl font-bold text-purple-600">${minutesToHHMM(rastreio.tempo_em_rota)}</div>
+        <div class="text-xs text-gray-500">Tempo em Rota</div>
+    </div>
+    <div class="text-center">
+        <div class="text-2xl font-bold text-green-600" id="total_km_${rastreio.id}">
+            ${(rastreio.distancia_total_km || 0).toFixed(1)}
+        </div>
+        <div class="text-xs text-gray-500">KM da Rota</div>
+    </div>
+</div>
                 
                 <div class="mb-4">
                     <div class="flex justify-between text-sm text-gray-600 mb-1">
@@ -4261,13 +4278,83 @@ else if (title.includes('Ponto de Interesse')) success = await savePontoInteress
     }, 100);
 }
         function showAllVehiclesMap() {
-            document.getElementById('mapModalTitle').textContent = 'Localização de Todos os Veículos';
-            document.getElementById('mapModal').style.display = 'flex';
+    document.getElementById('mapModalTitle').textContent = 'Localização de Todos os Veículos e Lojas';
+    document.getElementById('mapModal').style.display = 'flex';
+    
+    setTimeout(() => {
+        initAllVehiclesAndLojasMap();
+    }, 100);
+}
+function initAllVehiclesAndLojasMap() {
+    if (mapInstance) {
+        mapInstance.remove();
+    }
+    
+    const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
+    mapInstance = L.map('map').setView(cdCoords, 11);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(mapInstance);
+    
+    const bounds = L.latLngBounds();
+    bounds.extend(cdCoords);
+
+    rastreioData.forEach(rastreio => {
+        const { lat, lng } = rastreio.coordenadas;
+        
+        let color = '#0077B6';
+        if (rastreio.status_rastreio === 'em_descarga') color = '#F59E0B';
+        else if (rastreio.status_rastreio === 'retornando') color = '#10B981';
+        
+        const vehicleIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background: ${color}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${rastreio.veiculo_placa}</div>`,
+            iconSize: [70, 25],
+            iconAnchor: [35, 12]
+        });
+        
+        L.marker([lat, lng], { icon: vehicleIcon })
+            .addTo(mapInstance)
+            .bindPopup(`
+                <div style="text-align: center;">
+                    <b>${rastreio.veiculo_placa}</b><br>
+                    <small>${rastreio.motorista_nome}</small><br>
+                    <span style="color: ${color}; font-weight: bold;">${getStatusLabel(rastreio.status_rastreio)}</span>
+                </div>
+            `);
+        
+        bounds.extend([lat, lng]);
+    });
+    
+    lojas.forEach(loja => {
+        if (loja.latitude && loja.longitude) {
+            const lat = parseFloat(loja.latitude);
+            const lng = parseFloat(loja.longitude);
             
-            setTimeout(() => {
-                initAllVehiclesMap();
-            }, 100);
+            let cor = '#10B981';
+            if (loja.nome.toLowerCase().includes('fort')) cor = '#EF4444';
+            else if (loja.nome.toLowerCase().includes('comper')) cor = '#10B981';
+            
+            const lojaIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background: ${cor}; color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">🏪 ${loja.codigo}</div>`,
+                iconSize: [60, 25],
+                iconAnchor: [30, 12]
+            });
+            
+            L.marker([lat, lng], { icon: lojaIcon })
+                .addTo(mapInstance)
+                .bindPopup(`<b>${loja.nome}</b><br>Código: ${loja.codigo}`);
+            
+            bounds.extend([lat, lng]);
         }
+    });
+
+    if (rastreioData.length > 0 || lojas.length > 0) {
+        mapInstance.fitBounds(bounds, { padding: [20, 20] });
+    }
+}
 
         function initMap(lat, lng, vehiclePlaca) {
             // Destruir mapa existente se houver
@@ -4370,16 +4457,7 @@ async function showTrajectoryMap(expeditionId, vehiclePlaca) {
     }, 100);
 }
 
-// === FUNÇÕES PARA TRAJETO NO HISTÓRICO ===
 
-async function showTrajectoryMap(expeditionId, vehiclePlaca) {
-    document.getElementById('mapModalTitle').textContent = `Trajeto da Viagem - ${vehiclePlaca}`;
-    document.getElementById('mapModal').style.display = 'flex';
-    
-    setTimeout(async () => {
-        await initTrajectoryMap(expeditionId, vehiclePlaca);
-    }, 100);
-}
 
 // Remove a função antiga para recriá-la com as novas funcionalidades
 async function initTrajectoryMap(expeditionId, vehiclePlaca) {
@@ -4389,7 +4467,7 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
         }
 
         // 1. Buscar os dados GPS exatos do motorista para o trajeto
-        let trajectoryData = await supabaseRequest(
+        const trajectoryData = await supabaseRequest(
             `gps_tracking?expedition_id=eq.${expeditionId}&order=data_gps.asc`,
             'GET', null, false
         );
@@ -4400,7 +4478,6 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             'GET', null, false
         );
         
-        // 2. Se não houver dados, exibir mensagem e parar
         if (!trajectoryData || trajectoryData.length === 0 || !expeditionItems || expeditionItems.length === 0) {
             showNotification('Não há dados de GPS ou itens de expedição suficientes para traçar o trajeto.', 'info');
             const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
@@ -4409,13 +4486,12 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             return;
         }
 
-        // 3. Centralizar o mapa no primeiro ponto de GPS
+        // 2. Centralizar o mapa no primeiro ponto de GPS
         const firstPoint = trajectoryData[0];
-        const lastPoint = trajectoryData[trajectoryData.length - 1];
         mapInstance = L.map('map').setView([parseFloat(firstPoint.latitude), parseFloat(firstPoint.longitude)], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
 
-        // 4. Desenhar a rota real com os pontos GPS
+        // 3. Desenhar a rota real com os pontos GPS
         const routePoints = trajectoryData.map(point => [parseFloat(point.latitude), parseFloat(point.longitude)]);
         const polyline = L.polyline(routePoints, {
             color: '#0077B6',
@@ -4423,10 +4499,9 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             opacity: 0.8
         }).addTo(mapInstance);
         
-        // Ajusta o zoom para a rota completa
         mapInstance.fitBounds(polyline.getBounds(), { padding: [20, 20] });
         
-        // 5. Adicionar marcadores com nome e código das lojas
+        // 4. Adicionar marcadores com nome e código das lojas
         const routeInfoContainer = L.DomUtil.create('div', 'leaflet-routing-alt');
         const ul = document.createElement('ul');
         ul.style.listStyle = 'none';
@@ -4440,8 +4515,9 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             iconAnchor: [30, 15]
         });
         
-        const cdMarker = L.marker([selectedFilial.latitude_cd, selectedFilial.longitude_cd], { icon: cdIcon }).addTo(mapInstance);
-        cdMarker.bindPopup(`<b>Centro de Distribuição</b><br>Filial: ${selectedFilial.nome}`).openPopup();
+        L.marker([selectedFilial.latitude_cd, selectedFilial.longitude_cd], { icon: cdIcon })
+            .addTo(mapInstance)
+            .bindPopup(`<b>Centro de Distribuição</b><br>Filial: ${selectedFilial.nome}`).openPopup();
 
         expeditionItems.forEach((item, index) => {
             const loja = lojas.find(l => l.id === item.loja_id);
@@ -4454,8 +4530,8 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
                 });
                 
                 L.marker([loja.latitude, loja.longitude], { icon: markerIcon })
-                 .addTo(mapInstance)
-                 .bindPopup(`<b>${loja.nome}</b><br>Código: ${loja.codigo}<br>Entregue: ${item.data_fim_descarga ? 'Sim' : 'Não'}`);
+                    .addTo(mapInstance)
+                    .bindPopup(`<b>${loja.nome}</b><br>Código: ${loja.codigo}<br>Entregue: ${item.data_fim_descarga ? 'Sim' : 'Não'}`);
 
                 const li = document.createElement('li');
                 li.innerHTML = `<span style="font-weight: bold;">#${index + 1}: ${loja.nome}</span> (Código: ${loja.codigo})`;
@@ -4463,7 +4539,7 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             }
         });
 
-        // 6. Calcular e exibir estatísticas do trajeto real
+        // 5. Calcular e exibir estatísticas do trajeto real
         const stats = calculateTripStats(trajectoryData);
 
         const statsControl = L.control({ position: 'topright' });
@@ -4473,7 +4549,6 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             div.style.padding = '10px';
             div.style.fontSize = '12px';
             
-            // Adiciona a lista de lojas ao painel
             div.innerHTML = `
                 <p><b>Estatísticas da Viagem</b></p>
                 <p><strong>Veículo:</strong> ${vehiclePlaca}</p>
@@ -4494,7 +4569,6 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
         showNotification('Erro ao carregar dados do trajeto: ' + error.message, 'error');
     }
 }
-
 // A função calculateTripStats também precisa ser ajustada para usar os dados do GPS
 function calculateTripStats(trajectoryData) {
     let distanciaTotal = 0;
@@ -5272,6 +5346,25 @@ function getCurrentLocationFilial() {
     } else {
         showNotification('Geolocalização não suportada pelo navegador.', 'error');
     }
+}
+// --- NOVO: FUNÇÃO PARA CALCULAR ROTA SIMULADA ---
+async function calculateSimulatedRoute(startLat, startLng, endLat, endLng) {
+    const R = 6371e3;
+    const φ1 = parseFloat(startLat) * Math.PI / 180;
+    const φ2 = parseFloat(endLat) * Math.PI / 180;
+    const Δφ = (parseFloat(endLat) - parseFloat(startLat)) * Math.PI / 180;
+    const Δλ = (parseFloat(endLng) - parseFloat(startLng)) * Math.PI / 180;
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+
+    const averageSpeedMetersPerSecond = 40 * 1000 / 3600;
+    const duration = distance / averageSpeedMetersPerSecond;
+
+    return {
+        distance: distance,
+        duration: duration
+    };
 }
         // Inicialização
         document.addEventListener('DOMContentLoaded', async () => {
