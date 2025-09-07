@@ -2247,42 +2247,35 @@ await loadPontosInteresse();
             }
         }
 
-        // --- FUNCIONALIDADES DA ABA MOTORISTAS ---
-        function showSubTab(tabName, subTabName, element) {
+       function showSubTab(tabName, subTabName, element) {
     const tabContent = document.getElementById(tabName);
     if (!tabContent) return; // Adicione esta linha de verificação
     
     tabContent.querySelectorAll('.sub-tab').forEach(tab => tab.classList.remove('active'));
     tabContent.querySelectorAll('.sub-tab-content').forEach(content => content.classList.remove('active'));
 
-            if(element) element.classList.add('active');
-            document.getElementById(subTabName).classList.add('active');
-            
-            // Lógica para carregar dados específicos da sub-aba
-            if (tabName === 'acompanhamento') {
-    if (subTabName === 'frota') {
-        loadFrotaData();
-    } else if (subTabName === 'rastreio') {
-        loadRastreioData();
-        // Ativar auto-refresh por padrão
-        if (document.getElementById('autoRefreshRastreio')?.checked) {
-            toggleAutoRefresh();
+    if(element) element.classList.add('active');
+    document.getElementById(subTabName).classList.add('active');
+    
+    // Lógica para carregar dados específicos da sub-aba
+    if (tabName === 'acompanhamento') {
+        // ...
+    } else if (tabName === 'historico' && subTabName === 'indicadores') {
+        // ...
+    } else if (tabName === 'configuracoes') {
+        if (subTabName === 'transporteConfig') {
+            renderVeiculosConfig();
+        } else if (subTabName === 'geral') {
+            renderLojasConfig();
+        } else if (subTabName === 'motoristasConfig') {
+            renderMotoristasConfig();
+        } else if (subTabName === 'pontosInteresse') {
+            loadPontosInteresse();
         }
+    } else if (tabName === 'motoristas' && subTabName === 'relatorioMotoristas') {
+        // ...
     }
-} else if (tabName === 'historico' && subTabName === 'indicadores') {
-                loadFrotaData();
-            } else if (tabName === 'historico' && subTabName === 'indicadores') {
-                applyHistoricoFilters();
-            } else if (tabName === 'configuracoes' && subTabName === 'geral') {
-    renderLojasConfig();
-} else if (tabName === 'configuracoes' && subTabName === 'motoristasConfig') {
-    renderMotoristasConfig();
-} else if (tabName === 'configuracoes' && subTabName === 'pontosInteresse') {
-    loadPontosInteresse();
-            } else if (tabName === 'motoristas' && subTabName === 'relatorioMotoristas') {
-                generateMotoristaReports();
-            }
-        }
+}
 
         async function loadMotoristaTab() {
             showSubTab('motoristas', 'statusFrota', document.querySelector('#motoristas .sub-tab'));
