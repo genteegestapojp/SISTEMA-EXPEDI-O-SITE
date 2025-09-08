@@ -3262,13 +3262,33 @@ async function loadRastreioData() {
             const tempoDecorrido = (new Date() - tempoSaida) / 60000;
             
             let distanciaTotalKm = 0;
+            let tempoTotalRota = 0;
             let eta = new Date();
             
+            // Re-calcula a rota completa do CD até a última loja para obter a distância total
+            const waypoints = [
+                { lat: selectedFilial.latitude_cd, lng: selectedFilial.longitude_cd },
+                ...itemsOrdenados.map(item => {
+                    const loja = lojas.find(l => l.id === item.loja_id);
+                    return { lat: loja.latitude, lng: loja.longitude };
+                })
+            ];
+
+            if (waypoints.length > 1) {
+                const rotaCompleta = await getRouteFromAPI(waypoints);
+                if (rotaCompleta) {
+                    distanciaTotalKm = rotaCompleta.distance / 1000;
+                    tempoTotalRota = rotaCompleta.duration / 60;
+                }
+            }
+
+            // Calcula a ETA para a próxima parada, se houver
             if (proximaLoja && proximaLoja.latitude && proximaLoja.longitude) {
-                const rota = await calculateSimulatedRoute(currentLocation.latitude, currentLocation.longitude, proximaLoja.latitude, proximaLoja.longitude);
-                distanciaTotalKm = rota.distance / 1000;
-                const tempoEstimadoMinutos = rota.duration / 60;
-                eta = new Date(new Date().getTime() + tempoEstimadoMinutos * 60000);
+                const rotaProximaLoja = await getRouteFromAPI([{ lat: currentLocation.latitude, lng: currentLocation.longitude }, { lat: proximaLoja.latitude, lng: proximaLoja.longitude }]);
+                if(rotaProximaLoja) {
+                    const tempoEstimadoMinutos = rotaProximaLoja.duration / 60;
+                    eta = new Date(new Date().getTime() + tempoEstimadoMinutos * 60000);
+                }
             }
             
             return {
@@ -3282,6 +3302,7 @@ async function loadRastreioData() {
                 progresso_rota: Math.round(progresso),
                 tempo_em_rota: Math.round(tempoDecorrido),
                 distancia_total_km: distanciaTotalKm,
+                tempo_total_rota: tempoTotalRota,
                 coordenadas: {
                     lat: parseFloat(currentLocation.latitude),
                     lng: parseFloat(currentLocation.longitude)
@@ -3312,9 +3333,9 @@ async function loadRastreioData() {
             const currentLocation = returningLocations.find(loc => loc.motorista_id === m.id);
             if (currentLocation && currentLocation.latitude && currentLocation.longitude) {
                 const cdCoords = { lat: selectedFilial.latitude_cd, lng: selectedFilial.longitude_cd };
-                const rota = await calculateSimulatedRoute(currentLocation.latitude, currentLocation.longitude, cdCoords.lat, cdCoords.lng);
-                const distanciaTotalKm = rota.distance / 1000;
-                const tempoEstimadoMinutos = rota.duration / 60;
+                const rota = await getRouteFromAPI([{ lat: currentLocation.latitude, lng: currentLocation.longitude }, { lat: cdCoords.lat, lng: cdCoords.lng }]);
+                const distanciaTotalKm = rota ? rota.distance / 1000 : 0;
+                const tempoEstimadoMinutos = rota ? rota.duration / 60 : 0;
                 const eta = new Date(new Date().getTime() + tempoEstimadoMinutos * 60000);
                 
                 return {
@@ -3470,14 +3491,12 @@ ${proximityInfo}
         <div class="text-xs text-gray-500">Restantes</div>
     </div>
     <div class="text-center">
-        <div class="text-2xl font-bold text-purple-600">${minutesToHHMM(rastreio.tempo_em_rota)}</div>
-        <div class="text-xs text-gray-500">Tempo em Rota</div>
+        <div class="text-2xl font-bold text-green-600">${(rastreio.distancia_total_km || 0).toFixed(1)}</div>
+        <div class="text-xs text-gray-500">KM da Rota</div>
     </div>
     <div class="text-center">
-        <div class="text-2xl font-bold text-green-600" id="total_km_${rastreio.id}">
-            ${(rastreio.distancia_total_km || 0).toFixed(1)}
-        </div>
-        <div class="text-xs text-gray-500">KM da Rota</div>
+        <div class="text-2xl font-bold text-purple-600">${minutesToHHMM(rastreio.tempo_total_rota || 0)}</div>
+        <div class="text-xs text-gray-500">Tempo Total Rota</div>
     </div>
 </div>
                 
@@ -4285,6 +4304,7 @@ else if (title.includes('Ponto de Interesse')) success = await savePontoInteress
         initAllVehiclesAndLojasMap();
     }, 100);
 }
+
 function initAllVehiclesAndLojasMap() {
     if (mapInstance) {
         mapInstance.remove();
@@ -4466,103 +4486,87 @@ async function initTrajectoryMap(expeditionId, vehiclePlaca) {
             mapInstance.remove();
         }
 
-        // 1. Buscar os dados GPS exatos do motorista para o trajeto
-        const trajectoryData = await supabaseRequest(
-            `gps_tracking?expedition_id=eq.${expeditionId}&order=data_gps.asc`,
-            'GET', null, false
-        );
-
-        // Buscar os itens da expedição para obter as lojas e a ordem de entrega
         const expeditionItems = await supabaseRequest(
             `expedition_items?expedition_id=eq.${expeditionId}&order=data_inicio_descarga.asc`,
             'GET', null, false
         );
         
-        if (!trajectoryData || trajectoryData.length === 0 || !expeditionItems || expeditionItems.length === 0) {
-            showNotification('Não há dados de GPS ou itens de expedição suficientes para traçar o trajeto.', 'info');
+        if (!expeditionItems || expeditionItems.length === 0) {
+            showNotification('Não há pontos de entrega para traçar a rota.', 'info');
             const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
             mapInstance = L.map('map').setView(cdCoords, 11);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
             return;
         }
 
-        // 2. Centralizar o mapa no primeiro ponto de GPS
-        const firstPoint = trajectoryData[0];
-        mapInstance = L.map('map').setView([parseFloat(firstPoint.latitude), parseFloat(firstPoint.longitude)], 12);
+        // Definir os waypoints para a rota completa (CD -> Lojas em ordem)
+        const waypoints = [
+            L.latLng(selectedFilial.latitude_cd, selectedFilial.longitude_cd),
+            ...expeditionItems.map(item => {
+                const loja = lojas.find(l => l.id === item.loja_id);
+                return L.latLng(loja.latitude, loja.longitude);
+            })
+        ];
+
+        mapInstance = L.map('map');
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
-
-        // 3. Desenhar a rota real com os pontos GPS
-        const routePoints = trajectoryData.map(point => [parseFloat(point.latitude), parseFloat(point.longitude)]);
-        const polyline = L.polyline(routePoints, {
-            color: '#0077B6',
-            weight: 4,
-            opacity: 0.8
-        }).addTo(mapInstance);
         
-        mapInstance.fitBounds(polyline.getBounds(), { padding: [20, 20] });
-        
-        // 4. Adicionar marcadores com nome e código das lojas
-        const routeInfoContainer = L.DomUtil.create('div', 'leaflet-routing-alt');
-        const ul = document.createElement('ul');
-        ul.style.listStyle = 'none';
-        ul.style.padding = '0';
-        ul.style.margin = '0';
-        
-        const cdIcon = L.divIcon({
-            className: 'custom-marker',
-            html: '<div style="background: #0077B6; color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">🏭 CD</div>',
-            iconSize: [60, 30],
-            iconAnchor: [30, 15]
-        });
-        
-        L.marker([selectedFilial.latitude_cd, selectedFilial.longitude_cd], { icon: cdIcon })
-            .addTo(mapInstance)
-            .bindPopup(`<b>Centro de Distribuição</b><br>Filial: ${selectedFilial.nome}`).openPopup();
-
-        expeditionItems.forEach((item, index) => {
-            const loja = lojas.find(l => l.id === item.loja_id);
-            if (loja && loja.latitude && loja.longitude) {
+        const routingControl = L.Routing.control({
+            waypoints: waypoints,
+            createMarker: function(i, waypoint, n) {
+                // Personalizar o marcador para o CD (origem) e para cada loja (passagem)
+                let iconHtml = '';
+                if (i === 0) {
+                    iconHtml = '<div style="background: #0077B6; color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">🏭 CD</div>';
+                } else {
+                    const loja = lojas.find(l => l.id === expeditionItems[i-1].loja_id);
+                    iconHtml = `<div style="background: #EF4444; color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">#${i} - ${loja.codigo}</div>`;
+                }
+                
                 const markerIcon = L.divIcon({
                     className: 'custom-marker',
-                    html: `<div style="background: #EF4444; color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">#${index + 1} - ${loja.codigo}</div>`,
+                    html: iconHtml,
                     iconSize: [80, 25],
                     iconAnchor: [40, 12]
                 });
-                
-                L.marker([loja.latitude, loja.longitude], { icon: markerIcon })
-                    .addTo(mapInstance)
-                    .bindPopup(`<b>${loja.nome}</b><br>Código: ${loja.codigo}<br>Entregue: ${item.data_fim_descarga ? 'Sim' : 'Não'}`);
+                return L.marker(waypoint.latLng, {
+                    icon: markerIcon
+                }).bindPopup(`<b>${waypoint.name}</b>`);
+            },
+            routeWhileDragging: false,
+            autoRoute: true,
+            lineOptions: { styles: [{ color: '#0077B6', weight: 6 }] }
+        }).addTo(mapInstance);
 
-                const li = document.createElement('li');
-                li.innerHTML = `<span style="font-weight: bold;">#${index + 1}: ${loja.nome}</span> (Código: ${loja.codigo})`;
-                ul.appendChild(li);
-            }
+        routingControl.on('routesfound', function(e) {
+            const route = e.routes[0];
+            const distance = route.summary.totalDistance / 1000;
+            const duration = route.summary.totalTime / 60;
+            
+            // Ajustar o zoom do mapa para a rota completa
+            mapInstance.fitBounds(route.coordinates, { padding: [20, 20] });
+            
+            // Criar e adicionar o painel de estatísticas
+            const statsControl = L.control({ position: 'topright' });
+            statsControl.onAdd = function() {
+                const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
+                div.style.background = 'white';
+                div.style.padding = '10px';
+                div.style.fontSize = '12px';
+                
+                div.innerHTML = `
+                    <p><b>Estatísticas da Rota</b></p>
+                    <p><strong>Veículo:</strong> ${vehiclePlaca}</p>
+                    <p><strong>Distância Total:</strong> ${distance.toFixed(1)} km</p>
+                    <p><strong>Duração Estimada:</strong> ${minutesToHHMM(duration)}</p>
+                `;
+                return div;
+            };
+            statsControl.addTo(mapInstance);
         });
 
-        // 5. Calcular e exibir estatísticas do trajeto real
-        const stats = calculateTripStats(trajectoryData);
-
-        const statsControl = L.control({ position: 'topright' });
-        statsControl.onAdd = function() {
-            const div = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
-            div.style.background = 'white';
-            div.style.padding = '10px';
-            div.style.fontSize = '12px';
-            
-            div.innerHTML = `
-                <p><b>Estatísticas da Viagem</b></p>
-                <p><strong>Veículo:</strong> ${vehiclePlaca}</p>
-                <p><strong>Distância:</strong> ~${stats.distancia.toFixed(1)} km</p>
-                <p><strong>Velocidade Média:</strong> ${stats.velocidadeMedia.toFixed(1)} km/h</p>
-                <p><strong>Duração:</strong> ${stats.duracao}</p>
-                <p><strong>Lojas Atendidas:</strong></p>
-                <div style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
-                    ${ul.innerHTML}
-                </div>
-            `;
-            return div;
-        };
-        statsControl.addTo(mapInstance);
+        const routingAlt = document.querySelector('.leaflet-routing-alt');
+        if (routingAlt) routingAlt.style.display = 'none';
 
     } catch (error) {
         console.error('Erro ao carregar trajeto:', error);
@@ -5365,6 +5369,37 @@ async function calculateSimulatedRoute(startLat, startLng, endLat, endLng) {
         distance: distance,
         duration: duration
     };
+}
+// --- NOVO: FUNÇÃO PARA CALCULAR ROTA REAL VIA API OSRM ---
+async function getRouteFromAPI(waypoints) {
+    if (!waypoints || waypoints.length < 2) {
+        console.error('Pelo menos dois waypoints são necessários para calcular a rota.');
+        return null;
+    }
+
+    const coordinates = waypoints.map(p => `${p.lng},${p.lat}`).join(';');
+    const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?geometries=geojson&overview=full&steps=true`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Erro na API de roteamento: ${response.statusText}`);
+        }
+        const data = await response.json();
+        
+        if (data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            return {
+                distance: route.distance, // em metros
+                duration: route.duration, // em segundos
+                coordinates: route.geometry.coordinates.map(c => [c[1], c[0]])
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Falha ao obter rota da API:', error);
+        return null;
+    }
 }
         // Inicialização
         document.addEventListener('DOMContentLoaded', async () => {
