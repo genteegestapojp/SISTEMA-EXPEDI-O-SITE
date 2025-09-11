@@ -382,7 +382,32 @@
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
+    </head>
+<body class="bg-gray-100 font-sans">
     
+    <!-- Modal de Login Global -->
+    <div id="loginModal" class="modal-overlay" style="display: flex;">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 class="text-xl font-semibold mb-4">Login no Sistema</h3>
+            <form id="globalLoginForm">
+                <div class="form-group">
+                    <label for="globalUserInput">Usuário:</label>
+                    <input type="text" id="globalUserInput" required>
+                </div>
+                <div class="form-group">
+                    <label for="globalPasswordInput">Senha:</label>
+                    <input type="password" id="globalPasswordInput" required>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary w-full">Entrar</button>
+                </div>
+            </form>
+            <div id="globalLoginAlert" class="mt-4"></div>
+        </div>
+    </div>
+
+    <div id="filialSelectionContainer" class="filial-selection-container">
+        <!-- resto do seu código continua aqui -->
     <div id="filialSelectionContainer" class="filial-selection-container">
         <div id="filialSelection" class="filial-selection">
             <h2>Selecione a Filial</h2>
@@ -828,7 +853,66 @@ if (rastreioTimer) {
             }
             feather.replace(); // Redesenha os ícones
         }
+// Sistema de Login Global
+async function performGlobalLogin() {
+    const nome = document.getElementById('globalUserInput').value.trim();
+    const senha = document.getElementById('globalPasswordInput').value;
 
+    if (!nome || !senha) {
+        showAlert('globalLoginAlert', 'Nome e senha são obrigatórios.', 'error');
+        return;
+    }
+
+    try {
+        // Verificar credenciais usando o proxy
+        const testCredentials = { nome, senha, filial: 'test' };
+        localStorage.setItem('user_credentials', JSON.stringify(testCredentials));
+
+        const endpoint = `acessos?select=nome,tipo_acesso&nome=eq.${nome}&senha=eq.${senha}`;
+        const result = await supabaseRequest(endpoint, 'GET', null, false);
+
+        if (!result || result.length === 0) {
+            showAlert('globalLoginAlert', 'Usuário ou senha incorretos.', 'error');
+            localStorage.removeItem('user_credentials');
+            return;
+        }
+
+        const user = result[0];
+        const finalCredentials = { nome: user.nome, senha, filial: user.tipo_acesso };
+        localStorage.setItem('user_credentials', JSON.stringify(finalCredentials));
+
+        showNotification('Login realizado com sucesso!', 'success');
+        document.getElementById('loginModal').style.display = 'none';
+        await loadFiliais();
+
+    } catch (error) {
+        showAlert('globalLoginAlert', 'Erro ao verificar credenciais: ' + error.message, 'error');
+        localStorage.removeItem('user_credentials');
+    }
+}
+
+// Event listener para o formulário de login
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('globalLoginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        performGlobalLogin();
+    });
+
+    // Verificar se já está logado
+    const savedCredentials = localStorage.getItem('user_credentials');
+    if (savedCredentials) {
+        try {
+            const creds = JSON.parse(savedCredentials);
+            if (creds.nome && creds.senha) {
+                document.getElementById('loginModal').style.display = 'none';
+                loadFiliais();
+                return;
+            }
+        } catch (e) {
+            localStorage.removeItem('user_credentials');
+        }
+    }
+});
         // Carregar filiais (do sistema original)
         async function loadFiliais() {
             try {
