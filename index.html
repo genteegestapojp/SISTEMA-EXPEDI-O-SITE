@@ -698,9 +698,7 @@
         // --- INÍCIO DO SCRIPT ADAPTADO ---
         
         // API REST do Supabase e Headers (do sistema original)
-        const SUPABASE_URL = 'https://owsoweqqttcmuuaohxke.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93c293ZXFxdHRjbXV1YW9oeGtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjQ5OTAsImV4cCI6MjA3MTgwMDk5MH0.Iee27SUOIkhMFvgDWXrW3C38DUuMr0MyVtR-NjF6FRk';
-        const headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' };
+        const API_BASE_URL = 'https://sistema-expedi-o-site.vercel.app/api/proxy';
 
         // Variáveis globais (do sistema original)
         let lojas = [], docas = [], lideres = [], veiculos = [], motoristas = [], filiais = [];
@@ -719,39 +717,48 @@
 let rastreioData = [];
 let pontosInteresse = []; // Pontos fixos no mapa
 
-        // Função de requisição ao Supabase (do sistema original, adaptada)
         async function supabaseRequest(endpoint, method = 'GET', data = null, includeFilialFilter = true) {
-            let url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-            if (includeFilialFilter && selectedFilial && method === 'GET') {
-                const separator = url.includes('?') ? '&' : '?';
-                url += `${separator}filial=eq.${selectedFilial.nome}`;
-            }
-            const options = { method, headers: { ...headers } };
-            
-            if (data && (method === 'POST' || method === 'PATCH')) {
-                if (includeFilialFilter && selectedFilial) {
-                    if (Array.isArray(data)) {
-                        data = data.map(item => ({ ...item, filial: selectedFilial.nome }));
-                    } else {
-                        data = { ...data, filial: selectedFilial.nome };
-                    }
-                }
-                options.body = JSON.stringify(data);
-                if (method !== 'DELETE') {
-                    options.headers.Prefer = 'return=representation';
-                }
-            }
-            
-            try {
-                const response = await fetch(url, options);
-                if (!response.ok) throw new Error(`Erro ${response.status}: ${await response.text()}`);
-                return method === 'DELETE' ? null : await response.json();
-            } catch (error) {
-                console.error(`Falha na requisição: ${method} ${url}`, error);
-                showNotification(`Erro de comunicação com o servidor: ${error.message}`, 'error');
-                throw error;
-            }
+    const credentials = JSON.parse(localStorage.getItem('user_credentials') || '{}');
+    
+    const params = new URLSearchParams();
+    const tableName = endpoint.split('?')[0];
+    params.append('table', tableName);
+    
+    if (endpoint.includes('?')) {
+        const queryString = endpoint.split('?')[1];
+        queryString.split('&').forEach(param => {
+            const [key, value] = param.split('=');
+            if (value) params.append(key, value);
+        });
+    }
+    
+    const options = {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'user': credentials.nome || '',
+            'password': credentials.senha || '',
+            'filial': selectedFilial?.nome || credentials.filial || ''
         }
+    };
+    
+    if (data && (method === 'POST' || method === 'PATCH')) {
+        options.body = JSON.stringify(data);
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}?${params}`, options);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Erro ${response.status}`);
+        }
+        return method === 'DELETE' ? null : await response.json();
+    } catch (error) {
+        console.error(`Falha na requisição: ${method} ${API_BASE_URL}`, error);
+        showNotification(`Erro: ${error.message}`, 'error');
+        throw error;
+    }
+}
 
         // NOVO: Função de notificação aprimorada
         function showNotification(message, type = 'info', timeout = 4000) {
