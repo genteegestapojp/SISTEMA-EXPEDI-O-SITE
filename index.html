@@ -5291,11 +5291,11 @@ function initAllLojasMap() {
             const lat = parseFloat(loja.latitude);
             const lng = parseFloat(loja.longitude);
             
-            let cor = '#10B981';
+            let cor = '#58a84d';
             if (loja.nome.toLowerCase().includes('fort')) {
                 cor = '#EF4444';
             } else if (loja.nome.toLowerCase().includes('comper')) {
-                cor = '#10B981';
+                cor = '#002d8f';
             }
             
             const lojaIcon = L.divIcon({
@@ -5349,8 +5349,8 @@ function initAllLojasMap() {
                 <hr style="margin: 8px 0;">
                 <p style="font-size: 10px; color: #666;">
                     🔴 Lojas Fort<br>
-                    🟢 Lojas Comper<br>
-                    🔵 Centro de Distribuição
+                    🔵 Lojas Comper<br>
+                    🟢 Centro de Distribuição
                 </p>
             </div>
         `;
