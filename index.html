@@ -723,8 +723,7 @@
         // --- INÍCIO DO SCRIPT ADAPTADO ---
         
         // API REST do Supabase e Headers (do sistema original)
-        const API_BASE_URL = 'https://sistema-expedi-o-site.vercel.app/api/proxy';
-
+       const API_BASE_URL = window.location.origin + '/api/proxy';
         // Variáveis globais (do sistema original)
         let lojas = [], docas = [], lideres = [], veiculos = [], motoristas = [], filiais = [];
         let selectedFilial = null;
