@@ -1,5 +1,11 @@
 {
   "version": 2,
+  "outputDirectory": ".",
+  "functions": {
+    "api/proxy.js": {
+      "runtime": "@vercel/node@3.0.7"
+    }
+  },
   "headers": [
     {
       "source": "/api/(.*)",
