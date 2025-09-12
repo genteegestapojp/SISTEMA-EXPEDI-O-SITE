@@ -2957,7 +2957,10 @@ if (rastreioTimer) {
                         total_pallets: expItems.reduce((s, i) => s + (i.pallets || 0), 0),
                         total_rolltrainers: expItems.reduce((s, i) => s + (i.rolltrainers || 0), 0),
                         lojas_count: expItems.length,
-                        lojas_info: expItems.map(item => lojas.find(l => l.id === item.loja_id)?.nome || 'N/A').join(', '),
+                        lojas_info: expItems.map(item => {
+    const loja = lojas.find(l => l.id === item.loja_id);
+    return loja ? `${loja.codigo} - ${loja.nome}` : 'N/A';
+}).join(', '),
                         doca_nome: docas.find(d => d.id === exp.doca_id)?.nome || 'N/A',
                         lider_nome: lideres.find(l => l.id === exp.lider_id)?.nome || 'N/A',
                         veiculo_placa: veiculo?.placa,
