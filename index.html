@@ -1393,7 +1393,9 @@ if (rastreioTimer) {
         async function loadSelectData() {
     try {
         const [lojasData, docasData, veiculosData, motoristasData, lideresData] = await Promise.all([
-            supabaseRequest('lojas?select=*,codlojaqr,endereco_completo,latitude,longitude&ativo=eq.true&order=nome'),
+            // Ordena lojas por código primeiro, depois por nome
+            supabaseRequest('lojas?select=*,codlojaqr,endereco_completo,latitude,longitude&ativo=eq.true&order=codigo,nome'),
+            // Ordena docas por nome
             supabaseRequest('docas?ativo=eq.true&order=nome'),
             supabaseRequest('veiculos?order=placa'),
             supabaseRequest('motoristas?order=nome'),
@@ -1409,50 +1411,62 @@ if (rastreioTimer) {
         console.error("Erro ao carregar dados dos selects:", error);
     }
 }
+       function populateSelects() {
+    // Ordena lojas por código localmente (garantia extra)
+    const lojasOrdenadas = [...lojas].sort((a, b) => {
+        // Primeiro por código, depois por nome
+        if (a.codigo !== b.codigo) {
+            return a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true });
+        }
+        return a.nome.localeCompare(b.nome, 'pt-BR');
+    });
 
-        function populateSelects() {
-            // Popula todos os selects de loja
-            const lojaSelects = document.querySelectorAll('.loja-select');
-            lojaSelects.forEach(select => {
-                select.innerHTML = '<option value="">Selecione a loja</option>';
-                lojas.forEach(loja => {
-                    select.innerHTML += `<option value="${loja.id}">${loja.codigo} - ${loja.nome}</option>`;
-                });
-            });
+    // Ordena docas por nome localmente (garantia extra)
+    const docasOrdenadas = [...docas].sort((a, b) => 
+        a.nome.localeCompare(b.nome, 'pt-BR')
+    );
 
-            // Popula selects de doca
-            ['dashboardDocaSelect', 'lancar_docaSelect'].forEach(id => {
-                const docaSelect = document.getElementById(id);
-                if (docaSelect) {
-                    docaSelect.innerHTML = '<option value="">Selecione a doca</option>';
-                    docas.forEach(doca => {
-                        docaSelect.innerHTML += `<option value="${doca.id}">${doca.nome}</option>`;
-                    });
-                }
-            });
+    // Popula todos os selects de loja
+    const lojaSelects = document.querySelectorAll('.loja-select');
+    lojaSelects.forEach(select => {
+        select.innerHTML = '<option value="">Selecione a loja</option>';
+        lojasOrdenadas.forEach(loja => {
+            select.innerHTML += `<option value="${loja.id}">${loja.codigo} - ${loja.nome}</option>`;
+        });
+    });
 
-            // Popula selects de veículo
-             ['dashboardPlacaSelect', 'placaMotorista'].forEach(id => {
-                const placaSelect = document.getElementById(id);
-                if(placaSelect) {
-                    placaSelect.innerHTML = '<option value="">Selecione o veículo</option>';
-                    veiculos.forEach(v => {
-                        placaSelect.innerHTML += `<option value="${v.id}">${v.placa} - ${v.modelo}</option>`;
-                    });
-                }
-            });
-
-            // Popula selects de líder
-            ['lancar_liderSelect', 'dashboardLiderSelect'].forEach(id => {
-                const liderSelect = document.getElementById(id);
-                 if (liderSelect) {
-                    liderSelect.innerHTML = '<option value="">Selecione o líder</option>';
-                    lideres.forEach(lider => {
-                        liderSelect.innerHTML += `<option value="${lider.id}">${lider.nome}</option>`;
-                    });
-                }
+    // Popula selects de doca
+    ['dashboardDocaSelect', 'lancar_docaSelect'].forEach(id => {
+        const docaSelect = document.getElementById(id);
+        if (docaSelect) {
+            docaSelect.innerHTML = '<option value="">Selecione a doca</option>';
+            docasOrdenadas.forEach(doca => {
+                docaSelect.innerHTML += `<option value="${doca.id}">${doca.nome}</option>`;
             });
         }
+    });
+
+    // Resto da função permanece igual...
+    ['dashboardPlacaSelect', 'placaMotorista'].forEach(id => {
+        const placaSelect = document.getElementById(id);
+        if(placaSelect) {
+            placaSelect.innerHTML = '<option value="">Selecione o veículo</option>';
+            veiculos.forEach(v => {
+                placaSelect.innerHTML += `<option value="${v.id}">${v.placa} - ${v.modelo}</option>`;
+            });
+        }
+    });
+
+    ['lancar_liderSelect', 'dashboardLiderSelect'].forEach(id => {
+        const liderSelect = document.getElementById(id);
+        if (liderSelect) {
+            liderSelect.innerHTML = '<option value="">Selecione o líder</option>';
+            lideres.forEach(lider => {
+                liderSelect.innerHTML += `<option value="${lider.id}">${lider.nome}</option>`;
+            });
+        }
+    });
+}
         
         function getStatusLabel(status) {
             const labels = {
