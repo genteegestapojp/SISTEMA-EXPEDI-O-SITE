@@ -379,6 +379,36 @@
     40% { transform: translateY(-4px); }
     60% { transform: translateY(-2px); }
 }
+/* Estilos para o mapa da home */
+#homeMap {
+    border: 2px solid rgba(0, 180, 216, 0.2);
+    transition: all 0.3s ease;
+}
+
+#homeMap:hover {
+    border-color: var(--primary);
+}
+
+#homeMapControls {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(0, 180, 216, 0.2);
+}
+
+/* Melhorar legibilidade dos marcadores */
+.leaflet-marker-icon {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+/* Estilo para popups */
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.leaflet-popup-content {
+    font-family: 'Inter', sans-serif !important;
+}
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -562,31 +592,33 @@
                         </div>
                     </div>
                     
-                    <div class="max-w-2xl mx-auto mb-12">
-                        <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
-                            <h2 class="text-xl font-semibold text-gray-800 mb-4">Lançamento Rápido</h2>
-                            <p class="text-gray-600 text-sm mb-4">A data e hora serão registradas automaticamente.</p>
-                            <form id="dashboardExpeditionForm" class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Loja</label>
-                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 loja-select" id="dashboardLojaSelect" required></select>
-                                </div>
-                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Líder Responsável</label>
-                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="dashboardLiderSelect" required></select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Doca</label>
-                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="dashboardDocaSelect" required></select>
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Pallets</label><input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md" id="dashboardPallets" min="0" value="0" required></div>
-                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">RollTrainers</label><input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md" id="dashboardRolltrainers" min="0" value="0" required></div>
-                                </div>
-                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">Lançar Expedição</button>
-                            </form>
-                        </div>
-                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 mb-12" data-aos="fade-up">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">Visão Geral em Tempo Real</h2>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-600">Auto-refresh</span>
+                <input type="checkbox" id="homeAutoRefresh" checked onchange="toggleHomeAutoRefresh()">
+                <span class="text-xs text-green-600" id="homeLastUpdate">Última atualização: --:--</span>
+            </div>
+            <button class="btn btn-primary btn-small" onclick="showHomeMapFullscreen()">🔍 Ver em Tela Cheia</button>
+        </div>
+    </div>
+    <div class="relative">
+        <div id="homeMap" style="height: 400px; width: 100%; border-radius: 8px; background: #f0f9ff;"></div>
+        <div id="homeMapControls" class="absolute top-4 left-4 bg-white rounded-lg shadow-md p-3 max-w-xs">
+            <h4 class="font-semibold text-sm mb-2">Legenda</h4>
+            <div class="text-xs space-y-1">
+                <div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-600 rounded"></div><span>CD - Centro de Distribuição</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 bg-orange-500 rounded"></div><span>🚚 Veículos em Trânsito</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 bg-yellow-500 rounded"></div><span>📦 Veículos Descarregando</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 bg-green-500 rounded"></div><span>🔄 Veículos Retornando</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 bg-red-500 rounded"></div><span>🏪 Lojas Fort</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded"></div><span>🏪 Lojas Comper</span></div>
+            </div>
+        </div>
+    </div>
+</div>
                 </div>
 
                 <div id="operacao" class="view-content">
@@ -718,7 +750,8 @@
         let rastreioTimer = null;
 let rastreioData = [];
 let pontosInteresse = []; // Pontos fixos no mapa
-
+let homeMapInstance = null;
+let homeMapTimer = null;
         // Função de requisição ao Supabase (do sistema original, adaptada)
         async function supabaseRequest(endpoint, method = 'GET', data = null, includeFilialFilter = true) {
             let url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
@@ -809,6 +842,12 @@ if (rastreioTimer) {
     rastreioTimer = null;
 }
 
+// Limpa timer específico do mapa da home
+if (homeMapTimer) {
+    clearInterval(homeMapTimer);
+    homeMapTimer = null;
+}
+
             // Carrega os dados da view selecionada
             switch(viewId) {
                 case 'home': loadHomeData(); break;
@@ -866,12 +905,44 @@ if (rastreioTimer) {
     
     // Inicia na view do home
     showView('home', document.querySelector('.nav-item'));
+    // Aguardar um pouco e então ativar o auto-refresh
+setTimeout(() => {
+    const homeAutoRefreshCheckbox = document.getElementById('homeAutoRefresh');
+    if (homeAutoRefreshCheckbox) {
+        homeAutoRefreshCheckbox.checked = true;
+        toggleHomeAutoRefresh();
+    }
+}, 2000);
     showNotification(`Bem-vindo à filial: ${selectedFilial.nome}!`, 'success');
 }
         // Trocar filial (ADAPTADO)
         function trocarFilial() {
             selectedFilial = null;
             currentUser = null;
+            // Limpar todos os timers ativos
+Object.values(activeTimers).forEach(clearInterval);
+activeTimers = {};
+
+if (rastreioTimer) {
+    clearInterval(rastreioTimer);
+    rastreioTimer = null;
+}
+
+if (homeMapTimer) {
+    clearInterval(homeMapTimer);
+    homeMapTimer = null;
+}
+
+// Limpar mapas
+if (homeMapInstance) {
+    homeMapInstance.remove();
+    homeMapInstance = null;
+}
+
+if (mapInstance) {
+    mapInstance.remove();
+    mapInstance = null;
+}
             document.getElementById('mainSystem').style.display = 'none';
             document.getElementById('filialSelectionContainer').style.display = 'block';
         }
@@ -1381,7 +1452,6 @@ if (rastreioTimer) {
 
             // Adicionar event listeners aos formulários
             document.getElementById('expeditionForm').addEventListener('submit', (e) => { e.preventDefault(); lancarCarga(); });
-            document.getElementById('dashboardExpeditionForm').addEventListener('submit', (e) => { e.preventDefault(); lancarCargaDashboard(); });
             document.getElementById('editExpeditionForm').addEventListener('submit', (e) => { e.preventDefault(); saveEditedExpedition(); });
             document.getElementById('passwordForm').addEventListener('submit', (e) => { e.preventDefault(); checkPassword(); });
             document.getElementById('addForm').addEventListener('submit', (e) => { e.preventDefault(); handleSave(); });
@@ -1526,6 +1596,7 @@ if (rastreioTimer) {
                     destroyChart('frotaProdutividadeChart');
                     destroyChart('fleetUtilizationChart');
                     return;
+                    initHomeMap(); // Inicializar mapa mesmo sem dados
                 }
                 
                 const expeditionIds = allExpeditionsInPeriod.map(e => e.id);
@@ -1566,6 +1637,7 @@ if (rastreioTimer) {
                     destroyChart('frotaProdutividadeChart');
                     destroyChart('fleetUtilizationChart');
                     return;
+                    initHomeMap(); // Inicializar mapa mesmo sem dados
                 }
 
 
@@ -1662,6 +1734,8 @@ if (rastreioTimer) {
                 renderLojaDesempenhoChart(lojasData.slice(0, 5));
                 renderFleetUtilizationChart(perlogCount, jjsCount);
                 renderTemposMediosTable(lojasData);
+                // Inicializar/atualizar mapa da home
+await initHomeMap();
 
             } catch (error) {
                 console.error("Erro ao carregar dados da home:", error);
@@ -1675,6 +1749,7 @@ if (rastreioTimer) {
             if (total === 0) {
                 destroyChart('fleetUtilizationChart');
                 return;
+                initHomeMap(); // Inicializar mapa mesmo sem dados
             }
 
             const data = {
@@ -1880,59 +1955,444 @@ if (rastreioTimer) {
             `).join('');
         }
 
-        async function lancarCargaDashboard() {
-            const lojaId = document.getElementById('dashboardLojaSelect').value;
-            const docaId = document.getElementById('dashboardDocaSelect').value;
-            const pallets = parseInt(document.getElementById('dashboardPallets').value);
-            const rolltrainers = parseInt(document.getElementById('dashboardRolltrainers').value);
-            const liderId = document.getElementById('dashboardLiderSelect').value;
-
-            if (!lojaId || !liderId || !docaId) {
-                showNotification('Preencha Loja, Doca e Líder!', 'error');
-                return;
-            }
-            if (isNaN(pallets) || isNaN(rolltrainers) || (pallets === 0 && rolltrainers === 0)) {
-                showNotification('Informe ao menos uma quantidade de Pallets ou RollTrainers.', 'error');
-                return;
-            }
-
-            try {
-                const expeditionData = {
-                    data_hora: new Date().toISOString(),
-                    lider_id: liderId,
-                    doca_id: docaId,
-                    status: 'aguardando_agrupamento'
-                };
-                
-                const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
-                if (!expeditionResponse || expeditionResponse.length === 0) {
-                    throw new Error("A criação da expedição falhou e não retornou um ID.");
-                }
-                const newExpeditionId = expeditionResponse[0].id;
-
-                const itemData = {
-                    expedition_id: newExpeditionId,
-                    loja_id: lojaId,
-                    pallets: pallets || 0,
-                    rolltrainers: rolltrainers || 0,
-                    status_descarga: 'pendente'
-                };
-                await supabaseRequest('expedition_items', 'POST', itemData);
-
-                const lojaNome = lojas.find(l => l.id == lojaId)?.nome || 'Loja';
-                showNotification(`Carga rápida para ${lojaNome} lançada!`, 'success');
-
-                document.getElementById('dashboardExpeditionForm').reset();
-                
-                if(document.getElementById('transporte').classList.contains('active')) {
-                    await loadTransportList();
-                }
-
-            } catch (error) {
-                console.error('Erro ao lançar carga pelo dashboard:', error);
-                showNotification(`Erro ao lançar carga: ${error.message}`, 'error');
-            }
+        // --- FUNÇÕES DO MAPA DA HOME ---
+async function initHomeMap() {
+    // Destruir mapa existente se houver
+    if (homeMapInstance) {
+        homeMapInstance.remove();
+        homeMapInstance = null;
+    }
+    
+    // Aguardar o elemento estar disponível
+    const mapElement = document.getElementById('homeMap');
+    if (!mapElement) {
+        console.warn('Elemento do mapa da home não encontrado');
+        return;
+    }
+    
+    try {
+        // Coordenadas do CD da filial selecionada
+        const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
+        
+        // Criar mapa da home
+        homeMapInstance = L.map('homeMap').setView(cdCoords, 11);
+        
+        // Adicionar camada do mapa
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(homeMapInstance);
+        
+        // Carregar dados do rastreio para o mapa
+        await loadHomeMapData();
+        
+        // Configurar auto-refresh se estiver ativado
+        if (document.getElementById('homeAutoRefresh')?.checked) {
+            toggleHomeAutoRefresh();
         }
+        
+    } catch (error) {
+        console.error('Erro ao inicializar mapa da home:', error);
+        mapElement.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500">
+            <div class="text-center">
+                <p class="mb-2">Erro ao carregar mapa</p>
+                <button class="btn btn-primary btn-small" onclick="initHomeMap()">Tentar Novamente</button>
+            </div>
+        </div>`;
+    }
+}
+
+async function loadHomeMapData() {
+    if (!homeMapInstance) return;
+    
+    try {
+        // Limpar marcadores existentes
+        homeMapInstance.eachLayer(layer => {
+            if (layer instanceof L.Marker || layer instanceof L.Circle) {
+                homeMapInstance.removeLayer(layer);
+            }
+        });
+        
+        // Coordenadas do CD
+        const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
+        
+        // Adicionar marcador do CD
+        const cdIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #0077B6; color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">🏭 CD</div>',
+            iconSize: [80, 30],
+            iconAnchor: [40, 15]
+        });
+        
+        L.marker(cdCoords, { icon: cdIcon })
+            .addTo(homeMapInstance)
+            .bindPopup(`<h3><strong>Centro de Distribuição</strong></h3><p>Filial ${selectedFilial.nome}</p>`);
+        
+        // Carregar dados de rastreio atuais
+        const expeditionsEmRota = await supabaseRequest('expeditions?status=eq.saiu_para_entrega&order=data_saida_entrega.desc');
+        const motoristasRetornando = await supabaseRequest('motoristas?status=in.(retornando_cd,retornando_com_imobilizado)');
+        
+        // Buscar localizações GPS
+        let locations = [];
+        if (expeditionsEmRota.length > 0) {
+            const expeditionIds = expeditionsEmRota.map(exp => exp.id);
+            const query = `gps_tracking?expedition_id=in.(${expeditionIds.join(',')})&order=data_gps.desc`;
+            locations = await supabaseRequest(query, 'GET', null, false);
+        }
+        
+        let returningLocations = [];
+        if (motoristasRetornando.length > 0) {
+            const motoristaIds = motoristasRetornando.map(m => m.id);
+            const query = `gps_tracking?motorista_id=in.(${motoristaIds.join(',')})&order=data_gps.desc`;
+            returningLocations = await supabaseRequest(query, 'GET', null, false);
+        }
+        
+        const bounds = L.latLngBounds();
+        bounds.extend(cdCoords);
+        
+        // Adicionar veículos em rota
+        expeditionsEmRota.forEach(exp => {
+            const location = locations.find(loc => loc.expedition_id === exp.id);
+            if (location && location.latitude && location.longitude) {
+                const lat = parseFloat(location.latitude);
+                const lng = parseFloat(location.longitude);
+                
+                const motorista = motoristas.find(m => m.id === exp.motorista_id);
+                const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+                
+                // Determinar status do veículo para cor
+                let color = '#F59E0B'; // laranja para em trânsito
+                let statusText = 'Em Trânsito';
+                
+                // Verificar se está descarregando (lógica simplificada)
+                // Na implementação real, você pode verificar o status atual das entregas
+                
+                const vehicleIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${color}; color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${veiculo?.placa || 'N/A'}</div>`,
+                    iconSize: [60, 20],
+                    iconAnchor: [30, 10]
+                });
+                
+                L.marker([lat, lng], { icon: vehicleIcon })
+                    .addTo(homeMapInstance)
+                    .bindPopup(`
+                        <div style="text-align: center;">
+                            <h4><strong>${veiculo?.placa || 'N/A'}</strong></h4>
+                            <p><strong>Motorista:</strong> ${motorista?.nome || 'N/A'}</p>
+                            <p><strong>Status:</strong> <span style="color: ${color};">${statusText}</span></p>
+                            <p><strong>Última atualização:</strong><br>${new Date(location.data_gps).toLocaleString('pt-BR')}</p>
+                        </div>
+                    `);
+                
+                bounds.extend([lat, lng]);
+            }
+        });
+        
+        // Adicionar veículos retornando
+        motoristasRetornando.forEach(motorista => {
+            const location = returningLocations.find(loc => loc.motorista_id === motorista.id);
+            if (location && location.latitude && location.longitude) {
+                const lat = parseFloat(location.latitude);
+                const lng = parseFloat(location.longitude);
+                
+                const veiculo = veiculos.find(v => v.id === motorista.veiculo_id);
+                const color = '#10B981'; // verde para retornando
+                
+                const vehicleIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${color}; color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${veiculo?.placa || 'N/A'}</div>`,
+                    iconSize: [60, 20],
+                    iconAnchor: [30, 10]
+                });
+                
+                L.marker([lat, lng], { icon: vehicleIcon })
+                    .addTo(homeMapInstance)
+                    .bindPopup(`
+                        <div style="text-align: center;">
+                            <h4><strong>${veiculo?.placa || 'N/A'}</strong></h4>
+                            <p><strong>Motorista:</strong> ${motorista.nome}</p>
+                            <p><strong>Status:</strong> <span style="color: ${color};">Retornando</span></p>
+                            <p><strong>Última atualização:</strong><br>${new Date(location.data_gps).toLocaleString('pt-BR')}</p>
+                        </div>
+                    `);
+                
+                bounds.extend([lat, lng]);
+            }
+        });
+        
+        // Adicionar lojas
+        lojas.forEach(loja => {
+            if (loja.latitude && loja.longitude && loja.ativo) {
+                const lat = parseFloat(loja.latitude);
+                const lng = parseFloat(loja.longitude);
+                
+                let cor = '#10B981'; // verde padrão
+                if (loja.nome.toLowerCase().includes('fort')) cor = '#EF4444'; // vermelho
+                else if (loja.nome.toLowerCase().includes('comper')) cor = '#0077B6'; // azul
+                
+                const lojaIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${cor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🏪 ${loja.codigo}</div>`,
+                    iconSize: [50, 18],
+                    iconAnchor: [25, 9]
+                });
+                
+                L.marker([lat, lng], { icon: lojaIcon })
+                    .addTo(homeMapInstance)
+                    .bindPopup(`<strong>${loja.nome}</strong><br>Código: ${loja.codigo}`);
+                
+                bounds.extend([lat, lng]);
+            }
+        });
+
+        // Adicionar pontos de interesse se existirem
+        if (pontosInteresse && pontosInteresse.length > 0) {
+            pontosInteresse.forEach(ponto => {
+                if (ponto.ativo) {
+                    const pontoIcon = L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div style="background: ${ponto.cor}; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8px; font-weight: bold; border: 1px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${ponto.tipo}</div>`,
+                        iconSize: [30, 15],
+                        iconAnchor: [15, 7]
+                    });
+                    
+                    L.marker([ponto.latitude, ponto.longitude], { icon: pontoIcon })
+                        .addTo(homeMapInstance)
+                        .bindPopup(`<strong>${ponto.nome}</strong><br><small>${ponto.tipo}</small>`);
+                }
+            });
+        }
+        
+        // Ajustar zoom para mostrar todos os pontos
+        if (bounds.isValid()) {
+            homeMapInstance.fitBounds(bounds, { padding: [20, 20] });
+        }
+        
+        // Atualizar timestamp
+        updateHomeLastRefreshTime();
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados do mapa da home:', error);
+        showNotification('Erro ao atualizar mapa: ' + error.message, 'error');
+    }
+}
+
+function toggleHomeAutoRefresh() {
+    const autoRefresh = document.getElementById('homeAutoRefresh')?.checked;
+    
+    // Limpar timer existente
+    if (homeMapTimer) {
+        clearInterval(homeMapTimer);
+        homeMapTimer = null;
+    }
+    
+    if (autoRefresh) {
+        // Atualizar a cada 30 segundos
+        homeMapTimer = setInterval(() => {
+            loadHomeMapData();
+        }, 30000);
+        showNotification('Auto-refresh do mapa ativado (30s)', 'success', 2000);
+    } else {
+        showNotification('Auto-refresh do mapa desativado', 'info', 2000);
+    }
+}
+
+function updateHomeLastRefreshTime() {
+    const now = new Date();
+    const element = document.getElementById('homeLastUpdate');
+    if (element) {
+        element.textContent = `Última atualização: ${now.toLocaleTimeString('pt-BR')}`;
+    }
+}
+
+function showHomeMapFullscreen() {
+    document.getElementById('mapModalTitle').textContent = 'Visão Geral em Tempo Real - Tela Cheia';
+    document.getElementById('mapModal').style.display = 'flex';
+    
+    setTimeout(async () => {
+        if (mapInstance) {
+            mapInstance.remove();
+        }
+        
+        const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
+        mapInstance = L.map('map').setView(cdCoords, 11);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(mapInstance);
+        
+        // Reutilizar a mesma lógica do mapa da home
+        await loadHomeMapDataForFullscreen();
+    }, 100);
+}
+
+async function loadHomeMapDataForFullscreen() {
+    try {
+        // Coordenadas do CD
+        const cdCoords = [selectedFilial.latitude_cd || -15.6014, selectedFilial.longitude_cd || -56.0979];
+        
+        // Adicionar marcador do CD
+        const cdIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #0077B6; color: white; padding: 8px 16px; border-radius: 10px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">🏭 CD</div>',
+            iconSize: [100, 40],
+            iconAnchor: [50, 20]
+        });
+        
+        L.marker(cdCoords, { icon: cdIcon })
+            .addTo(mapInstance)
+            .bindPopup(`<h3><strong>Centro de Distribuição</strong></h3><p>Filial ${selectedFilial.nome}</p>`);
+        
+        const bounds = L.latLngBounds();
+        bounds.extend(cdCoords);
+        
+        // Carregar dados de rastreio atuais (similar ao loadHomeMapData)
+        const expeditionsEmRota = await supabaseRequest('expeditions?status=eq.saiu_para_entrega&order=data_saida_entrega.desc');
+        const motoristasRetornando = await supabaseRequest('motoristas?status=in.(retornando_cd,retornando_com_imobilizado)');
+        
+        // Buscar localizações GPS
+        let locations = [];
+        if (expeditionsEmRota.length > 0) {
+            const expeditionIds = expeditionsEmRota.map(exp => exp.id);
+            const query = `gps_tracking?expedition_id=in.(${expeditionIds.join(',')})&order=data_gps.desc`;
+            locations = await supabaseRequest(query, 'GET', null, false);
+        }
+        
+        let returningLocations = [];
+        if (motoristasRetornando.length > 0) {
+            const motoristaIds = motoristasRetornando.map(m => m.id);
+            const query = `gps_tracking?motorista_id=in.(${motoristaIds.join(',')})&order=data_gps.desc`;
+            returningLocations = await supabaseRequest(query, 'GET', null, false);
+        }
+        
+        // Adicionar veículos em rota (ícones maiores para fullscreen)
+        expeditionsEmRota.forEach(exp => {
+            const location = locations.find(loc => loc.expedition_id === exp.id);
+            if (location && location.latitude && location.longitude) {
+                const lat = parseFloat(location.latitude);
+                const lng = parseFloat(location.longitude);
+                
+                const motorista = motoristas.find(m => m.id === exp.motorista_id);
+                const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+                
+                let color = '#F59E0B'; // laranja para em trânsito
+                let statusText = 'Em Trânsito';
+                
+                const vehicleIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${color}; color: white; padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: bold; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">${veiculo?.placa || 'N/A'}</div>`,
+                    iconSize: [80, 30],
+                    iconAnchor: [40, 15]
+                });
+                
+                L.marker([lat, lng], { icon: vehicleIcon })
+                    .addTo(mapInstance)
+                    .bindPopup(`
+                        <div style="text-align: center;">
+                            <h4><strong>${veiculo?.placa || 'N/A'}</strong></h4>
+                            <p><strong>Motorista:</strong> ${motorista?.nome || 'N/A'}</p>
+                            <p><strong>Status:</strong> <span style="color: ${color}; font-weight: bold;">${statusText}</span></p>
+                            <p><strong>Velocidade:</strong> ${location.velocidade || 0} km/h</p>
+                            <p><strong>Última atualização:</strong><br>${new Date(location.data_gps).toLocaleString('pt-BR')}</p>
+                        </div>
+                    `);
+                
+                bounds.extend([lat, lng]);
+            }
+        });
+        
+        // Adicionar veículos retornando
+        motoristasRetornando.forEach(motorista => {
+            const location = returningLocations.find(loc => loc.motorista_id === motorista.id);
+            if (location && location.latitude && location.longitude) {
+                const lat = parseFloat(location.latitude);
+                const lng = parseFloat(location.longitude);
+                
+                const veiculo = veiculos.find(v => v.id === motorista.veiculo_id);
+                const color = '#10B981'; // verde para retornando
+                
+                const vehicleIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${color}; color: white; padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: bold; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">${veiculo?.placa || 'N/A'}</div>`,
+                    iconSize: [80, 30],
+                    iconAnchor: [40, 15]
+                });
+                
+                L.marker([lat, lng], { icon: vehicleIcon })
+                    .addTo(mapInstance)
+                    .bindPopup(`
+                        <div style="text-align: center;">
+                            <h4><strong>${veiculo?.placa || 'N/A'}</strong></h4>
+                            <p><strong>Motorista:</strong> ${motorista.nome}</p>
+                            <p><strong>Status:</strong> <span style="color: ${color}; font-weight: bold;">Retornando</span></p>
+                            <p><strong>Velocidade:</strong> ${location.velocidade || 0} km/h</p>
+                            <p><strong>Última atualização:</strong><br>${new Date(location.data_gps).toLocaleString('pt-BR')}</p>
+                        </div>
+                    `);
+                
+                bounds.extend([lat, lng]);
+            }
+        });
+        
+        // Adicionar lojas (ícones maiores)
+        lojas.forEach(loja => {
+            if (loja.latitude && loja.longitude && loja.ativo) {
+                const lat = parseFloat(loja.latitude);
+                const lng = parseFloat(loja.longitude);
+                
+                let cor = '#10B981';
+                if (loja.nome.toLowerCase().includes('fort')) cor = '#EF4444';
+                else if (loja.nome.toLowerCase().includes('comper')) cor = '#0077B6';
+                
+                const lojaIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${cor}; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">🏪 ${loja.codigo}</div>`,
+                    iconSize: [70, 25],
+                    iconAnchor: [35, 12]
+                });
+                
+                L.marker([lat, lng], { icon: lojaIcon })
+                    .addTo(mapInstance)
+                    .bindPopup(`
+                        <div style="text-align: center;">
+                            <h4><strong>${loja.nome}</strong></h4>
+                            <p><strong>Código:</strong> ${loja.codigo}</p>
+                            <p><strong>Cidade:</strong> ${loja.cidade}</p>
+                            ${loja.endereco_completo ? `<p><strong>Endereço:</strong><br>${loja.endereco_completo}</p>` : ''}
+                        </div>
+                    `);
+                
+                bounds.extend([lat, lng]);
+            }
+        });
+        
+        // Adicionar pontos de interesse se existirem
+        if (pontosInteresse && pontosInteresse.length > 0) {
+            pontosInteresse.forEach(ponto => {
+                if (ponto.ativo) {
+                    const pontoIcon = L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div style="background: ${ponto.cor}; color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${ponto.tipo}</div>`,
+                        iconSize: [40, 20],
+                        iconAnchor: [20, 10]
+                    });
+                    
+                    L.marker([ponto.latitude, ponto.longitude], { icon: pontoIcon })
+                        .addTo(mapInstance)
+                        .bindPopup(`<strong>${ponto.nome}</strong><br><small>${ponto.tipo}</small>`);
+                }
+            });
+        }
+        
+        if (bounds.isValid()) {
+            mapInstance.fitBounds(bounds, { padding: [30, 30] });
+        }
+        
+    } catch (error) {
+        console.error('Erro ao carregar mapa fullscreen:', error);
+        showNotification('Erro ao carregar mapa fullscreen: ' + error.message, 'error');
+    }
+}
 
         // --- FUNCIONALIDADES DA ABA OPERAÇÃO ---
         async function lancarCarga() {
