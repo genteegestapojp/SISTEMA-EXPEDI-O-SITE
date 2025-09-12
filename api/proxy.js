@@ -20,10 +20,14 @@ export default async function handler(req, res) {
     const { user, password, filial } = req.headers;
     const { table, ...queryParams } = req.query;
 
-    // Verificar credenciais
-    if (!user || !password || !filial) {
-      return res.status(401).json({ error: 'Credenciais necessárias' });
-    }
+   if (!user || !password) {
+  return res.status(401).json({ error: 'Credenciais de usuário e senha necessárias' });
+}
+
+// O cabeçalho 'filial' só é necessário para tabelas que dependem dele
+if (!['filiais', 'acessos'].includes(table) && !filial) {
+    return res.status(401).json({ error: 'Credenciais de filial necessárias' });
+}
 
     const { data: userData } = await supabase
       .from('acessos')
