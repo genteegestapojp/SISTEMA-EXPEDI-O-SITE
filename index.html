@@ -853,6 +853,7 @@ if (rastreioTimer) {
             feather.replace(); // Redesenha os ícones
         }
 // Sistema de Login Global
+// Sistema de Login Global
 async function performGlobalLogin() {
     const nome = document.getElementById('globalUserInput').value.trim();
     const senha = document.getElementById('globalPasswordInput').value;
@@ -882,6 +883,8 @@ async function performGlobalLogin() {
 
         showNotification('Login realizado com sucesso!', 'success');
         document.getElementById('loginModal').style.display = 'none';
+        
+        // Chamada da função para carregar filiais, agora no local correto
         await loadFiliais();
 
     } catch (error) {
@@ -897,14 +900,17 @@ document.addEventListener('DOMContentLoaded', () => {
         performGlobalLogin();
     });
 
-    // Verificar se já está logado
+    // Removida a chamada direta de 'loadFiliais()' para evitar o erro inicial
     const savedCredentials = localStorage.getItem('user_credentials');
     if (savedCredentials) {
         try {
             const creds = JSON.parse(savedCredentials);
             if (creds.nome && creds.senha) {
                 document.getElementById('loginModal').style.display = 'none';
-                loadFiliais();
+                
+                // NOTA: A chamada para loadFiliais() será feita pela função performGlobalLogin()
+                // se o login for bem-sucedido.
+                // Apenas exibe o modal de login se não houver credenciais salvas.
                 return;
             }
         } catch (e) {
