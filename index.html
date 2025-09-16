@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
@@ -2620,71 +2620,118 @@ async function loadHomeMapDataForFullscreen() {
             }
         }
 
-        async function agruparEAlocar() {
-            const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
-            const veiculoId = document.getElementById('alocar_veiculoSelect').value;
-            const motoristaId = document.getElementById('alocar_motoristaSelect').value;
-            const observacoes = document.getElementById('alocar_observacoes').value;
+        // A nova função 'agruparEAlocar' que abre o modal de reordenação
+async function agruparEAlocar() {
+    const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
+    if (checkboxes.length === 0) {
+        showNotification('Selecione ao menos uma carga para agrupar!', 'error');
+        return;
+    }
 
-            if (checkboxes.length === 0 || !veiculoId || !motoristaId) {
-                showNotification('Selecione ao menos uma carga, um veículo e um motorista!', 'error');
-                return;
-            }
-
-            const idsDasCargas = Array.from(checkboxes).map(cb => cb.value);
-
-            try {
-                const cargasSelecionadas = cargasDisponiveis.filter(c => idsDasCargas.includes(String(c.id)));
-                const originalDocaIds = [...new Set(cargasSelecionadas.map(c => c.doca_id).filter(id => id))];
-
-                const dockPalletCounts = {};
-                cargasSelecionadas.forEach(carga => {
-                    const docaId = carga.doca_id;
-                    if (docaId) dockPalletCounts[docaId] = (dockPalletCounts[docaId] || 0) + (carga.items[0]?.pallets || 0);
-                });
-
-                const rankedDocks = Object.keys(dockPalletCounts).sort((a, b) => dockPalletCounts[b] - dockPalletCounts[a]);
-                const docaAlvoId = rankedDocks.find(docaId => docas.find(d => d.id == docaId)?.status === 'disponivel');
-
-                if (!docaAlvoId) {
-                    showNotification(`Nenhuma das docas de destino está disponível. Aguarde e tente novamente.`, 'error');
-                    return;
-                }
-
-                const newExpeditionData = { data_hora: new Date().toISOString(), status: 'aguardando_veiculo', doca_id: docaAlvoId, veiculo_id: veiculoId, motorista_id: motoristaId, lider_id: cargasSelecionadas[0].lider_id, data_alocacao_veiculo: new Date().toISOString(), observacoes: observacoes || null };
-                const newExpeditionResponse = await supabaseRequest('expeditions', 'POST', newExpeditionData);
-                const newExpeditionId = newExpeditionResponse[0].id;
-
-                const itemsToUpdate = cargasSelecionadas.flatMap(c => c.items.map(i => i.id));
-                await supabaseRequest(`expedition_items?id=in.(${itemsToUpdate.join(',')})`, 'PATCH', { expedition_id: newExpeditionId });
-                await supabaseRequest(`expeditions?id=in.(${idsDasCargas.join(',')})`, 'DELETE');
-                
-                const updatePromises = [
-                    supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
-                    supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false),
-                    supabaseRequest(`docas?id=eq.${docaAlvoId}`, 'PATCH', { status: 'em_uso' }, false)
-                ];
-
-                originalDocaIds.forEach(docaId => {
-                    if (docaId !== docaAlvoId) {
-                        updatePromises.push(supabaseRequest(`docas?id=eq.${docaId}`, 'PATCH', { status: 'disponivel' }, false));
-                    }
-                });
-
-                await Promise.all(updatePromises);
-
-                showNotification('Expedição montada e alocada com sucesso!', 'success');
-                document.getElementById('alocar_veiculoSelect').value = '';
-                document.getElementById('alocar_motoristaSelect').value = '';
-                document.getElementById('alocar_observacoes').value = '';
-
-                loadTransportList();
-                await loadSelectData(); // Atualiza a lista de docas disponíveis
-
-            } catch (error) {
-                showNotification(`Erro ao agrupar: ${error.message}`, 'error');
-            }
+    const idsDasCargas = Array.from(checkboxes).map(cb => cb.value);
+    const cargasSelecionadas = cargasDisponiveis.filter(c => idsDasCargas.includes(String(c.id)));
+    
+    // Obter todas as lojas únicas e ordená-las por código
+    const lojasParaReordenar = [];
+    const lojasSet = new Set();
+    
+    cargasSelecionadas.forEach(carga => {
+        const item = carga.items[0];
+        const loja = lojas.find(l => l.id === item.loja_id);
+        if (loja && !lojasSet.has(loja.id)) {
+            lojasParaReordenar.push({ 
+                id: loja.id,
+                codigo: loja.codigo,
+                nome: loja.nome,
+                pallets: item.pallets,
+                rolltrainers: item.rolltrainers
+            });
+            lojasSet.add(loja.id);
         }
+    });
+
+    // Abrir o modal de reordenação com as lojas
+    openReorderModal(lojasParaReordenar, cargasSelecionadas);
+}
+
+// A função que realmente salva no banco de dados, chamada após a reordenação
+async function alocarVeiculoEFinalizar() {
+    // ... O CÓDIGO ORIGINAL DA SUA FUNÇÃO 'agruparEAlocar()' VAI AQUI...
+    // Ele será executado quando o usuário confirmar a ordem.
+
+    // A lógica original começa aqui
+    const veiculoId = document.getElementById('alocar_veiculoSelect').value;
+    const motoristaId = document.getElementById('alocar_motoristaSelect').value;
+    const observacoes = document.getElementById('alocar_observacoes').value;
+    const orderedLojasIds = Array.from(document.getElementById('reorderLojasList').children).map(el => el.dataset.lojaId);
+
+    if (!veiculoId || !motoristaId) {
+        showNotification('Selecione o veículo e o motorista para alocar!', 'error');
+        return;
+    }
+
+    const originalExpeditionIds = selectedCargasParaFinalizar.map(c => c.id);
+    const originalDocaIds = [...new Set(selectedCargasParaFinalizar.map(c => c.doca_id).filter(id => id))];
+    
+    // Encontrar a doca alvo, como no seu código original
+    const dockPalletCounts = {};
+    selectedCargasParaFinalizar.forEach(carga => {
+        const docaId = carga.doca_id;
+        if (docaId) dockPalletCounts[docaId] = (dockPalletCounts[docaId] || 0) + (carga.items[0]?.pallets || 0);
+    });
+    const rankedDocks = Object.keys(dockPalletCounts).sort((a, b) => dockPalletCounts[b] - dockPalletCounts[a]);
+    const docaAlvoId = rankedDocks.find(docaId => docas.find(d => d.id == docaId)?.status === 'disponivel');
+
+    if (!docaAlvoId) {
+        showNotification(`Nenhuma das docas de destino está disponível. Aguarde e tente novamente.`, 'error');
+        return;
+    }
+    
+    try {
+        const newExpeditionData = {
+            data_hora: new Date().toISOString(),
+            status: 'aguardando_veiculo',
+            doca_id: docaAlvoId,
+            veiculo_id: veiculoId,
+            motorista_id: motoristaId,
+            lider_id: selectedCargasParaFinalizar[0].lider_id,
+            data_alocacao_veiculo: new Date().toISOString(),
+            observacoes: observacoes || null,
+            ordem_descarga: orderedLojasIds.join(',') // Salva a ordem reordenada!
+        };
+        const newExpeditionResponse = await supabaseRequest('expeditions', 'POST', newExpeditionData);
+        const newExpeditionId = newExpeditionResponse[0].id;
+
+        const itemsToUpdate = selectedCargasParaFinalizar.flatMap(c => c.items.map(i => i.id));
+        await supabaseRequest(`expedition_items?id=in.(${itemsToUpdate.join(',')})`, 'PATCH', { expedition_id: newExpeditionId });
+        await supabaseRequest(`expeditions?id=in.(${originalExpeditionIds.join(',')})`, 'DELETE');
+
+        const updatePromises = [
+            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
+            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false),
+            supabaseRequest(`docas?id=eq.${docaAlvoId}`, 'PATCH', { status: 'em_uso' }, false)
+        ];
+        originalDocaIds.forEach(docaId => {
+            if (docaId !== docaAlvoId) {
+                updatePromises.push(supabaseRequest(`docas?id=eq.${docaId}`, 'PATCH', { status: 'disponivel' }, false));
+            }
+        });
+        await Promise.all(updatePromises);
+
+        showNotification('Expedição montada e alocada com sucesso!', 'success');
+        document.getElementById('alocar_veiculoSelect').value = '';
+        document.getElementById('alocar_motoristaSelect').value = '';
+        document.getElementById('alocar_observacoes').value = '';
+
+        loadTransportList();
+        await loadSelectData();
+
+    } catch (error) {
+        showNotification(`Erro ao agrupar: ${error.message}`, 'error');
+    }
+
+    closeReorderModal();
+}
 
         // --- FUNCIONALIDADES DA ABA FATURAMENTO ---
         async function loadFaturamento() {
@@ -6003,10 +6050,71 @@ async function getRouteFromAPI(waypoints) {
         return null;
     }
 }
+let selectedCargasParaFinalizar = [];
+
+function openReorderModal(lojasParaReordenar, cargasSelecionadas) {
+    selectedCargasParaFinalizar = cargasSelecionadas;
+    const listContainer = document.getElementById('reorderLojasList');
+    listContainer.innerHTML = '';
+
+    lojasParaReordenar.forEach(loja => {
+        const li = document.createElement('div');
+        li.className = 'bg-white p-3 rounded-md shadow-sm cursor-grab flex justify-between items-center';
+        li.dataset.lojaId = loja.id;
+        li.innerHTML = `
+            <div>
+                <strong class="text-gray-800">${loja.codigo} - ${loja.nome}</strong>
+                <p class="text-xs text-gray-500">${loja.pallets}P + ${loja.rolltrainers}R</p>
+            </div>
+            <i data-feather="move" class="h-4 w-4 text-gray-400"></i>
+        `;
+        listContainer.appendChild(li);
+    });
+
+    feather.replace(); // Para renderizar o ícone de 'move'
+    
+    // Inicializar o SortableJS para o drag and drop
+    new Sortable(listContainer, {
+        animation: 150,
+        handle: '.cursor-grab'
+    });
+
+    document.getElementById('reorderLojasModal').style.display = 'flex';
+}
+
+function closeReorderModal() {
+    document.getElementById('reorderLojasModal').style.display = 'none';
+    selectedCargasParaFinalizar = [];
+}
+
+function confirmReorderAndProceed() {
+    const veiculoId = document.getElementById('alocar_veiculoSelect').value;
+    const motoristaId = document.getElementById('alocar_motoristaSelect').value;
+    
+    if (!veiculoId || !motoristaId) {
+        showNotification('Selecione o veículo e o motorista para alocar!', 'error');
+        // Não fechar o modal, apenas mostrar a notificação
+        return;
+    }
+
+    alocarVeiculoEFinalizar();
+}
         // Inicialização
         document.addEventListener('DOMContentLoaded', async () => {
             await loadFiliais();
         });
     </script>
+    <div id="reorderLojasModal" class="modal-overlay">
+    <div class="modal-content" style="width: 90vw; max-width: 600px;">
+        <h3 class="text-xl font-semibold mb-4">Reordenar Roteiro de Entregas</h3>
+        <p class="text-sm text-gray-600 mb-4">Arraste e solte as lojas para definir a ordem de descarga.</p>
+        <div id="reorderLojasList" class="space-y-2 p-4 bg-gray-100 rounded-lg border border-dashed border-gray-300">
+            </div>
+        <div class="mt-6 flex gap-4">
+            <button class="btn btn-success flex-1" onclick="confirmReorderAndProceed()">Confirmar Ordem e Continuar</button>
+            <button class="btn btn-danger flex-1" onclick="closeReorderModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
