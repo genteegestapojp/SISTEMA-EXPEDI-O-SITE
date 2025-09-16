@@ -1161,26 +1161,49 @@ if (mapInstance) {
                 </div>
 
                 <div id="statusFrota" class="sub-tab-content active">
-                    <div class="transport-card mb-6">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Consulta por Placa</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="placaMotorista">Placa do Veículo:</label>
-                                <select id="placaMotorista" class="w-full">
-                                    <option value="">Selecione a placa</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <button class="btn btn-primary w-full" onclick="consultarExpedicoesPorPlaca()">Consultar Expedições</button>
-                            </div>
-                        </div>
-                        <div id="resultadosMotorista" class="mt-4"></div>
-                    </div>
-                    
-                     <div id="motoristasStatusList">
-                         <div class="loading"><div class="spinner"></div>Carregando status...</div>
-                    </div>
-                </div>
+    <div class="transport-card mb-6">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Consulta por Placa</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="placaMotorista">Placa do Veículo:</label>
+                <select id="placaMotorista" class="w-full">
+                    <option value="">Selecione a placa</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary w-full" onclick="consultarExpedicoesPorPlaca()">Consultar Expedições</button>
+            </div>
+        </div>
+        <div id="resultadosMotorista" class="mt-4"></div>
+    </div>
+    
+    <div class="filters-section">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Filtros de Status</h3>
+        <div class="filters-grid">
+            <div class="form-group">
+                <label for="filtroStatusMotorista">Status:</label>
+                <select id="filtroStatusMotorista" onchange="renderMotoristasStatusList()">
+                    <option value="">Todos</option>
+                    <option value="disponivel">Disponível</option>
+                    <option value="em_uso">Em Uso</option>
+                    <option value="em_viagem">Em Viagem</option>
+                    <option value="retornando_cd">Retornando ao CD</option>
+                    <option value="retornando_com_imobilizado">Retornando c/ Imobilizado</option>
+                    <option value="descarregando_imobilizado">Descarregando Imobilizado</option>
+                    <option value="folga">Folga</option>
+                    <option value="manutencao">Manutenção</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div id="motoristasStatusList">
+        <div class="loading">
+            <div class="spinner"></div>
+            Carregando status...
+        </div>
+    </div>
+</div>
                
                 <div id="relatorioMotoristas" class="sub-tab-content">
                     <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Relatório de Desempenho dos Motoristas</h2>
@@ -2926,49 +2949,89 @@ async function alocarVeiculoEFinalizar() {
     Object.values(activeTimers).forEach(clearInterval);
     activeTimers = {};
 
-    const [activeExpeditions, recentlyCompletedExpeditions, allItems] = await Promise.all([
+    const [activeExpeditions, allItems] = await Promise.all([
         supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`),
-        supabaseRequest(`expeditions?status=eq.entregue&order=data_hora.desc&limit=50`),
         supabaseRequest('expedition_items')
     ]);
+
+    // 1. Coleta todos os status atuais e os mapeia para o filtro
+    const statusAtivos = new Set();
+    veiculos.forEach(v => {
+        if (v.status !== 'manutencao') { // Ignora veículos em manutenção por padrão
+            statusAtivos.add(v.status);
+        }
+    });
+    motoristas.forEach(m => {
+        if (m.status !== 'manutencao') { // Ignora motoristas em manutenção por padrão
+            statusAtivos.add(m.status);
+        }
+    });
+    activeExpeditions.forEach(exp => {
+        statusAtivos.add(exp.status);
+    });
+
+    // Popula o select do filtro dinamicamente
+    const filtroStatusSelect = document.getElementById('filtroStatusMotorista');
+    const statusSelecionado = filtroStatusSelect.value;
+    filtroStatusSelect.innerHTML = '<option value="">Todos</option>';
+    const statusOrdenados = Array.from(statusAtivos).sort();
+    statusOrdenados.forEach(s => {
+        filtroStatusSelect.innerHTML += `<option value="${s}" ${statusSelecionado === s ? 'selected' : ''}>${getStatusLabel(s)}</option>`;
+    });
+
+    // 2. Aplica o filtro de status, pegando o valor dinâmico
+    const filtroStatus = filtroStatusSelect.value;
     
-    // Filtrar veículos - REMOVER os em manutenção
-    const veiculosAtivos = veiculos.filter(v => v.status !== 'manutencao');
-    
+    // Agora, filtra a lista de veículos a ser exibida
+    let veiculosFiltrados = veiculos.filter(v => v.status !== 'manutencao');
+
+    if (filtroStatus) {
+        veiculosFiltrados = veiculosFiltrados.filter(veiculo => {
+            if (veiculo.status === filtroStatus) {
+                return true;
+            }
+            
+            const motoristaAssociado = motoristas.find(m => m.veiculo_id === veiculo.id);
+            if (motoristaAssociado && motoristaAssociado.status === filtroStatus) {
+                return true;
+            }
+            
+            const activeExp = activeExpeditions.find(exp => exp.veiculo_id === veiculo.id);
+            if (activeExp && activeExp.status === filtroStatus) {
+                return true;
+            }
+            
+            return false;
+        });
+    }
+
     let html = `<div class="stats-grid">
-        <div class="stat-card"><div class="stat-number">${veiculosAtivos.filter(v => v.status === 'disponivel').length}</div><div class="stat-label">Disponíveis</div></div>
-        <div class="stat-card" style="background: var(--secondary-gradient);"><div class="stat-number">${veiculosAtivos.filter(v => ['em_uso', 'carregando'].includes(v.status)).length}</div><div class="stat-label">Em Atividade</div></div>
-        <div class="stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${veiculosAtivos.length}</div><div class="stat-label">Total Ativo</div></div>
+        <div class="stat-card"><div class="stat-number">${veiculosFiltrados.filter(v => v.status === 'disponivel').length}</div><div class="stat-label">Disponíveis</div></div>
+        <div class="stat-card" style="background: var(--secondary-gradient);"><div class="stat-number">${veiculosFiltrados.filter(v => ['em_uso', 'carregando'].includes(v.status)).length}</div><div class="stat-label">Em Atividade</div></div>
+        <div class="stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${veiculosFiltrados.length}</div><div class="stat-label">Total Ativo</div></div>
     </div>
     <h3 class="text-xl font-semibold text-gray-800 my-4">Status da Frota</h3>
     `;
 
-    // Ordenar veículos por placa
-    const veiculosOrdenados = veiculosAtivos.sort((a, b) => a.placa.localeCompare(b.placa));
+    const veiculosOrdenados = veiculosFiltrados.sort((a, b) => a.placa.localeCompare(b.placa));
 
     veiculosOrdenados.forEach(veiculo => {
-        // Buscar motorista associado a este veículo
         const motoristaAssociado = motoristas.find(m => {
             const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
             return activeExp && activeExp.veiculo_id === veiculo.id;
         });
 
-        // Buscar expedição ativa associada ao veículo para obter status correto
         const activeExp = activeExpeditions.find(exp => exp.veiculo_id === veiculo.id);
         
         let actionButton = '';
         let timeInfo = '';
-        
-        // MAPEAR STATUS BASEADO NA EXPEDIÇÃO ATIVA (IGUAL AO ACOMPANHAMENTO)
         let statusDisplay = '';
         let statusKey = '';
 
         if (activeExp) {
-            // Usar status da expedição ativa
             statusKey = activeExp.status;
             statusDisplay = getStatusLabel(activeExp.status).toUpperCase();
             
-            // Lógica específica para expedições que saíram para entrega
             if (activeExp.status === 'saiu_para_entrega') {
                 const itemsForExp = allItems.filter(i => i.expedition_id === activeExp.id);
                 timeInfo = `
@@ -2977,8 +3040,6 @@ async function alocarVeiculoEFinalizar() {
                         <span id="desloc_timer_${veiculo.id}">Desloc.: --:--</span>
                     </div>
                 `;
-                
-                // Iniciar timer para este veículo
                 const timerId = `veiculo_${veiculo.id}`;
                 if(activeTimers[timerId]) clearInterval(activeTimers[timerId]);
                 
@@ -2988,16 +3049,16 @@ async function alocarVeiculoEFinalizar() {
 
                     itemsForExp.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach(item => {
                         if(item.data_inicio_descarga) {
-                           const inicio = new Date(item.data_inicio_descarga);
-                           tempoDeslocamento += (inicio - lastEventTime);
-                           if(item.data_fim_descarga) {
-                               const fim = new Date(item.data_fim_descarga);
-                               tempoEmLoja += (fim - inicio);
-                               lastEventTime = fim;
-                           } else {
-                               tempoEmLoja += (new Date() - inicio);
-                               lastEventTime = new Date();
-                           }
+                            const inicio = new Date(item.data_inicio_descarga);
+                            tempoDeslocamento += (inicio - lastEventTime);
+                            if(item.data_fim_descarga) {
+                                const fim = new Date(item.data_fim_descarga);
+                                tempoEmLoja += (fim - inicio);
+                                lastEventTime = fim;
+                            } else {
+                                tempoEmLoja += (new Date() - inicio);
+                                lastEventTime = new Date();
+                            }
                         }
                     });
                     
@@ -3009,11 +3070,9 @@ async function alocarVeiculoEFinalizar() {
                 }, 1000);
             }
         } else if (motoristaAssociado) {
-            // Usar status do motorista se não houver expedição ativa mas há motorista associado
             statusKey = motoristaAssociado.status;
             statusDisplay = getStatusLabel(motoristaAssociado.status).toUpperCase();
         } else {
-            // Usar status do veículo
             statusKey = veiculo.status;
             switch(veiculo.status) {
                 case 'disponivel':
@@ -3028,19 +3087,15 @@ async function alocarVeiculoEFinalizar() {
             }
         }
 
-        // Botões de ação específicos para motoristas em retorno
         if (motoristaAssociado) {
-            if ((motoristaAssociado.status === 'retornando_cd' || motoristaAssociado.status === 'retornando_com_imobilizado')) {
+            if (['retornando_cd', 'retornando_com_imobilizado'].includes(motoristaAssociado.status)) {
                 actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${motoristaAssociado.id}', '${veiculo.id}')">Cheguei no CD</button>`;
             } else if (motoristaAssociado.status === 'descarregando_imobilizado') {
                 actionButton = `<button class="btn btn-warning btn-small" onclick="finalizarDescargaImobilizado('${motoristaAssociado.id}', '${veiculo.id}')">Finalizar Descarga</button>`;
             }
         }
 
-        // USAR AS MESMAS CLASSES DA ABA ACOMPANHAMENTO
         let statusClass = `status-badge status-${statusKey}`;
-
-        // ADICIONAR ANIMAÇÃO PARA STATUS ESPECÍFICOS (IGUAL AO ACOMPANHAMENTO)
         if (['carregando', 'em_carregamento', 'saiu_para_entrega'].includes(statusKey)) {
             statusClass += ' status-animated';
         }
@@ -3059,6 +3114,7 @@ async function alocarVeiculoEFinalizar() {
     });
     
     container.innerHTML = html;
+    feather.replace();
 }
         async function consultarExpedicoesPorPlaca() {
             const placa = document.getElementById('placaMotorista').value;
