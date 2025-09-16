@@ -176,6 +176,88 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
         th { background-color: #f9fafb; font-weight: 600; color: #374151; }
+        /* Status badges com cores iguais ao acompanhamento */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    display: inline-block;
+    text-align: center;
+}
+
+.status-badge.status-disponivel {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.status-carregando,
+.status-badge.status-em_carregamento {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.status-saiu_para_entrega {
+    background-color: #cffafe;
+    color: #0e7490;
+}
+
+.status-badge.status-aguardando_agrupamento {
+    background-color: #fae8ff;
+    color: #701a75;
+}
+
+.status-badge.status-aguardando_veiculo {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.status-badge.status-aguardando_faturamento {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.status-animated {
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4) !important;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+    50% { 
+        transform: scale(1.05); 
+        opacity: 0.9; 
+    }
+}
+.status-badge.status-carregando,
+.status-badge.status-em_carregamento {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.status-aguardando_veiculo {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.status-badge.status-aguardando_agrupamento {
+    background-color: #fae8ff;
+    color: #701a75;
+}
+
+.status-badge.status-aguardando_faturamento {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.status-badge.status-saiu_para_entrega {
+    background-color: #cffafe;
+    color: #0e7490;
+}
         .status-badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; display: inline-block; text-align: center; }
         .status-carregado { background-color: #d1fae5; color: #065f46; }
         .status-em_carregamento { background-color: #fef3c7; color: #92400e; }
@@ -409,6 +491,7 @@
 .leaflet-popup-content {
     font-family: 'Inter', sans-serif !important;
 }
+
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -2789,108 +2872,147 @@ async function loadHomeMapDataForFullscreen() {
             }
         }
 
-        async function renderMotoristasStatusList() {
-            const container = document.getElementById('motoristasStatusList');
-            if (!container) return;
-            container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando status...</div>`;
-            Object.values(activeTimers).forEach(clearInterval);
-            activeTimers = {};
+       async function renderMotoristasStatusList() {
+    const container = document.getElementById('motoristasStatusList');
+    if (!container) return;
+    container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando status...</div>`;
+    Object.values(activeTimers).forEach(clearInterval);
+    activeTimers = {};
 
-            const [activeExpeditions, recentlyCompletedExpeditions, allItems] = await Promise.all([
-                 supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`),
-                 supabaseRequest(`expeditions?status=eq.entregue&order=data_hora.desc&limit=50`),
-                 supabaseRequest('expedition_items')
-            ]);
+    const [activeExpeditions, recentlyCompletedExpeditions, allItems] = await Promise.all([
+        supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`),
+        supabaseRequest(`expeditions?status=eq.entregue&order=data_hora.desc&limit=50`),
+        supabaseRequest('expedition_items')
+    ]);
+    
+    // Filtrar veículos - REMOVER os em manutenção
+    const veiculosAtivos = veiculos.filter(v => v.status !== 'manutencao');
+    
+    let html = `<div class="stats-grid">
+        <div class="stat-card"><div class="stat-number">${veiculosAtivos.filter(v => v.status === 'disponivel').length}</div><div class="stat-label">Disponíveis</div></div>
+        <div class="stat-card" style="background: var(--secondary-gradient);"><div class="stat-number">${veiculosAtivos.filter(v => ['em_uso', 'carregando'].includes(v.status)).length}</div><div class="stat-label">Em Atividade</div></div>
+        <div class="stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${veiculosAtivos.length}</div><div class="stat-label">Total Ativo</div></div>
+    </div>
+    <h3 class="text-xl font-semibold text-gray-800 my-4">Status da Frota</h3>
+    `;
+
+    // Ordenar veículos por placa
+    const veiculosOrdenados = veiculosAtivos.sort((a, b) => a.placa.localeCompare(b.placa));
+
+    veiculosOrdenados.forEach(veiculo => {
+        // Buscar motorista associado a este veículo
+        const motoristaAssociado = motoristas.find(m => {
+            const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
+            return activeExp && activeExp.veiculo_id === veiculo.id;
+        });
+
+        // Buscar expedição ativa associada ao veículo para obter status correto
+        const activeExp = activeExpeditions.find(exp => exp.veiculo_id === veiculo.id);
+        
+        let actionButton = '';
+        let timeInfo = '';
+        
+        // MAPEAR STATUS BASEADO NA EXPEDIÇÃO ATIVA (IGUAL AO ACOMPANHAMENTO)
+        let statusDisplay = '';
+        let statusKey = '';
+
+        if (activeExp) {
+            // Usar status da expedição ativa
+            statusKey = activeExp.status;
+            statusDisplay = getStatusLabel(activeExp.status).toUpperCase();
             
-            let html = `<div class="stats-grid">
-                <div class="stat-card"><div class="stat-number">${motoristas.filter(m => m.status === 'disponivel').length}</div><div class="stat-label">Disponíveis</div></div>
-                <div class="stat-card" style="background: var(--secondary-gradient);"><div class="stat-number">${motoristas.filter(m => ['em_viagem', 'descarregando_imobilizado', 'saiu_para_entrega'].includes(m.status)).length}</div><div class="stat-label">Em Atividade</div></div>
-                <div class="stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${motoristas.filter(m => ['retornando_cd', 'retornando_com_imobilizado'].includes(m.status)).length}</div><div class="stat-label">Retornando</div></div>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-800 my-4">Status dos Motoristas</h3>
-            `;
+            // Lógica específica para expedições que saíram para entrega
+            if (activeExp.status === 'saiu_para_entrega') {
+                const itemsForExp = allItems.filter(i => i.expedition_id === activeExp.id);
+                timeInfo = `
+                    <div class="text-xs text-gray-500 mt-1">
+                        <span id="loja_timer_${veiculo.id}">Loja: --:--</span> | 
+                        <span id="desloc_timer_${veiculo.id}">Desloc.: --:--</span>
+                    </div>
+                `;
+                
+                // Iniciar timer para este veículo
+                const timerId = `veiculo_${veiculo.id}`;
+                if(activeTimers[timerId]) clearInterval(activeTimers[timerId]);
+                
+                activeTimers[timerId] = setInterval(() => {
+                    let tempoEmLoja = 0, tempoDeslocamento = 0;
+                    let lastEventTime = new Date(activeExp.data_saida_entrega);
 
-            const motoristasComStatus = motoristas.map(m => {
-                const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
-                if (activeExp) {
-                    const itemsForExp = allItems.filter(i => i.expedition_id === activeExp.id);
-                    return { ...m, displayStatus: activeExp.status, veiculoId: activeExp.veiculo_id, activeExp: { ...activeExp, items: itemsForExp } };
-                } else {
-                    const lastCompletedExp = recentlyCompletedExpeditions.find(exp => exp.motorista_id === m.id);
-                    return { ...m, displayStatus: m.status, veiculoId: lastCompletedExp ? lastCompletedExp.veiculo_id : null };
-                }
-            });
-
-            motoristasComStatus.sort((a, b) => a.nome.localeCompare(b.nome));
-
-            motoristasComStatus.forEach(m => {
-                let actionButton = '';
-                if ((m.status === 'retornando_cd' || m.status === 'retornando_com_imobilizado') && m.veiculoId) {
-                    actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${m.id}', '${m.veiculoId}')">Cheguei no CD</button>`;
-                } else if (m.status === 'descarregando_imobilizado' && m.veiculoId) {
-                    actionButton = `<button class="btn btn-warning btn-small" onclick="finalizarDescargaImobilizado('${m.id}', '${m.veiculoId}')">Finalizar Descarga</button>`;
-                }
-
-                let timeInfo = '';
-                if (m.activeExp && m.displayStatus === 'saiu_para_entrega') {
-                    timeInfo = `
-                        <div class="text-xs text-gray-500 mt-1">
-                            <span id="loja_timer_${m.id}">Loja: --:--</span> | 
-                            <span id="desloc_timer_${m.id}">Desloc.: --:--</span>
-                        </div>
-                    `;
-                }
-
-                html += `
-                    <div class="motorista-status-item">
-                        <div>
-                            <strong class="text-gray-800">${m.nome}</strong>
-                            ${timeInfo}
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="status-badge status-${m.displayStatus.replace(/ /g, '_')}">${getStatusLabel(m.displayStatus)}</span>
-                            ${actionButton}
-                        </div>
-                    </div>`;
-            });
-            container.innerHTML = html;
-
-            // Iniciar timers
-            motoristasComStatus.forEach(m => {
-                if(m.activeExp && m.displayStatus === 'saiu_para_entrega') {
-                    const timerId = `motorista_${m.id}`;
-                    if(activeTimers[timerId]) clearInterval(activeTimers[timerId]);
+                    itemsForExp.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach(item => {
+                        if(item.data_inicio_descarga) {
+                           const inicio = new Date(item.data_inicio_descarga);
+                           tempoDeslocamento += (inicio - lastEventTime);
+                           if(item.data_fim_descarga) {
+                               const fim = new Date(item.data_fim_descarga);
+                               tempoEmLoja += (fim - inicio);
+                               lastEventTime = fim;
+                           } else {
+                               tempoEmLoja += (new Date() - inicio);
+                               lastEventTime = new Date();
+                           }
+                        }
+                    });
                     
-                    activeTimers[timerId] = setInterval(() => {
-                        let tempoEmLoja = 0, tempoDeslocamento = 0;
-                        let lastEventTime = new Date(m.activeExp.data_saida_entrega);
+                    const elLoja = document.getElementById(`loja_timer_${veiculo.id}`);
+                    const elDesloc = document.getElementById(`desloc_timer_${veiculo.id}`);
 
-                        m.activeExp.items.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach(item => {
-                            if(item.data_inicio_descarga) {
-                               const inicio = new Date(item.data_inicio_descarga);
-                               tempoDeslocamento += (inicio - lastEventTime);
-                               if(item.data_fim_descarga) {
-                                   const fim = new Date(item.data_fim_descarga);
-                                   tempoEmLoja += (fim - inicio);
-                                   lastEventTime = fim;
-                               } else {
-                                   tempoEmLoja += (new Date() - inicio);
-                                   lastEventTime = new Date();
-                               }
-                            }
-                        });
-                        
-                        const elLoja = document.getElementById(`loja_timer_${m.id}`);
-                        const elDesloc = document.getElementById(`desloc_timer_${m.id}`);
-
-                        if(elLoja) elLoja.textContent = `Loja: ${minutesToHHMM(tempoEmLoja / 60000)}`;
-                        if(elDesloc) elDesloc.textContent = `Desloc.: ${minutesToHHMM(tempoDeslocamento / 60000)}`;
-
-                    }, 1000);
-                }
-            });
+                    if(elLoja) elLoja.textContent = `Loja: ${minutesToHHMM(tempoEmLoja / 60000)}`;
+                    if(elDesloc) elDesloc.textContent = `Desloc.: ${minutesToHHMM(tempoDeslocamento / 60000)}`;
+                }, 1000);
+            }
+        } else if (motoristaAssociado) {
+            // Usar status do motorista se não houver expedição ativa mas há motorista associado
+            statusKey = motoristaAssociado.status;
+            statusDisplay = getStatusLabel(motoristaAssociado.status).toUpperCase();
+        } else {
+            // Usar status do veículo
+            statusKey = veiculo.status;
+            switch(veiculo.status) {
+                case 'disponivel':
+                    statusDisplay = 'DISPONÍVEL';
+                    break;
+                case 'em_uso':
+                    statusDisplay = 'CARREGANDO';
+                    statusKey = 'carregando';
+                    break;
+                default:
+                    statusDisplay = getStatusLabel(veiculo.status).toUpperCase();
+            }
         }
 
+        // Botões de ação específicos para motoristas em retorno
+        if (motoristaAssociado) {
+            if ((motoristaAssociado.status === 'retornando_cd' || motoristaAssociado.status === 'retornando_com_imobilizado')) {
+                actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${motoristaAssociado.id}', '${veiculo.id}')">Cheguei no CD</button>`;
+            } else if (motoristaAssociado.status === 'descarregando_imobilizado') {
+                actionButton = `<button class="btn btn-warning btn-small" onclick="finalizarDescargaImobilizado('${motoristaAssociado.id}', '${veiculo.id}')">Finalizar Descarga</button>`;
+            }
+        }
+
+        // USAR AS MESMAS CLASSES DA ABA ACOMPANHAMENTO
+        let statusClass = `status-badge status-${statusKey}`;
+
+        // ADICIONAR ANIMAÇÃO PARA STATUS ESPECÍFICOS (IGUAL AO ACOMPANHAMENTO)
+        if (['carregando', 'em_carregamento', 'saiu_para_entrega'].includes(statusKey)) {
+            statusClass += ' status-animated';
+        }
+
+        html += `
+            <div class="motorista-status-item">
+                <div>
+                    <strong class="text-gray-800">${veiculo.placa}</strong>
+                    ${timeInfo}
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="${statusClass}">${statusDisplay}</span>
+                    ${actionButton}
+                </div>
+            </div>`;
+    });
+    
+    container.innerHTML = html;
+}
         async function consultarExpedicoesPorPlaca() {
             const placa = document.getElementById('placaMotorista').value;
             if (!placa) {
