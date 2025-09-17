@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+    
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
@@ -176,88 +176,6 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
         th { background-color: #f9fafb; font-weight: 600; color: #374151; }
-        /* Status badges com cores iguais ao acompanhamento */
-.status-badge {
-    padding: 4px 12px;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    display: inline-block;
-    text-align: center;
-}
-
-.status-badge.status-disponivel {
-    background-color: #d1fae5;
-    color: #065f46;
-}
-
-.status-badge.status-carregando,
-.status-badge.status-em_carregamento {
-    background-color: #fef3c7;
-    color: #92400e;
-}
-
-.status-badge.status-saiu_para_entrega {
-    background-color: #cffafe;
-    color: #0e7490;
-}
-
-.status-badge.status-aguardando_agrupamento {
-    background-color: #fae8ff;
-    color: #701a75;
-}
-
-.status-badge.status-aguardando_veiculo {
-    background-color: #e0e7ff;
-    color: #3730a3;
-}
-
-.status-badge.status-aguardando_faturamento {
-    background-color: #e0e7ff;
-    color: #3730a3;
-}
-
-.status-animated {
-    animation: pulse 2s infinite;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4) !important;
-}
-
-@keyframes pulse {
-    0%, 100% { 
-        transform: scale(1); 
-        opacity: 1; 
-    }
-    50% { 
-        transform: scale(1.05); 
-        opacity: 0.9; 
-    }
-}
-.status-badge.status-carregando,
-.status-badge.status-em_carregamento {
-    background-color: #fef3c7;
-    color: #92400e;
-}
-
-.status-badge.status-aguardando_veiculo {
-    background-color: #e0e7ff;
-    color: #3730a3;
-}
-
-.status-badge.status-aguardando_agrupamento {
-    background-color: #fae8ff;
-    color: #701a75;
-}
-
-.status-badge.status-aguardando_faturamento {
-    background-color: #e0e7ff;
-    color: #3730a3;
-}
-
-.status-badge.status-saiu_para_entrega {
-    background-color: #cffafe;
-    color: #0e7490;
-}
         .status-badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; display: inline-block; text-align: center; }
         .status-carregado { background-color: #d1fae5; color: #065f46; }
         .status-em_carregamento { background-color: #fef3c7; color: #92400e; }
@@ -492,6 +410,28 @@
     font-family: 'Inter', sans-serif !important;
 }
 
+/* NOVO: Estilos para a lista de ordenação de carregamento */
+#ordemLojasList li {
+    padding: 12px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: move;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background-color 0.2s, opacity 0.2s;
+}
+#ordemLojasList li:hover {
+    background-color: #f3f4f6;
+}
+#ordemLojasList li.dragging {
+    opacity: 0.5;
+    background: #dbeafe; /* Azul claro para indicar que está sendo arrastado */
+}
+#ordemLojasList .drag-handle {
+    color: #9ca3af;
+}
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -1161,49 +1101,26 @@ if (mapInstance) {
                 </div>
 
                 <div id="statusFrota" class="sub-tab-content active">
-    <div class="transport-card mb-6">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">Consulta por Placa</h3>
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="placaMotorista">Placa do Veículo:</label>
-                <select id="placaMotorista" class="w-full">
-                    <option value="">Selecione a placa</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <button class="btn btn-primary w-full" onclick="consultarExpedicoesPorPlaca()">Consultar Expedições</button>
-            </div>
-        </div>
-        <div id="resultadosMotorista" class="mt-4"></div>
-    </div>
-    
-    <div class="filters-section">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">Filtros de Status</h3>
-        <div class="filters-grid">
-            <div class="form-group">
-                <label for="filtroStatusMotorista">Status:</label>
-                <select id="filtroStatusMotorista" onchange="renderMotoristasStatusList()">
-                    <option value="">Todos</option>
-                    <option value="disponivel">Disponível</option>
-                    <option value="em_uso">Em Uso</option>
-                    <option value="em_viagem">Em Viagem</option>
-                    <option value="retornando_cd">Retornando ao CD</option>
-                    <option value="retornando_com_imobilizado">Retornando c/ Imobilizado</option>
-                    <option value="descarregando_imobilizado">Descarregando Imobilizado</option>
-                    <option value="folga">Folga</option>
-                    <option value="manutencao">Manutenção</option>
-                </select>
-            </div>
-        </div>
-    </div>
-    
-    <div id="motoristasStatusList">
-        <div class="loading">
-            <div class="spinner"></div>
-            Carregando status...
-        </div>
-    </div>
-</div>
+                    <div class="transport-card mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Consulta por Placa</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="placaMotorista">Placa do Veículo:</label>
+                                <select id="placaMotorista" class="w-full">
+                                    <option value="">Selecione a placa</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <button class="btn btn-primary w-full" onclick="consultarExpedicoesPorPlaca()">Consultar Expedições</button>
+                            </div>
+                        </div>
+                        <div id="resultadosMotorista" class="mt-4"></div>
+                    </div>
+                    
+                     <div id="motoristasStatusList">
+                         <div class="loading"><div class="spinner"></div>Carregando status...</div>
+                    </div>
+                </div>
                
                 <div id="relatorioMotoristas" class="sub-tab-content">
                     <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Relatório de Desempenho dos Motoristas</h2>
@@ -2643,118 +2560,71 @@ async function loadHomeMapDataForFullscreen() {
             }
         }
 
-        // A nova função 'agruparEAlocar' que abre o modal de reordenação
-async function agruparEAlocar() {
-    const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
-    if (checkboxes.length === 0) {
-        showNotification('Selecione ao menos uma carga para agrupar!', 'error');
-        return;
-    }
+        async function agruparEAlocar() {
+            const checkboxes = document.querySelectorAll('#cargasDisponiveisList input[type="checkbox"]:checked');
+            const veiculoId = document.getElementById('alocar_veiculoSelect').value;
+            const motoristaId = document.getElementById('alocar_motoristaSelect').value;
+            const observacoes = document.getElementById('alocar_observacoes').value;
 
-    const idsDasCargas = Array.from(checkboxes).map(cb => cb.value);
-    const cargasSelecionadas = cargasDisponiveis.filter(c => idsDasCargas.includes(String(c.id)));
-    
-    // Obter todas as lojas únicas e ordená-las por código
-    const lojasParaReordenar = [];
-    const lojasSet = new Set();
-    
-    cargasSelecionadas.forEach(carga => {
-        const item = carga.items[0];
-        const loja = lojas.find(l => l.id === item.loja_id);
-        if (loja && !lojasSet.has(loja.id)) {
-            lojasParaReordenar.push({ 
-                id: loja.id,
-                codigo: loja.codigo,
-                nome: loja.nome,
-                pallets: item.pallets,
-                rolltrainers: item.rolltrainers
-            });
-            lojasSet.add(loja.id);
-        }
-    });
-
-    // Abrir o modal de reordenação com as lojas
-    openReorderModal(lojasParaReordenar, cargasSelecionadas);
-}
-
-// A função que realmente salva no banco de dados, chamada após a reordenação
-async function alocarVeiculoEFinalizar() {
-    // ... O CÓDIGO ORIGINAL DA SUA FUNÇÃO 'agruparEAlocar()' VAI AQUI...
-    // Ele será executado quando o usuário confirmar a ordem.
-
-    // A lógica original começa aqui
-    const veiculoId = document.getElementById('alocar_veiculoSelect').value;
-    const motoristaId = document.getElementById('alocar_motoristaSelect').value;
-    const observacoes = document.getElementById('alocar_observacoes').value;
-    const orderedLojasIds = Array.from(document.getElementById('reorderLojasList').children).map(el => el.dataset.lojaId);
-
-    if (!veiculoId || !motoristaId) {
-        showNotification('Selecione o veículo e o motorista para alocar!', 'error');
-        return;
-    }
-
-    const originalExpeditionIds = selectedCargasParaFinalizar.map(c => c.id);
-    const originalDocaIds = [...new Set(selectedCargasParaFinalizar.map(c => c.doca_id).filter(id => id))];
-    
-    // Encontrar a doca alvo, como no seu código original
-    const dockPalletCounts = {};
-    selectedCargasParaFinalizar.forEach(carga => {
-        const docaId = carga.doca_id;
-        if (docaId) dockPalletCounts[docaId] = (dockPalletCounts[docaId] || 0) + (carga.items[0]?.pallets || 0);
-    });
-    const rankedDocks = Object.keys(dockPalletCounts).sort((a, b) => dockPalletCounts[b] - dockPalletCounts[a]);
-    const docaAlvoId = rankedDocks.find(docaId => docas.find(d => d.id == docaId)?.status === 'disponivel');
-
-    if (!docaAlvoId) {
-        showNotification(`Nenhuma das docas de destino está disponível. Aguarde e tente novamente.`, 'error');
-        return;
-    }
-    
-    try {
-        const newExpeditionData = {
-            data_hora: new Date().toISOString(),
-            status: 'aguardando_veiculo',
-            doca_id: docaAlvoId,
-            veiculo_id: veiculoId,
-            motorista_id: motoristaId,
-            lider_id: selectedCargasParaFinalizar[0].lider_id,
-            data_alocacao_veiculo: new Date().toISOString(),
-            observacoes: observacoes || null,
-            ordem_descarga: orderedLojasIds.join(',') // Salva a ordem reordenada!
-        };
-        const newExpeditionResponse = await supabaseRequest('expeditions', 'POST', newExpeditionData);
-        const newExpeditionId = newExpeditionResponse[0].id;
-
-        const itemsToUpdate = selectedCargasParaFinalizar.flatMap(c => c.items.map(i => i.id));
-        await supabaseRequest(`expedition_items?id=in.(${itemsToUpdate.join(',')})`, 'PATCH', { expedition_id: newExpeditionId });
-        await supabaseRequest(`expeditions?id=in.(${originalExpeditionIds.join(',')})`, 'DELETE');
-
-        const updatePromises = [
-            supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
-            supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false),
-            supabaseRequest(`docas?id=eq.${docaAlvoId}`, 'PATCH', { status: 'em_uso' }, false)
-        ];
-        originalDocaIds.forEach(docaId => {
-            if (docaId !== docaAlvoId) {
-                updatePromises.push(supabaseRequest(`docas?id=eq.${docaId}`, 'PATCH', { status: 'disponivel' }, false));
+            if (checkboxes.length === 0 || !veiculoId || !motoristaId) {
+                showNotification('Selecione ao menos uma carga, um veículo e um motorista!', 'error');
+                return;
             }
-        });
-        await Promise.all(updatePromises);
 
-        showNotification('Expedição montada e alocada com sucesso!', 'success');
-        document.getElementById('alocar_veiculoSelect').value = '';
-        document.getElementById('alocar_motoristaSelect').value = '';
-        document.getElementById('alocar_observacoes').value = '';
+            const idsDasCargas = Array.from(checkboxes).map(cb => cb.value);
 
-        loadTransportList();
-        await loadSelectData();
+            try {
+                const cargasSelecionadas = cargasDisponiveis.filter(c => idsDasCargas.includes(String(c.id)));
+                const originalDocaIds = [...new Set(cargasSelecionadas.map(c => c.doca_id).filter(id => id))];
 
-    } catch (error) {
-        showNotification(`Erro ao agrupar: ${error.message}`, 'error');
-    }
+                const dockPalletCounts = {};
+                cargasSelecionadas.forEach(carga => {
+                    const docaId = carga.doca_id;
+                    if (docaId) dockPalletCounts[docaId] = (dockPalletCounts[docaId] || 0) + (carga.items[0]?.pallets || 0);
+                });
 
-    closeReorderModal();
-}
+                const rankedDocks = Object.keys(dockPalletCounts).sort((a, b) => dockPalletCounts[b] - dockPalletCounts[a]);
+                const docaAlvoId = rankedDocks.find(docaId => docas.find(d => d.id == docaId)?.status === 'disponivel');
+
+                if (!docaAlvoId) {
+                    showNotification(`Nenhuma das docas de destino está disponível. Aguarde e tente novamente.`, 'error');
+                    return;
+                }
+
+                const newExpeditionData = { data_hora: new Date().toISOString(), status: 'aguardando_veiculo', doca_id: docaAlvoId, veiculo_id: veiculoId, motorista_id: motoristaId, lider_id: cargasSelecionadas[0].lider_id, data_alocacao_veiculo: new Date().toISOString(), observacoes: observacoes || null };
+                const newExpeditionResponse = await supabaseRequest('expeditions', 'POST', newExpeditionData);
+                const newExpeditionId = newExpeditionResponse[0].id;
+
+                const itemsToUpdate = cargasSelecionadas.flatMap(c => c.items.map(i => i.id));
+                await supabaseRequest(`expedition_items?id=in.(${itemsToUpdate.join(',')})`, 'PATCH', { expedition_id: newExpeditionId });
+                await supabaseRequest(`expeditions?id=in.(${idsDasCargas.join(',')})`, 'DELETE');
+                
+                const updatePromises = [
+                    supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
+                    supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false),
+                    supabaseRequest(`docas?id=eq.${docaAlvoId}`, 'PATCH', { status: 'em_uso' }, false)
+                ];
+
+                originalDocaIds.forEach(docaId => {
+                    if (docaId !== docaAlvoId) {
+                        updatePromises.push(supabaseRequest(`docas?id=eq.${docaId}`, 'PATCH', { status: 'disponivel' }, false));
+                    }
+                });
+
+                await Promise.all(updatePromises);
+
+                showNotification('Expedição montada! Defina a ordem de carregamento.', 'info');
+document.getElementById('alocar_veiculoSelect').value = '';
+document.getElementById('alocar_motoristaSelect').value = '';
+document.getElementById('alocar_observacoes').value = '';
+
+// Chama o novo modal para definir a ordem
+await openOrdemCarregamentoModal(newExpeditionId);
+
+            } catch (error) {
+                showNotification(`Erro ao agrupar: ${error.message}`, 'error');
+            }
+        }
 
         // --- FUNCIONALIDADES DA ABA FATURAMENTO ---
         async function loadFaturamento() {
@@ -2942,180 +2812,108 @@ async function alocarVeiculoEFinalizar() {
             }
         }
 
-       async function renderMotoristasStatusList() {
-    const container = document.getElementById('motoristasStatusList');
-    if (!container) return;
-    container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando status...</div>`;
-    Object.values(activeTimers).forEach(clearInterval);
-    activeTimers = {};
+        async function renderMotoristasStatusList() {
+            const container = document.getElementById('motoristasStatusList');
+            if (!container) return;
+            container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando status...</div>`;
+            Object.values(activeTimers).forEach(clearInterval);
+            activeTimers = {};
 
-    const [activeExpeditions, allItems] = await Promise.all([
-        supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`),
-        supabaseRequest('expedition_items')
-    ]);
-
-    // 1. Coleta todos os status atuais e os mapeia para o filtro
-    const statusAtivos = new Set();
-    veiculos.forEach(v => {
-        if (v.status !== 'manutencao') { // Ignora veículos em manutenção por padrão
-            statusAtivos.add(v.status);
-        }
-    });
-    motoristas.forEach(m => {
-        if (m.status !== 'manutencao') { // Ignora motoristas em manutenção por padrão
-            statusAtivos.add(m.status);
-        }
-    });
-    activeExpeditions.forEach(exp => {
-        statusAtivos.add(exp.status);
-    });
-
-    // Popula o select do filtro dinamicamente
-    const filtroStatusSelect = document.getElementById('filtroStatusMotorista');
-    const statusSelecionado = filtroStatusSelect.value;
-    filtroStatusSelect.innerHTML = '<option value="">Todos</option>';
-    const statusOrdenados = Array.from(statusAtivos).sort();
-    statusOrdenados.forEach(s => {
-        filtroStatusSelect.innerHTML += `<option value="${s}" ${statusSelecionado === s ? 'selected' : ''}>${getStatusLabel(s)}</option>`;
-    });
-
-    // 2. Aplica o filtro de status, pegando o valor dinâmico
-    const filtroStatus = filtroStatusSelect.value;
-    
-    // Agora, filtra a lista de veículos a ser exibida
-    let veiculosFiltrados = veiculos.filter(v => v.status !== 'manutencao');
-
-    if (filtroStatus) {
-        veiculosFiltrados = veiculosFiltrados.filter(veiculo => {
-            if (veiculo.status === filtroStatus) {
-                return true;
-            }
+            const [activeExpeditions, recentlyCompletedExpeditions, allItems] = await Promise.all([
+                 supabaseRequest(`expeditions?status=not.in.(entregue,cancelado)`),
+                 supabaseRequest(`expeditions?status=eq.entregue&order=data_hora.desc&limit=50`),
+                 supabaseRequest('expedition_items')
+            ]);
             
-            const motoristaAssociado = motoristas.find(m => m.veiculo_id === veiculo.id);
-            if (motoristaAssociado && motoristaAssociado.status === filtroStatus) {
-                return true;
-            }
-            
-            const activeExp = activeExpeditions.find(exp => exp.veiculo_id === veiculo.id);
-            if (activeExp && activeExp.status === filtroStatus) {
-                return true;
-            }
-            
-            return false;
-        });
-    }
+            let html = `<div class="stats-grid">
+                <div class="stat-card"><div class="stat-number">${motoristas.filter(m => m.status === 'disponivel').length}</div><div class="stat-label">Disponíveis</div></div>
+                <div class="stat-card" style="background: var(--secondary-gradient);"><div class="stat-number">${motoristas.filter(m => ['em_viagem', 'descarregando_imobilizado', 'saiu_para_entrega'].includes(m.status)).length}</div><div class="stat-label">Em Atividade</div></div>
+                <div class="stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${motoristas.filter(m => ['retornando_cd', 'retornando_com_imobilizado'].includes(m.status)).length}</div><div class="stat-label">Retornando</div></div>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800 my-4">Status dos Motoristas</h3>
+            `;
 
-    let html = `<div class="stats-grid">
-        <div class="stat-card"><div class="stat-number">${veiculosFiltrados.filter(v => v.status === 'disponivel').length}</div><div class="stat-label">Disponíveis</div></div>
-        <div class="stat-card" style="background: var(--secondary-gradient);"><div class="stat-number">${veiculosFiltrados.filter(v => ['em_uso', 'carregando'].includes(v.status)).length}</div><div class="stat-label">Em Atividade</div></div>
-        <div class="stat-card" style="background: var(--accent-gradient);"><div class="stat-number">${veiculosFiltrados.length}</div><div class="stat-label">Total Ativo</div></div>
-    </div>
-    <h3 class="text-xl font-semibold text-gray-800 my-4">Status da Frota</h3>
-    `;
+            const motoristasComStatus = motoristas.map(m => {
+                const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
+                if (activeExp) {
+                    const itemsForExp = allItems.filter(i => i.expedition_id === activeExp.id);
+                    return { ...m, displayStatus: activeExp.status, veiculoId: activeExp.veiculo_id, activeExp: { ...activeExp, items: itemsForExp } };
+                } else {
+                    const lastCompletedExp = recentlyCompletedExpeditions.find(exp => exp.motorista_id === m.id);
+                    return { ...m, displayStatus: m.status, veiculoId: lastCompletedExp ? lastCompletedExp.veiculo_id : null };
+                }
+            });
 
-    const veiculosOrdenados = veiculosFiltrados.sort((a, b) => a.placa.localeCompare(b.placa));
+            motoristasComStatus.sort((a, b) => a.nome.localeCompare(b.nome));
 
-    veiculosOrdenados.forEach(veiculo => {
-        const motoristaAssociado = motoristas.find(m => {
-            const activeExp = activeExpeditions.find(exp => exp.motorista_id === m.id);
-            return activeExp && activeExp.veiculo_id === veiculo.id;
-        });
+            motoristasComStatus.forEach(m => {
+                let actionButton = '';
+                if ((m.status === 'retornando_cd' || m.status === 'retornando_com_imobilizado') && m.veiculoId) {
+                    actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${m.id}', '${m.veiculoId}')">Cheguei no CD</button>`;
+                } else if (m.status === 'descarregando_imobilizado' && m.veiculoId) {
+                    actionButton = `<button class="btn btn-warning btn-small" onclick="finalizarDescargaImobilizado('${m.id}', '${m.veiculoId}')">Finalizar Descarga</button>`;
+                }
 
-        const activeExp = activeExpeditions.find(exp => exp.veiculo_id === veiculo.id);
-        
-        let actionButton = '';
-        let timeInfo = '';
-        let statusDisplay = '';
-        let statusKey = '';
+                let timeInfo = '';
+                if (m.activeExp && m.displayStatus === 'saiu_para_entrega') {
+                    timeInfo = `
+                        <div class="text-xs text-gray-500 mt-1">
+                            <span id="loja_timer_${m.id}">Loja: --:--</span> | 
+                            <span id="desloc_timer_${m.id}">Desloc.: --:--</span>
+                        </div>
+                    `;
+                }
 
-        if (activeExp) {
-            statusKey = activeExp.status;
-            statusDisplay = getStatusLabel(activeExp.status).toUpperCase();
-            
-            if (activeExp.status === 'saiu_para_entrega') {
-                const itemsForExp = allItems.filter(i => i.expedition_id === activeExp.id);
-                timeInfo = `
-                    <div class="text-xs text-gray-500 mt-1">
-                        <span id="loja_timer_${veiculo.id}">Loja: --:--</span> | 
-                        <span id="desloc_timer_${veiculo.id}">Desloc.: --:--</span>
-                    </div>
-                `;
-                const timerId = `veiculo_${veiculo.id}`;
-                if(activeTimers[timerId]) clearInterval(activeTimers[timerId]);
-                
-                activeTimers[timerId] = setInterval(() => {
-                    let tempoEmLoja = 0, tempoDeslocamento = 0;
-                    let lastEventTime = new Date(activeExp.data_saida_entrega);
+                html += `
+                    <div class="motorista-status-item">
+                        <div>
+                            <strong class="text-gray-800">${m.nome}</strong>
+                            ${timeInfo}
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="status-badge status-${m.displayStatus.replace(/ /g, '_')}">${getStatusLabel(m.displayStatus)}</span>
+                            ${actionButton}
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
 
-                    itemsForExp.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach(item => {
-                        if(item.data_inicio_descarga) {
-                            const inicio = new Date(item.data_inicio_descarga);
-                            tempoDeslocamento += (inicio - lastEventTime);
-                            if(item.data_fim_descarga) {
-                                const fim = new Date(item.data_fim_descarga);
-                                tempoEmLoja += (fim - inicio);
-                                lastEventTime = fim;
-                            } else {
-                                tempoEmLoja += (new Date() - inicio);
-                                lastEventTime = new Date();
-                            }
-                        }
-                    });
+            // Iniciar timers
+            motoristasComStatus.forEach(m => {
+                if(m.activeExp && m.displayStatus === 'saiu_para_entrega') {
+                    const timerId = `motorista_${m.id}`;
+                    if(activeTimers[timerId]) clearInterval(activeTimers[timerId]);
                     
-                    const elLoja = document.getElementById(`loja_timer_${veiculo.id}`);
-                    const elDesloc = document.getElementById(`desloc_timer_${veiculo.id}`);
+                    activeTimers[timerId] = setInterval(() => {
+                        let tempoEmLoja = 0, tempoDeslocamento = 0;
+                        let lastEventTime = new Date(m.activeExp.data_saida_entrega);
 
-                    if(elLoja) elLoja.textContent = `Loja: ${minutesToHHMM(tempoEmLoja / 60000)}`;
-                    if(elDesloc) elDesloc.textContent = `Desloc.: ${minutesToHHMM(tempoDeslocamento / 60000)}`;
-                }, 1000);
-            }
-        } else if (motoristaAssociado) {
-            statusKey = motoristaAssociado.status;
-            statusDisplay = getStatusLabel(motoristaAssociado.status).toUpperCase();
-        } else {
-            statusKey = veiculo.status;
-            switch(veiculo.status) {
-                case 'disponivel':
-                    statusDisplay = 'DISPONÍVEL';
-                    break;
-                case 'em_uso':
-                    statusDisplay = 'CARREGANDO';
-                    statusKey = 'carregando';
-                    break;
-                default:
-                    statusDisplay = getStatusLabel(veiculo.status).toUpperCase();
-            }
+                        m.activeExp.items.sort((a,b) => new Date(a.data_inicio_descarga) - new Date(b.data_inicio_descarga)).forEach(item => {
+                            if(item.data_inicio_descarga) {
+                               const inicio = new Date(item.data_inicio_descarga);
+                               tempoDeslocamento += (inicio - lastEventTime);
+                               if(item.data_fim_descarga) {
+                                   const fim = new Date(item.data_fim_descarga);
+                                   tempoEmLoja += (fim - inicio);
+                                   lastEventTime = fim;
+                               } else {
+                                   tempoEmLoja += (new Date() - inicio);
+                                   lastEventTime = new Date();
+                               }
+                            }
+                        });
+                        
+                        const elLoja = document.getElementById(`loja_timer_${m.id}`);
+                        const elDesloc = document.getElementById(`desloc_timer_${m.id}`);
+
+                        if(elLoja) elLoja.textContent = `Loja: ${minutesToHHMM(tempoEmLoja / 60000)}`;
+                        if(elDesloc) elDesloc.textContent = `Desloc.: ${minutesToHHMM(tempoDeslocamento / 60000)}`;
+
+                    }, 1000);
+                }
+            });
         }
 
-        if (motoristaAssociado) {
-            if (['retornando_cd', 'retornando_com_imobilizado'].includes(motoristaAssociado.status)) {
-                actionButton = `<button class="btn btn-primary btn-small" onclick="marcarRetornoCD('${motoristaAssociado.id}', '${veiculo.id}')">Cheguei no CD</button>`;
-            } else if (motoristaAssociado.status === 'descarregando_imobilizado') {
-                actionButton = `<button class="btn btn-warning btn-small" onclick="finalizarDescargaImobilizado('${motoristaAssociado.id}', '${veiculo.id}')">Finalizar Descarga</button>`;
-            }
-        }
-
-        let statusClass = `status-badge status-${statusKey}`;
-        if (['carregando', 'em_carregamento', 'saiu_para_entrega'].includes(statusKey)) {
-            statusClass += ' status-animated';
-        }
-
-        html += `
-            <div class="motorista-status-item">
-                <div>
-                    <strong class="text-gray-800">${veiculo.placa}</strong>
-                    ${timeInfo}
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="${statusClass}">${statusDisplay}</span>
-                    ${actionButton}
-                </div>
-            </div>`;
-    });
-    
-    container.innerHTML = html;
-    feather.replace();
-}
         async function consultarExpedicoesPorPlaca() {
             const placa = document.getElementById('placaMotorista').value;
             if (!placa) {
@@ -6106,70 +5904,152 @@ async function getRouteFromAPI(waypoints) {
         return null;
     }
 }
-let selectedCargasParaFinalizar = [];
+// NOVO: Funções para o Modal de Ordem de Carregamento
 
-function openReorderModal(lojasParaReordenar, cargasSelecionadas) {
-    selectedCargasParaFinalizar = cargasSelecionadas;
-    const listContainer = document.getElementById('reorderLojasList');
-    listContainer.innerHTML = '';
+/**
+ * Abre o modal para ordenar as lojas de uma nova expedição.
+ * @param {string} expeditionId - O ID da expedição recém-criada.
+ */
+async function openOrdemCarregamentoModal(expeditionId) {
+    const modal = document.getElementById('ordemCarregamentoModal');
+    const list = document.getElementById('ordemLojasList');
+    document.getElementById('ordemExpeditionId').value = expeditionId;
+    list.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando lojas...</div>`;
+    modal.style.display = 'flex';
 
-    lojasParaReordenar.forEach(loja => {
-        const li = document.createElement('div');
-        li.className = 'bg-white p-3 rounded-md shadow-sm cursor-grab flex justify-between items-center';
-        li.dataset.lojaId = loja.id;
-        li.innerHTML = `
-            <div>
-                <strong class="text-gray-800">${loja.codigo} - ${loja.nome}</strong>
-                <p class="text-xs text-gray-500">${loja.pallets}P + ${loja.rolltrainers}R</p>
-            </div>
-            <i data-feather="move" class="h-4 w-4 text-gray-400"></i>
-        `;
-        listContainer.appendChild(li);
-    });
+    try {
+        // Busca os itens da expedição e os dados das lojas associadas
+        const items = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}&select=*,lojas(codigo,nome)`);
+        
+        if (!items || items.length === 0) {
+            showNotification('Nenhum item encontrado para esta expedição.', 'error');
+            closeOrdemCarregamentoModal();
+            return;
+        }
 
-    feather.replace(); // Para renderizar o ícone de 'move'
-    
-    // Inicializar o SortableJS para o drag and drop
-    new Sortable(listContainer, {
-        animation: 150,
-        handle: '.cursor-grab'
-    });
+        // Popula a lista com os itens arrastáveis
+        list.innerHTML = items.map(item => `
+            <li draggable="true" data-item-id="${item.id}" class="flex items-center">
+                <i data-feather="menu" class="drag-handle"></i>
+                <div>
+                    <strong class="text-gray-800">${item.lojas.codigo} - ${item.lojas.nome}</strong>
+                    <div class="text-sm text-gray-500">${item.pallets} Pallets, ${item.rolltrainers} RollTainers</div>
+                </div>
+            </li>
+        `).join('');
 
-    document.getElementById('reorderLojasModal').style.display = 'flex';
+        feather.replace(); // Renderiza os ícones (como o de arrastar)
+
+        // Adiciona os event listeners de drag-and-drop
+        const draggables = list.querySelectorAll('li[draggable="true"]');
+        draggables.forEach(draggable => {
+            draggable.addEventListener('dragstart', () => {
+                draggable.classList.add('dragging');
+            });
+            draggable.addEventListener('dragend', () => {
+                draggable.classList.remove('dragging');
+            });
+        });
+
+        list.addEventListener('dragover', e => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(list, e.clientY);
+            const dragging = document.querySelector('.dragging');
+            if (!dragging) return;
+            if (afterElement == null) {
+                list.appendChild(dragging);
+            } else {
+                list.insertBefore(dragging, afterElement);
+            }
+        });
+
+    } catch (error) {
+        showNotification(`Erro ao carregar itens da expedição: ${error.message}`, 'error');
+        closeOrdemCarregamentoModal();
+    }
 }
 
-function closeReorderModal() {
-    document.getElementById('reorderLojasModal').style.display = 'none';
-    selectedCargasParaFinalizar = [];
+/**
+ * Função auxiliar para encontrar o elemento sobre o qual o item está sendo arrastado.
+ */
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('li[draggable="true"]:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-function confirmReorderAndProceed() {
-    const veiculoId = document.getElementById('alocar_veiculoSelect').value;
-    const motoristaId = document.getElementById('alocar_motoristaSelect').value;
-    
-    if (!veiculoId || !motoristaId) {
-        showNotification('Selecione o veículo e o motorista para alocar!', 'error');
-        // Não fechar o modal, apenas mostrar a notificação
+
+function closeOrdemCarregamentoModal() {
+    document.getElementById('ordemCarregamentoModal').style.display = 'none';
+    document.getElementById('ordemLojasList').innerHTML = '';
+}
+
+// SUBSTITUA A FUNÇÃO ANTIGA POR ESTA
+async function saveOrdemCarregamento() {
+    const expeditionId = document.getElementById('ordemExpeditionId').value;
+    const orderedItems = document.querySelectorAll('#ordemLojasList li');
+
+    if (orderedItems.length === 0) {
+        showNotification('Nenhuma loja para ordenar.', 'error');
         return;
     }
 
-    alocarVeiculoEFinalizar();
+    // Cria um array de objetos para a atualização
+    const updates = Array.from(orderedItems).map((item, index) => {
+        return {
+            id: item.dataset.itemId,
+            ordem_entrega: index + 1
+        };
+    });
+
+    try {
+        // Cria uma lista de promessas de atualização, uma para cada item
+        const updatePromises = updates.map(update => {
+            const endpoint = `expedition_items?id=eq.${update.id}`; // Especifica o ID do item
+            const payload = { ordem_entrega: update.ordem_entrega }; // Envia apenas o dado a ser atualizado
+            return supabaseRequest(endpoint, 'PATCH', payload, false);
+        });
+
+        // Executa todas as atualizações
+        await Promise.all(updatePromises);
+
+        showNotification('Ordem de carregamento salva com sucesso!', 'success');
+        
+        closeOrdemCarregamentoModal();
+
+        // Recarrega os dados
+        loadTransportList();
+        await loadSelectData(); 
+    } catch (error) {
+        // A mensagem de erro agora virá do supabaseRequest, que já é detalhada
+        // Apenas para garantir, logamos o erro completo no console.
+        console.error("Erro completo ao salvar ordem:", error);
+    }
 }
         // Inicialização
         document.addEventListener('DOMContentLoaded', async () => {
             await loadFiliais();
         });
     </script>
-    <div id="reorderLojasModal" class="modal-overlay">
+    <div id="ordemCarregamentoModal" class="modal-overlay">
     <div class="modal-content" style="width: 90vw; max-width: 600px;">
-        <h3 class="text-xl font-semibold mb-4">Reordenar Roteiro de Entregas</h3>
-        <p class="text-sm text-gray-600 mb-4">Arraste e solte as lojas para definir a ordem de descarga.</p>
-        <div id="reorderLojasList" class="space-y-2 p-4 bg-gray-100 rounded-lg border border-dashed border-gray-300">
-            </div>
-        <div class="mt-6 flex gap-4">
-            <button class="btn btn-success flex-1" onclick="confirmReorderAndProceed()">Confirmar Ordem e Continuar</button>
-            <button class="btn btn-danger flex-1" onclick="closeReorderModal()">Cancelar</button>
+        <h3 class="text-xl font-semibold mb-4">Definir Ordem de Carregamento</h3>
+        <p class="text-gray-600 mb-4">Arraste e solte as lojas para definir a ordem de entrega. A primeira da lista será a primeira a ser visitada.</p>
+        <ul id="ordemLojasList" class="space-y-2">
+            </ul>
+        <div class="flex gap-4 mt-6">
+            <button type="button" class="btn btn-success flex-1" onclick="saveOrdemCarregamento()">Salvar Ordem</button>
+            <button type="button" class="btn btn-danger flex-1" onclick="closeOrdemCarregamentoModal()">Cancelar</button>
         </div>
+        <input type="hidden" id="ordemExpeditionId">
     </div>
 </div>
 </body>
