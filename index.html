@@ -2602,7 +2602,7 @@ async function loadHomeMapDataForFullscreen() {
                 const updatePromises = [
                     supabaseRequest(`veiculos?id=eq.${veiculoId}`, 'PATCH', { status: 'em_uso' }, false),
                     supabaseRequest(`motoristas?id=eq.${motoristaId}`, 'PATCH', { status: 'em_viagem' }, false),
-                    supabaseRequest(`docas?id=eq.${docaAlvoId}`, 'PATCH', { status: 'em_uso' }, false)
+                    
                 ];
 
                 originalDocaIds.forEach(docaId => {
@@ -4426,22 +4426,62 @@ renderEntregasChart(entregasFort, entregasComper);
              closeEditModal();
         }
         
-        async function deleteExpedition(expeditionId) {
-             const confirmed = await showYesNoModal('Deseja realmente excluir esta expedição? Esta ação não pode ser desfeita.');
-             if(confirmed) {
-                try {
-                    const expeditionToDel = allExpeditions.find(e => e.id === expeditionId);
-                    if (expeditionToDel && expeditionToDel.doca_id) {
-                        await supabaseRequest(`docas?id=eq.${expeditionToDel.doca_id}`, 'PATCH', { status: 'disponivel' });
-                    }
-                    await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE', null, false);
-                    showNotification('Expedição excluída com sucesso!', 'success');
-                    loadAcompanhamento();
-                } catch(error) {
-                    showNotification(`Erro ao excluir: ${error.message}`, 'error');
-                }
-             }
+       // CÓDIGO CORRIGIDO
+
+async function deleteExpedition(expeditionId) {
+    const confirmed = await showYesNoModal('Deseja realmente excluir esta expedição? Esta ação não pode ser desfeita e liberará os recursos alocados.');
+    if (confirmed) {
+        try {
+            // Primeiro, busca todos os dados da expedição que será deletada
+            const expeditionToDel = allExpeditions.find(e => e.id === expeditionId);
+            if (!expeditionToDel) {
+                showNotification('Erro: Expedição não encontrada para exclusão.', 'error');
+                return;
+            }
+
+            const updatePromises = [];
+
+            // 1. Prepara a liberação da Doca (se houver)
+            if (expeditionToDel.doca_id) {
+                updatePromises.push(
+                    supabaseRequest(`docas?id=eq.${expeditionToDel.doca_id}`, 'PATCH', { status: 'disponivel' })
+                );
+            }
+
+            // 2. Prepara a liberação do Veículo (se houver)
+            if (expeditionToDel.veiculo_id) {
+                updatePromises.push(
+                    supabaseRequest(`veiculos?id=eq.${expeditionToDel.veiculo_id}`, 'PATCH', { status: 'disponivel' }, false)
+                );
+            }
+
+            // 3. Prepara a liberação do Motorista (se houver)
+            if (expeditionToDel.motorista_id) {
+                updatePromises.push(
+                    supabaseRequest(`motoristas?id=eq.${expeditionToDel.motorista_id}`, 'PATCH', { status: 'disponivel' }, false)
+                );
+            }
+            
+            // Executa todas as atualizações de status em paralelo
+            await Promise.all(updatePromises);
+
+            // 4. Exclui os itens da expedição (cargas das lojas)
+            await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'DELETE', null, false);
+
+            // 5. Exclui a expedição principal
+            await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE', null, false);
+            
+            showNotification('Expedição excluída e recursos liberados com sucesso!', 'success');
+            
+            // Recarrega os dados para atualizar a tela
+            await loadSelectData();
+            loadAcompanhamento();
+
+        } catch (error) {
+            showNotification(`Erro ao excluir: ${error.message}`, 'error');
         }
+    }
+}
         
         // --- FUNCIONALIDADES DA ABA CONFIGURAÇÕES ---
 
