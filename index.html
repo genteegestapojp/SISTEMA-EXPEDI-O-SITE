@@ -996,6 +996,11 @@ if (mapInstance) {
                             <input type="number" id="lancar_rolltrainersInput" class="rolltrainers-input" min="0" required placeholder="0">
                         </div>
                         <div class="form-group md:col-span-2">
+                            <label for="lancar_numerosCarga">Números de Carga (separados por vírgula):</label>
+                            <input type="text" id="lancar_numerosCarga" placeholder="Ex: CG001, CG002, CG003" class="w-full">
+                            <small class="text-gray-500">Deixe em branco se não houver números específicos</small>
+                        </div>
+                        <div class="form-group md:col-span-2">
                              <label for="lancar_liderSelect">Líder Responsável:</label>
                              <select id="lancar_liderSelect" required></select>
                         </div>
@@ -2424,6 +2429,7 @@ async function loadHomeMapDataForFullscreen() {
             const pallets = parseInt(document.getElementById('lancar_palletsInput').value);
             const rolltrainers = parseInt(document.getElementById('lancar_rolltrainersInput').value);
             const liderId = document.getElementById('lancar_liderSelect').value;
+            const numerosCargaInput = document.getElementById('lancar_numerosCarga').value.trim();
             const observacoes = document.getElementById('lancar_observacoes').value;
 
             if (!lojaId || !liderId || !docaId || (isNaN(pallets) && isNaN(rolltrainers))) {
@@ -2436,7 +2442,21 @@ async function loadHomeMapDataForFullscreen() {
             }
 
             try {
-                const expeditionData = { data_hora: new Date().toISOString(), lider_id: liderId, doca_id: docaId, observacoes: observacoes || null, status: 'aguardando_agrupamento' };
+                // Processar números de carga
+                let numerosCarga = [];
+                if (numerosCargaInput) {
+                    numerosCarga = numerosCargaInput.split(',').map(num => num.trim()).filter(num => num.length > 0);
+                }
+
+                const expeditionData = { 
+                    data_hora: new Date().toISOString(), 
+                    lider_id: liderId, 
+                    doca_id: docaId, 
+                    observacoes: observacoes || null, 
+                    status: 'aguardando_agrupamento',
+                    numeros_carga: numerosCarga.length > 0 ? numerosCarga : null
+                };
+                
                 const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
                 if (!expeditionResponse || expeditionResponse.length === 0) {
                     throw new Error("A criação da expedição falhou e não retornou um ID.");
@@ -2447,7 +2467,8 @@ async function loadHomeMapDataForFullscreen() {
                 await supabaseRequest('expedition_items', 'POST', itemData);
 
                 const lojaNome = lojas.find(l => l.id === lojaId)?.nome || 'Loja';
-                showNotification(`Carga para ${lojaNome} lançada e disponível para alocação!`, 'success');
+                const cargasInfo = numerosCarga.length > 0 ? ` (Cargas: ${numerosCarga.join(', ')})` : '';
+                showNotification(`Expedição para ${lojaNome}${cargasInfo} lançada com sucesso!`, 'success');
 
                 document.getElementById('expeditionForm').reset();
                 document.getElementById('lancar_lojaSelect').focus();
@@ -2461,7 +2482,6 @@ async function loadHomeMapDataForFullscreen() {
                 showNotification(`Erro ao lançar carga: ${error.message}`, 'error');
             }
         }
-
         // --- FUNCIONALIDADES DA ABA TRANSPORTE ---
         async function loadTransportList() {
             try {
@@ -2498,12 +2518,14 @@ async function loadHomeMapDataForFullscreen() {
             let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
             cargas.forEach(carga => {
                 const loja = lojas.find(l => l.id === carga.items[0].loja_id);
+                const numerosCarga = carga.numeros_carga && carga.numeros_carga.length > 0 ? carga.numeros_carga.join(', ') : null;
                 html += `
                     <div class="form-group rounded-lg p-3 border border-gray-200 hover:border-blue-400">
                         <label for="carga_${carga.id}" class="flex items-center cursor-pointer">
                             <input type="checkbox" id="carga_${carga.id}" value="${carga.id}" onchange="atualizarResumoAgrupamento()" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3">
                             <div>
                                 <strong class="text-gray-800">${loja ? `${loja.codigo} - ${loja.nome}` : 'N/A'}</strong><br>
+                                ${numerosCarga ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mb-1 inline-block">📦 ${numerosCarga}</span><br>` : ''}
                                 <span class="text-sm text-gray-500">${carga.items[0].pallets}P + ${carga.items[0].rolltrainers}R | ${new Date(carga.data_hora).toLocaleTimeString('pt-BR')}</span>
                             </div>
                         </label>
@@ -2688,8 +2710,9 @@ await openOrdemCarregamentoModal(newExpeditionId);
 
                 return `
                     <div class="faturamento-card">
-                        <h3 class="text-lg font-bold text-gray-800">${exp.lojas_count} loja${exp.lojas_count > 1 ? 's' : ''} - ${exp.veiculo_placa || 'N/A'}</h3>
-                        <p class="text-sm text-gray-500 mb-4">${exp.lojas_info}</p>
+                       <h3 class="text-lg font-bold text-gray-800">${exp.lojas_count} loja${exp.lojas_count > 1 ? 's' : ''} - ${exp.veiculo_placa || 'N/A'}</h3>
+                        <p class="text-sm text-gray-500 mb-2">${exp.lojas_info}</p>
+                        ${exp.numeros_carga && exp.numeros_carga.length > 0 ? `<p class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mb-2 inline-block">📦 Cargas: ${exp.numeros_carga.join(', ')}</p>` : ''}
                         ${statusInfo}
                         <div class="time-display">
                             <strong>Carregado há:</strong> ${minutesToHHMM(tempoEspera)}
@@ -3484,7 +3507,8 @@ populateRastreioFilters();
                 if (dataFim && expDate > dataFim) return false;
                 if (status && exp.status !== status) return false;
                 if (searchTerm) {
-                    const searchable = [exp.lojas_info, exp.doca_nome, exp.lider_nome, exp.veiculo_placa, exp.motorista_nome].join(' ').toLowerCase();
+                    const numerosCargaSearch = exp.numeros_carga ? exp.numeros_carga.join(' ') : '';
+                    const searchable = [exp.lojas_info, exp.doca_nome, exp.lider_nome, exp.veiculo_placa, exp.motorista_nome, numerosCargaSearch].join(' ').toLowerCase();
                     if (!searchable.includes(searchTerm)) return false;
                 }
                 return true;
@@ -3551,7 +3575,10 @@ populateRastreioFilters();
                 return `
                     <tr class="hover:bg-gray-50 text-sm">
                         <td>${new Date(exp.data_hora).toLocaleString('pt-BR')}</td>
-                        <td class="whitespace-normal">${exp.lojas_info}</td>
+                        <td class="whitespace-normal">
+                            ${exp.lojas_info}
+                            ${exp.numeros_carga_display ? `<br><span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">📦 ${exp.numeros_carga_display}</span>` : ''}
+                        </td>
                         <td>${exp.total_pallets}</td>
                         <td>${exp.total_rolltrainers}</td>
                         <td>${exp.doca_nome}</td>
@@ -4189,9 +4216,10 @@ function updateLastRefreshTime() {
                 return `
                     <div class="historico-card">
                         <div class="flex justify-between items-start">
-                            <div>
+                           <div>
                                 <h3 class="text-lg font-bold">${new Date(exp.data_hora).toLocaleDateString('pt-BR')} - ${exp.veiculo_placa}</h3>
                                 <p class="text-sm text-gray-500">Motorista: ${exp.motorista_nome}</p>
+                                ${exp.numeros_carga && exp.numeros_carga.length > 0 ? `<p class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-1 inline-block">📦 ${exp.numeros_carga.join(', ')}</p>` : ''}
                             </div>
                             <div class="flex flex-col items-end gap-2">
     <span class="status-badge status-entregue">Entregue</span>
