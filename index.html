@@ -1357,83 +1357,121 @@ if (mapInstance) {
                 <div id="configuracoesContent" style="display: none;">
                     <div class="sub-tabs">
     <button class="sub-tab active" onclick="showSubTab('configuracoes', 'geral', this)">Geral</button>
-    <button class="sub-tab" onclick="showSubTab('configuracoes', 'transporteConfig', this)">Transporte</button>
+    <button class="sub-tab" onclick="showSubTab('configuracoes', 'lojasConfig', this)">Lojas</button>
+    <button class="sub-tab" onclick="showSubTab('configuracoes', 'docasConfig', this)">Docas</button>
+    <button class="sub-tab" onclick="showSubTab('configuracoes', 'veiculosConfig', this)">Veículos</button>
     <button class="sub-tab" onclick="showSubTab('configuracoes', 'motoristasConfig', this)">Motoristas</button>
-    <button class="sub-tab" onclick="showSubTab('configuracoes', 'pontosInteresse', this)">Pontos de Interesse</button>
+    <button class="sub-tab" onclick="showSubTab('configuracoes', 'lideresConfig', this)">Líderes</button>
+    <button class="sub-tab" onclick="showSubTab('configuracoes', 'pontosInteresse', this)">Pontos</button>
 </div>
 
                     <div id="geral" class="sub-tab-content active">
     <div class="transport-card">
-        <h3 class="text-xl font-semibold mb-4">Gerenciar Cadastros</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <button class="btn btn-primary btn-small" onclick="showAddForm('filial')">+ Filial</button>
-            <button class="btn btn-success btn-small" onclick="showAddForm('loja')">+ Loja</button>
-            <button class="btn btn-success btn-small" onclick="showAddForm('doca')">+ Doca</button>
-            <button class="btn btn-success btn-small" onclick="showAddForm('lider')">+ Líder</button>
-            <button class="btn btn-success btn-small" onclick="showAddForm('veiculo')">+ Veículo</button>
-            <button class="btn btn-success btn-small" onclick="showAddForm('motorista')">+ Motorista</button>
-            <button class="btn btn-warning btn-small" onclick="showAddForm('acesso')">+ Acesso</button>
-            <button class="btn btn-warning btn-small" onclick="showLojasConfig()">Gerenciar Lojas</button>
+        <h3 class="text-xl font-semibold mb-4">Visão Geral do Sistema</h3>
+        <pre id="systemStatus" class="bg-gray-100 p-4 rounded-md text-sm whitespace-pre-wrap">Carregando status...</pre>
+    </div>
+    
+    <div class="transport-card">
+        <h3 class="text-xl font-semibold mb-4">Ações Rápidas</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button class="btn btn-primary" onclick="showAddForm('filial')">+ Nova Filial</button>
+            <button class="btn btn-success" onclick="showAddForm('acesso')">+ Novo Acesso</button>
+            <button class="btn btn-warning" onclick="showAllLojasMap()">🗺️ Ver Todas Lojas</button>
+            <button class="btn btn-secondary" onclick="loadSelectData()">🔄 Recarregar Dados</button>
         </div>
     </div>
+</div>
 
+<div id="lojasConfig" class="sub-tab-content">
     <div class="transport-card">
-        <h3 class="text-xl font-semibold mb-4">Lojas Cadastradas</h3>
+        <h3 class="text-xl font-semibold mb-4">Gerenciar Lojas</h3>
         <div class="mb-4 flex gap-2">
-            <button class="btn btn-primary" onclick="showAllLojasMap()">🗺️ Ver Todas no Mapa</button>
             <button class="btn btn-success" onclick="showAddForm('loja')">+ Nova Loja</button>
+            <button class="btn btn-primary" onclick="showAllLojasMap()">🗺️ Ver Todas no Mapa</button>
             <button class="btn btn-secondary" onclick="renderLojasConfig()">🔄 Atualizar Lista</button>
         </div>
         <div id="lojasConfigContainer" class="table-container bg-white rounded-lg shadow-md">
             <table class="w-full">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Nome</th>
-                        <th>Cidade</th>
-                        <th>Endereço</th>
-                        <th>Coordenadas</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="lojasConfigBody">
-                    <tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando lojas...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <div class="transport-card">
-        <h3 class="text-xl font-semibold mb-4">Status do Sistema</h3>
-        <pre id="systemStatus" class="bg-gray-100 p-4 rounded-md text-sm whitespace-pre-wrap"></pre>
-        
-    </div>
-</div>
-<div id="transporteConfig" class="sub-tab-content">
-    <div class="transport-card">
-        <h3 class="text-xl font-semibold mb-4">Gerenciar Frota</h3>
-        <div id="veiculosConfigContainer" class="table-container bg-white rounded-lg shadow-md">
-            <table class="w-full">
-                <thead>
-                    <tr><th>Placa</th><th>Modelo</th><th>Tipo</th><th>Capacidade (P)</th><th>Status</th><th>Ações</th></tr>
-                </thead>
-                <tbody id="veiculosConfigBody">
-                    <tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando veículos...</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4 text-right">
-            <button class="btn btn-success" onclick="showAddForm('veiculo')">Adicionar Novo Veículo</button>
+    <thead>
+        <tr>
+            <th>Código</th>
+            <th>Nome</th>
+            <th>Cidade</th>
+            <th>Endereço</th>
+            <th>Coordenadas</th>
+            <th>Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="lojasConfigBody">
+        <tr><td colspan="7" class="loading"><div class="spinner"></div>Carregando lojas...</td></tr>
+    </tbody>
+</table>
         </div>
     </div>
 </div>
 
-                   <div id="motoristasConfig" class="sub-tab-content">
-    <div class="table-container bg-white rounded-lg shadow-md">
-        <table class="w-full">
-            <thead><tr><th>Nome</th><th>Produtivo</th><th>Status</th><th>Ações</th></tr></thead>
-            <tbody id="motoristasConfigBody"></tbody>
-        </table>
+<div id="docasConfig" class="sub-tab-content">
+    <div class="transport-card">
+        <h3 class="text-xl font-semibold mb-4">Gerenciar Docas</h3>
+        <div class="mb-4">
+            <button class="btn btn-success" onclick="showAddForm('doca')">+ Nova Doca</button>
+        </div>
+        <div class="table-container bg-white rounded-lg shadow-md">
+            <table class="w-full">
+                <thead>
+                    <tr><th>Nome</th><th>Capacidade</th><th>Código QR</th><th>Status</th><th>Ações</th></tr>
+                </thead>
+                <tbody id="docasConfigBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="veiculosConfig" class="sub-tab-content">
+    <div class="transport-card">
+        <h3 class="text-xl font-semibold mb-4">Gerenciar Frota</h3>
+        <div class="mb-4">
+            <button class="btn btn-success" onclick="showAddForm('veiculo')">+ Novo Veículo</button>
+        </div>
+        <div class="table-container bg-white rounded-lg shadow-md">
+            <table class="w-full">
+                <thead>
+                    <tr><th>Placa</th><th>Modelo</th><th>Tipo</th><th>Capacidade (P)</th><th>Status</th><th>Ações</th></tr>
+                </thead>
+                <tbody id="veiculosConfigBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="motoristasConfig" class="sub-tab-content">
+    <div class="transport-card">
+        <h3 class="text-xl font-semibold mb-4">Gerenciar Motoristas</h3>
+        <div class="mb-4">
+            <button class="btn btn-success" onclick="showAddForm('motorista')">+ Novo Motorista</button>
+        </div>
+        <div class="table-container bg-white rounded-lg shadow-md">
+            <table class="w-full">
+                <thead><tr><th>Nome</th><th>Produtivo</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody id="motoristasConfigBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="lideresConfig" class="sub-tab-content">
+    <div class="transport-card">
+        <h3 class="text-xl font-semibold mb-4">Gerenciar Líderes</h3>
+        <div class="mb-4">
+            <button class="btn btn-success" onclick="showAddForm('lider')">+ Novo Líder</button>
+        </div>
+        <div class="table-container bg-white rounded-lg shadow-md">
+            <table class="w-full">
+                <thead><tr><th>Nome</th><th>Matrícula</th><th>Ativo</th><th>Ações</th></tr></thead>
+                <tbody id="lideresConfigBody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -1466,15 +1504,6 @@ if (mapInstance) {
         </div>
     </div>
 </div>
-                    <div id="motoristasConfig" class="sub-tab-content">
-                         <div class="table-container bg-white rounded-lg shadow-md">
-                            <table class="w-full">
-                                <thead><tr><th>Nome</th><th>Produtivo</th><th>Status</th><th>Ações</th></tr></thead>
-                                <tbody id="motoristasConfigBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
             `;
 
 
@@ -1491,10 +1520,14 @@ if (mapInstance) {
         async function loadSelectData() {
     try {
         const [lojasData, docasData, veiculosData, motoristasData, lideresData] = await Promise.all([
-            // Ordena lojas por código primeiro, depois por nome
+            // SUBSTITUIR estas linhas:
             supabaseRequest('lojas?select=*,codlojaqr,endereco_completo,latitude,longitude&ativo=eq.true&order=codigo,nome'),
-            // Ordena docas por nome
             supabaseRequest('docas?ativo=eq.true&order=nome'),
+            
+            // POR estas (com ordenação melhorada):
+            supabaseRequest('lojas?select=*,codlojaqr,endereco_completo,latitude,longitude&ativo=eq.true&order=codigo.asc,nome.asc'),
+            supabaseRequest('docas?ativo=eq.true&order=status.asc,nome.asc'),
+            
             supabaseRequest('veiculos?order=placa'),
             supabaseRequest('motoristas?order=nome'),
             supabaseRequest('lideres?ativo=eq.true&order=nome')
@@ -2801,16 +2834,22 @@ await openOrdemCarregamentoModal(newExpeditionId);
     } else if (tabName === 'historico' && subTabName === 'indicadores') {
         applyHistoricoFilters();
     } else if (tabName === 'configuracoes') {
-        if (subTabName === 'transporteConfig') {
-            renderVeiculosConfig(); 
-        } else if (subTabName === 'geral') {
-            renderLojasConfig();
-        } else if (subTabName === 'motoristasConfig') {
-            renderMotoristasConfig();
-        } else if (subTabName === 'pontosInteresse') {
-            loadPontosInteresse();
-        }
-    } else if (tabName === 'motoristas' && subTabName === 'relatorioMotoristas') {
+    if (subTabName === 'geral') {
+        updateSystemStatus();
+    } else if (subTabName === 'lojasConfig') {
+        renderLojasConfig();
+    } else if (subTabName === 'docasConfig') {
+        renderDocasConfig();
+    } else if (subTabName === 'veiculosConfig') {
+        renderVeiculosConfig();
+    } else if (subTabName === 'motoristasConfig') {
+        renderMotoristasConfig();
+    } else if (subTabName === 'lideresConfig') {
+        renderLideresConfig();
+    } else if (subTabName === 'pontosInteresse') {
+        loadPontosInteresse();
+    }
+} else if (tabName === 'motoristas' && subTabName === 'relatorioMotoristas') {
         generateMotoristaReports();
     }
     feather.replace();
@@ -4569,110 +4608,102 @@ async function deleteExpedition(expeditionId) {
             container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
         }
         
-        function showAddForm(type) {
+        function showAddForm(type, item = null) {
     const modal = document.getElementById('addFormModal');
     const title = document.getElementById('addFormTitle');
     const fieldsContainer = document.getElementById('addFormFields');
-    fieldsContainer.innerHTML = ''; // Limpa campos anteriores
+    fieldsContainer.innerHTML = '';
+    document.getElementById('addFormAlert').innerHTML = '';
 
     let formHtml = '';
+    // Adiciona o campo hidden para o ID se for uma edição
+    if (item) {
+        formHtml += `<input type="hidden" id="edit_id" value="${item.id}">`;
+    }
+    
+    // Agora, o `case` de cada tipo de item deve preencher o formulário
+    // com os dados do objeto `item` se ele existir.
     if (type === 'filial') {
         title.textContent = `Adicionar Nova Filial`;
-        formHtml = `
-            <div class="form-group"><label>Nome da Filial (Ex: 464):</label><input type="text" id="add_nome" required></div>
-            <div class="form-group"><label>Descrição (Ex: MT):</label><input type="text" id="add_descricao" required></div>
-            <div class="form-group md:col-span-2"><label>Endereço do CD (Ponto de Partida):</label><input type="text" id="add_endereco_cd" placeholder="Rua, Número, Cidade" required></div>
-            <div class="form-group"><label>Latitude do CD:</label><input type="number" id="add_latitude_cd" step="0.000001" placeholder="-15.601400"></div>
-            <div class="form-group"><label>Longitude do CD:</label><input type="number" id="add_longitude_cd" step="0.000001" placeholder="-56.097900"></div>
+        formHtml += `
+            <div class="form-group"><label>Nome da Filial (Ex: 464):</label><input type="text" id="add_nome" value="${item?.nome || ''}" required></div>
+            <div class="form-group"><label>Descrição (Ex: MT):</label><input type="text" id="add_descricao" value="${item?.descricao || ''}" required></div>
+            <div class="form-group md:col-span-2"><label>Endereço do CD (Ponto de Partida):</label><input type="text" id="add_endereco_cd" value="${item?.endereco_cd || ''}" placeholder="Rua, Número, Cidade" required></div>
+            <div class="form-group"><label>Latitude do CD:</label><input type="number" id="add_latitude_cd" step="0.000001" value="${item?.latitude_cd || ''}" placeholder="-15.601400"></div>
+            <div class="form-group"><label>Longitude do CD:</label><input type="number" id="add_longitude_cd" step="0.000001" value="${item?.longitude_cd || ''}" placeholder="-56.097900"></div>
             <div class="text-center mt-4 md:col-span-2">
                 <button type="button" class="btn btn-secondary mr-2" onclick="getCurrentLocationFilial()">📍 Usar Localização Atual</button>
                 <button type="button" class="btn btn-primary" onclick="geocodeAddressFilial()">🌍 Buscar por Endereço</button>
             </div>
         `;
     } else if (type === 'loja') {
-        title.textContent = `Adicionar Nova Loja`;
-        formHtml = `
-            <div class="form-group"><label>Nome da Loja:</label><input type="text" id="add_nome" required></div>
-            <div class="form-group"><label>Código da Loja:</label><input type="text" id="add_codigo" required></div>
-            <div class="form-group"><label>Cidade:</label><input type="text" id="add_cidade" required></div>
-            <div class="form-group"><label>Código QR:</label><input type="text" id="add_codlojaqr" required></div>
-            <div class="form-group md:col-span-2"><label>Endereço Completo:</label><input type="text" id="add_endereco_completo" placeholder="Rua, Número, Bairro, CEP" required></div>
-            <div class="form-group"><label>Latitude:</label><input type="number" id="add_latitude" step="0.000001" placeholder="-15.601400"></div>
-            <div class="form-group"><label>Longitude:</label><input type="number" id="add_longitude" step="0.000001" placeholder="-56.097900"></div>
-            <div class="form-group"><label>Status:</label><select id="add_ativo"><option value="true">Ativa</option><option value="false">Inativa</option></select></div>
+        title.textContent = item ? `Editar Loja` : `Adicionar Nova Loja`;
+        formHtml += `
+            <div class="form-group"><label>Nome da Loja:</label><input type="text" id="add_nome" value="${item?.nome || ''}" required></div>
+            <div class="form-group"><label>Código da Loja:</label><input type="text" id="add_codigo" value="${item?.codigo || ''}" required></div>
+            <div class="form-group"><label>Cidade:</label><input type="text" id="add_cidade" value="${item?.cidade || ''}" required></div>
+            <div class="form-group"><label>Código QR:</label><input type="text" id="add_codlojaqr" value="${item?.codlojaqr || ''}" required></div>
+            <div class="form-group md:col-span-2"><label>Endereço Completo:</label><input type="text" id="add_endereco_completo" value="${item?.endereco_completo || ''}" placeholder="Rua, Número, Bairro, CEP" required></div>
+            <div class="form-group"><label>Latitude:</label><input type="number" id="add_latitude" step="0.000001" value="${item?.latitude || ''}" placeholder="-15.601400"></div>
+            <div class="form-group"><label>Longitude:</label><input type="number" id="add_longitude" step="0.000001" value="${item?.longitude || ''}" placeholder="-56.097900"></div>
+            <div class="form-group"><label>Status:</label><select id="add_ativo"><option value="true" ${item?.ativo ? 'selected' : ''}>Ativa</option><option value="false" ${!item?.ativo ? 'selected' : ''}>Inativa</option></select></div>
             <div class="text-center mt-4 md:col-span-2">
                 <button type="button" class="btn btn-secondary mr-2" onclick="getCurrentLocation()">📍 Usar Localização Atual</button>
                 <button type="button" class="btn btn-primary" onclick="geocodeAddress()">🌍 Buscar por Endereço</button>
             </div>
         `;
     } else if (type === 'doca') {
-        title.textContent = `Adicionar Nova Doca`;
-        formHtml = `
-            <div class="form-group"><label>Nome da Doca:</label><input type="text" id="add_nome" required></div>
-            <div class="form-group"><label>Capacidade (Pallets):</label><input type="number" id="add_capacidade_pallets" min="0" required></div>
-            <div class="form-group"><label>Código QR:</label><input type="text" id="add_coddoca" required></div>
+        title.textContent = item ? `Editar Doca` : `Adicionar Nova Doca`;
+        formHtml += `
+            <div class="form-group"><label>Nome da Doca:</label><input type="text" id="add_nome" value="${item?.nome || ''}" required></div>
+            <div class="form-group"><label>Capacidade (Pallets):</label><input type="number" id="add_capacidade_pallets" value="${item?.capacidade_pallets || ''}" min="0" required></div>
+            <div class="form-group"><label>Código QR:</label><input type="text" id="add_coddoca" value="${item?.coddoca || ''}" required></div>
+            <div class="form-group"><label>Status:</label><select id="add_status" required>
+                <option value="disponivel" ${item?.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+                <option value="em_uso" ${item?.status === 'em_uso' ? 'selected' : ''}>Em Uso</option>
+            </select></div>
         `;
     } else if (type === 'lider') {
-        title.textContent = `Adicionar Novo Líder`;
-        formHtml = `
-            <div class="form-group"><label>Nome do Líder:</label><input type="text" id="add_nome" required></div>
-            <div class="form-group"><label>Matrícula:</label><input type="text" id="add_codigo_funcionario" required></div>
+        title.textContent = item ? `Editar Líder` : `Adicionar Novo Líder`;
+        formHtml += `
+            <div class="form-group"><label>Nome do Líder:</label><input type="text" id="add_nome" value="${item?.nome || ''}" required></div>
+            <div class="form-group"><label>Matrícula:</label><input type="text" id="add_codigo_funcionario" value="${item?.codigo_funcionario || ''}" required></div>
+            <div class="form-group"><label>Status:</label><select id="add_ativo" required>
+                <option value="true" ${item?.ativo ? 'selected' : ''}>Ativo</option>
+                <option value="false" ${!item?.ativo ? 'selected' : ''}>Inativo</option>
+            </select></div>
         `;
     } else if (type === 'veiculo') {
-        title.textContent = `Adicionar Novo Veículo`;
-        formHtml = `
-            <div class="form-group"><label>Placa:</label><input type="text" id="add_placa" required></div>
-            <div class="form-group"><label>Modelo:</label><input type="text" id="add_modelo" required></div>
-            <div class="form-group"><label>Capacidade (Pallets):</label><input type="number" id="add_capacidade_pallets" min="1" required></div>
-            <div class="form-group"><label>Tipo:</label><select id="add_tipo" required><option value="JJS">JJS</option><option value="PERLOG">PERLOG</option></select></div>
-            <div class="form-group"><label>Status:</label><select id="add_status" required><option value="disponivel">Disponível</option><option value="em_uso">Em Uso</option><option value="manutencao">Manutenção</option></select></div>
+        title.textContent = item ? `Editar Veículo` : `Adicionar Novo Veículo`;
+        formHtml += `
+            <div class="form-group"><label>Placa:</label><input type="text" id="add_placa" value="${item?.placa || ''}" required></div>
+            <div class="form-group"><label>Modelo:</label><input type="text" id="add_modelo" value="${item?.modelo || ''}" required></div>
+            <div class="form-group"><label>Capacidade (Pallets):</label><input type="number" id="add_capacidade_pallets" value="${item?.capacidade_pallets || ''}" min="1" required></div>
+            <div class="form-group"><label>Tipo:</label><select id="add_tipo" required>
+                <option value="JJS" ${item?.tipo === 'JJS' ? 'selected' : ''}>JJS</option>
+                <option value="PERLOG" ${item?.tipo === 'PERLOG' ? 'selected' : ''}>PERLOG</option>
+            </select></div>
+            <div class="form-group"><label>Status:</label><select id="add_status" required>
+                <option value="disponivel" ${item?.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+                <option value="em_uso" ${item?.status === 'em_uso' ? 'selected' : ''}>Em Uso</option>
+                <option value="manutencao" ${item?.status === 'manutencao' ? 'selected' : ''}>Manutenção</option>
+            </select></div>
         `;
     } else if (type === 'motorista') {
-        title.textContent = `Adicionar Novo Motorista`;
-        formHtml = `
-            <div class="form-group"><label>Nome:</label><input type="text" id="add_nome" required></div>
-            <div class="form-group"><label>Produtivo (Matrícula):</label><input type="text" id="add_produtivo" required></div>
-            <div class="form-group"><label>Status:</label><select id="add_status" required><option value="disponivel">Disponível</option><option value="em_viagem">Em Viagem</option><option value="folga">Folga</option></select></div>
+        title.textContent = item ? `Editar Motorista` : `Adicionar Novo Motorista`;
+        formHtml += `
+            <div class="form-group"><label>Nome:</label><input type="text" id="add_nome" value="${item?.nome || ''}" required></div>
+            <div class="form-group"><label>Produtivo (Matrícula):</label><input type="text" id="add_produtivo" value="${item?.PRODUTIVO || ''}" required></div>
+            <div class="form-group"><label>Status:</label><select id="add_status" required>
+                <option value="disponivel" ${item?.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+                <option value="em_viagem" ${item?.status === 'em_viagem' ? 'selected' : ''}>Em Viagem</option>
+                <option value="folga" ${item?.status === 'folga' ? 'selected' : ''}>Folga</option>
+            </select></div>
         `;
     } else if (type === 'acesso') {
-        title.textContent = `Adicionar Novo Acesso`;
-        formHtml = `
-            <div class="form-group"><label>Nome de Usuário:</label><input type="text" id="add_nome" required></div>
-            <div class="form-group"><label>Senha:</label><input type="password" id="add_senha" required></div>
-            <div class="form-group"><label>Tipo de Acesso:</label><select id="add_tipo_acesso" required><option value="ALL">ALL (Master)</option><option value="${selectedFilial.nome}">${selectedFilial.nome}</option></select></div>
-        `;
-    } else if (type === 'pontoInteresse') {
-        title.textContent = 'Adicionar Ponto de Interesse';
-        formHtml = `
-            <div class="form-group md:col-span-2">
-                <label>Selecionar Loja (opcional):</label>
-                <select id="add_loja_id" class="w-full">
-                    <option value="">-- Ou insira um ponto manualmente --</option>
-                    ${lojas.map(loja => `<option value="${loja.id}">${loja.codigo} - ${loja.nome}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group"><label>Nome do Ponto:</label><input type="text" id="add_nome" placeholder="Ex: CD Principal, Loja 123, etc." required></div>
-            <div class="form-group"><label>Tipo:</label><select id="add_tipo" required>
-                <option value="CD">Centro de Distribuição</option>
-                <option value="LOJA">Loja</option>
-                <option value="POSTO">Posto de Combustível</option>
-                <option value="CASA">Casa/Residência</option>
-                <option value="OUTRO">Outro</option>
-            </select></div>
-            <div class="form-group"><label>Latitude:</label><input type="number" id="add_latitude" step="0.000001" placeholder="-15.601400" required></div>
-            <div class="form-group"><label>Longitude:</label><input type="number" id="add_longitude" step="0.000001" value="" placeholder="-56.097900" required></div>
-            <div class="form-group"><label>Raio de Detecção (metros):</label><input type="number" id="add_raio_deteccao" min="50" max="2000" value="200" required></div>
-            <div class="form-group"><label>Cor no Mapa:</label><select id="add_cor">
-                <option value="#0077B6">Azul</option>
-                <option value="#EF4444">Vermelho</option>
-                <option value="#10B981">Verde</option>
-                <option value="#F59E0B">Laranja</option>
-                <option value="#8B5CF6">Roxo</option>
-                <option value="#EC4899">Rosa</option>
-            </select></div>
-            <div class="form-group" style="display:none;"><label>Status:</label><select id="add_ativo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
-        `;
+        // ... (código para acesso, como já está)
     }
+    
     fieldsContainer.innerHTML = formHtml;
     modal.style.display = 'flex';
 }
@@ -4682,125 +4713,273 @@ async function deleteExpedition(expeditionId) {
             document.getElementById('addFormAlert').innerHTML = '';
         }
 
-        async function handleSave() {
-            const title = document.getElementById('addFormTitle').textContent;
-            let success = false;
-            try {
-                if (title.includes('Filial')) success = await saveFilial();
-                else if (title.includes('Loja')) success = await saveLoja();
-                else if (title.includes('Doca')) success = await saveDoca();
-                else if (title.includes('Líder')) success = await saveLider();
-                else if (title.includes('Veículo')) success = await saveVeiculo();
-                else if (title.includes('Motorista')) success = await saveMotorista();
-                else if (title.includes('Acesso')) success = await saveAcesso();
-else if (title.includes('Ponto de Interesse')) success = await savePontoInteresse();
-                
-                if (success) {
-                     showNotification('Cadastro realizado com sucesso!', 'success');
-                     hideAddForm();
-                     await loadSelectData(); 
-                     if (title.includes('Filial')) await loadFiliais();
-                     
-                     if (document.getElementById('configuracoes').classList.contains('active')) {
-                         const activeSubTabEl = document.querySelector('#configuracoes .sub-tab.active');
-                         if(activeSubTabEl) {
-                            const activeSubTab = activeSubTabEl.getAttribute('onclick').match(/'([^']*)','([^']*)'/)[2];
-                            showSubTab('configuracoes', activeSubTab);
-                         }
-                     }
-                }
-            } catch (error) {
-                 showAlert('addFormAlert', `Erro ao salvar: ${error.message}`, 'error');
-            }
-        }
+        // Onde inserir: logo acima da função `saveFilial`
+async function handleSave() {
+    // Determinar o tipo baseado no formulário atual
+    const title = document.getElementById('addFormTitle').textContent;
+    let type = '';
+    
+    if (title.includes('Filial')) type = 'filial';
+    else if (title.includes('Loja')) type = 'loja';
+    else if (title.includes('Doca')) type = 'doca';
+    else if (title.includes('Líder')) type = 'lider';
+    else if (title.includes('Veículo')) type = 'veiculo';
+    else if (title.includes('Motorista')) type = 'motorista';
+    else if (title.includes('Acesso')) type = 'acesso';
+    else if (title.includes('Ponto')) type = 'ponto_interesse';
 
-        async function saveFilial() {
-    const data = { 
-        nome: document.getElementById('add_nome').value, 
-        descricao: document.getElementById('add_descricao').value,
-        endereco_cd: document.getElementById('add_endereco_cd').value,
-        latitude_cd: parseFloat(document.getElementById('add_latitude_cd').value),
-        longitude_cd: parseFloat(document.getElementById('add_longitude_cd').value),
-        ativo: true 
-    };
-    await supabaseRequest('filiais', 'POST', data, false);
-    return true;
-}
-        async function saveLoja() {
-    const isEdit = !!document.getElementById('edit_loja_id');
-    const lojaId = isEdit ? document.getElementById('edit_loja_id').value : null;
+    const id = document.getElementById('edit_id')?.value || 
+               document.getElementById('edit_loja_id')?.value || 
+               document.getElementById('edit_ponto_id')?.value || null;
     
-    const data = { 
-        nome: document.getElementById('add_nome').value, 
-        codigo: document.getElementById('add_codigo').value, 
-        cidade: document.getElementById('add_cidade').value, 
-        codlojaqr: document.getElementById('add_codlojaqr').value,
-        endereco_completo: document.getElementById('add_endereco_completo').value,
-        latitude: document.getElementById('add_latitude') ? parseFloat(document.getElementById('add_latitude').value) : null,
-        longitude: document.getElementById('add_longitude') ? parseFloat(document.getElementById('add_longitude').value) : null,
-        ativo: document.getElementById('add_ativo') ? document.getElementById('add_ativo').value === 'true' : true 
-    };
-    
-    if (isEdit) {
-        await supabaseRequest(`lojas?id=eq.${lojaId}`, 'PATCH', data);
-        showNotification('Loja atualizada com sucesso!', 'success');
+    let endpoint, method;
+
+    if (id) {
+        method = 'PATCH';
+        endpoint = `${type === 'lider' ? 'lideres' : type + 's'}?id=eq.${id}`;
     } else {
-        await supabaseRequest('lojas', 'POST', data);
-        showNotification('Loja cadastrada com sucesso!', 'success');
+        method = 'POST';
+        endpoint = type === 'lider' ? 'lideres' : type + 's';
     }
-    return true;
+
+    let data = {};
+    
+    // Construir dados baseado no tipo
+    switch (type) {
+        case 'filial':
+            data = {
+                nome: document.getElementById('add_nome').value,
+                descricao: document.getElementById('add_descricao').value,
+                endereco_cd: document.getElementById('add_endereco_cd').value,
+                latitude_cd: parseFloat(document.getElementById('add_latitude_cd').value) || null,
+                longitude_cd: parseFloat(document.getElementById('add_longitude_cd').value) || null,
+                ativo: true
+            };
+            break;
+        case 'loja':
+            data = {
+                nome: document.getElementById('add_nome').value,
+                codigo: document.getElementById('add_codigo').value,
+                cidade: document.getElementById('add_cidade').value,
+                codlojaqr: document.getElementById('add_codlojaqr').value,
+                endereco_completo: document.getElementById('add_endereco_completo').value,
+                latitude: document.getElementById('add_latitude').value ? parseFloat(document.getElementById('add_latitude').value) : null,
+                longitude: document.getElementById('add_longitude').value ? parseFloat(document.getElementById('add_longitude').value) : null,
+                ativo: document.getElementById('add_ativo') ? document.getElementById('add_ativo').value === 'true' : true
+            };
+            break;
+        case 'doca':
+            data = {
+                nome: document.getElementById('add_nome').value,
+                capacidade_pallets: parseInt(document.getElementById('add_capacidade_pallets').value) || 0,
+                coddoca: document.getElementById('add_coddoca').value,
+                status: document.getElementById('add_status')?.value || 'disponivel'
+            };
+            break;
+        case 'lider':
+            data = {
+                nome: document.getElementById('add_nome').value,
+                codigo_funcionario: document.getElementById('add_codigo_funcionario').value,
+                ativo: document.getElementById('add_ativo').value === 'true'
+            };
+            break;
+        case 'veiculo':
+            data = {
+                placa: document.getElementById('add_placa').value,
+                modelo: document.getElementById('add_modelo').value,
+                capacidade_pallets: parseInt(document.getElementById('add_capacidade_pallets').value) || 0,
+                tipo: document.getElementById('add_tipo').value,
+                status: document.getElementById('add_status').value
+            };
+            break;
+        case 'motorista':
+            data = {
+                nome: document.getElementById('add_nome').value,
+                PRODUTIVO: document.getElementById('add_produtivo').value,
+                status: document.getElementById('add_status').value
+            };
+            break;
+        case 'acesso':
+            data = {
+                nome: document.getElementById('add_nome').value,
+                senha: document.getElementById('add_senha').value,
+                tipo_acesso: document.getElementById('add_tipo_acesso').value
+            };
+            break;
+        case 'ponto_interesse':
+            data = {
+                nome: document.getElementById('add_nome').value,
+                tipo: document.getElementById('add_tipo').value,
+                latitude: parseFloat(document.getElementById('add_latitude').value),
+                longitude: parseFloat(document.getElementById('add_longitude').value),
+                raio_deteccao: parseInt(document.getElementById('add_raio_deteccao').value) || 200,
+                cor: document.getElementById('add_cor').value,
+                ativo: document.getElementById('add_ativo').value === 'true'
+            };
+            break;
+    }
+
+    try {
+        await supabaseRequest(endpoint, method, data, false);
+        showNotification(`${type} salvo com sucesso!`, 'success');
+        hideAddForm();
+        await loadSelectData();
+        
+        // Recarregar a view de configurações relevante
+        const activeSubTabEl = document.querySelector('#configuracoes .sub-tab.active');
+        if (activeSubTabEl) {
+            const activeSubTab = activeSubTabEl.getAttribute('onclick').match(/'([^']*)','([^']*)'/)[2];
+            showSubTab('configuracoes', activeSubTab, activeSubTabEl);
+        }
+    } catch (error) {
+        showAlert('addFormAlert', `Erro ao salvar: ${error.message}`, 'error');
+        console.error(error);
+    }
 }
         
-        async function saveDoca() {
-            const data = { nome: document.getElementById('add_nome').value, capacidade_pallets: parseInt(document.getElementById('add_capacidade_pallets').value), coddoca: document.getElementById('add_coddoca').value, ativo: true };
-            await supabaseRequest('docas', 'POST', data);
-            return true;
-        }
-        async function saveLider() {
-            const data = { nome: document.getElementById('add_nome').value, codigo_funcionario: document.getElementById('add_codigo_funcionario').value, ativo: true };
-            await supabaseRequest('lideres', 'POST', data);
-            return true;
-        }
-        async function saveVeiculo() {
-            const data = { placa: document.getElementById('add_placa').value, modelo: document.getElementById('add_modelo').value, capacidade_pallets: parseInt(document.getElementById('add_capacidade_pallets').value), tipo: document.getElementById('add_tipo').value, status: document.getElementById('add_status').value };
-            await supabaseRequest('veiculos', 'POST', data);
-            return true;
-        }
-        async function saveMotorista() {
-            const data = { nome: document.getElementById('add_nome').value, PRODUTIVO: document.getElementById('add_produtivo').value, status: document.getElementById('add_status').value };
-            await supabaseRequest('motoristas', 'POST', data);
-            return true;
-        }
-        async function saveAcesso() {
-            const data = { nome: document.getElementById('add_nome').value, senha: document.getElementById('add_senha').value, tipo_acesso: document.getElementById('add_tipo_acesso').value };
-            await supabaseRequest('acessos', 'POST', data, false);
-            return true;
-        }
+        
         async function renderVeiculosConfig() {
     const tbody = document.getElementById('veiculosConfigBody');
     tbody.innerHTML = `<tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando...</td></tr>`;
     try {
-        const veiculosFilial = await supabaseRequest('veiculos');
+        // ADICIONAR ORDENAÇÃO POR STATUS E PLACA:
+        const veiculosFilial = await supabaseRequest('veiculos?order=status.asc,placa.asc');
+        
         if (!veiculosFilial || veiculosFilial.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">Nenhum veículo cadastrado nesta filial.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = veiculosFilial.map(v => `
+        tbody.innerHTML = veiculosFilial.map(v => {
+            // DETERMINAR COR DO STATUS:
+            let statusColor = '';
+            switch(v.status) {
+                case 'disponivel': statusColor = 'text-green-600'; break;
+                case 'em_uso': statusColor = 'text-orange-600'; break;
+                case 'manutencao': statusColor = 'text-red-600'; break;
+                default: statusColor = 'text-gray-600';
+            }
+            
+            return `
+                <tr class="${v.status === 'manutencao' ? 'opacity-60' : ''}">
+                    <td class="font-bold">${v.placa}</td>
+                    <td>${v.modelo}</td>
+                    <td class="text-center">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${v.tipo === 'PERLOG' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
+                            ${v.tipo}
+                        </span>
+                    </td>
+                    <td class="text-center">${v.capacidade_pallets}</td>
+                    <td class="text-center">
+                        <span class="status-badge status-${v.status} ${statusColor}">${getStatusLabel(v.status)}</span>
+                    </td>
+                    <td>
+                        <div class="flex gap-1">
+                            <button class="btn btn-warning btn-small" onclick="showAddForm('veiculo', ${JSON.stringify(v).replace(/"/g, `'`)})">Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteItem('veiculo', '${v.id}')">Excluir</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="6" class="alert alert-error">Erro ao carregar veículos: ${error.message}</td></tr>`;
+    }
+}
+// Onde inserir: logo abaixo da função `renderVeiculosConfig`
+async function renderMotoristasConfig() {
+    const tbody = document.getElementById('motoristasConfigBody');
+    tbody.innerHTML = `<tr><td colspan="4" class="loading"><div class="spinner"></div>Carregando...</td></tr>`;
+    try {
+        const motoristasFilial = await supabaseRequest('motoristas');
+        if (!motoristasFilial || motoristasFilial.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Nenhum motorista cadastrado.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = motoristasFilial.map(m => `
             <tr>
-                <td>${v.placa}</td> <td>${v.modelo}</td> <td>${v.tipo}</td> <td>${v.capacidade_pallets}</td>
-                <td><span class="status-badge status-${v.status}">${getStatusLabel(v.status)}</span></td>
+                <td>${m.nome}</td> <td>${m.PRODUTIVO || 'N/A'}</td>
+                <td><span class="status-badge status-${m.status}">${getStatusLabel(m.status)}</span></td>
                 <td>
-                    <select onchange="updateVeiculoStatus('${v.id}', this.value)" class="w-full p-2 border rounded-md">
-                        <option value="disponivel" ${v.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
-                        <option value="em_uso" ${v.status === 'em_uso' ? 'selected' : ''}>Em Uso</option>
-                        <option value="manutencao" ${v.status === 'manutencao' ? 'selected' : ''}>Manutenção</option>
-                    </select>
+                    <div class="flex gap-1">
+                        <button class="btn btn-warning btn-small" onclick="showAddForm('motorista', ${JSON.stringify(m).replace(/"/g, `'`)})">Editar</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteItem('motorista', '${m.id}')">Excluir</button>
+                    </div>
                 </td>
             </tr>
         `).join('');
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="6" class="alert alert-error">Erro ao carregar veículos: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="alert alert-error">Erro ao carregar motoristas: ${error.message}</td></tr>`;
+    }
+}
+
+async function renderDocasConfig() {
+    const tbody = document.getElementById('docasConfigBody');
+    tbody.innerHTML = `<tr><td colspan="5" class="loading"><div class="spinner"></div>Carregando...</td></tr>`;
+    try {
+        // ADICIONAR ORDENAÇÃO POR STATUS E NOME:
+        const docasFilial = await supabaseRequest('docas?order=status.asc,nome.asc');
+        
+        if (!docasFilial || docasFilial.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhuma doca cadastrada.</td></tr>`;
+            return;
+        }
+        
+        tbody.innerHTML = docasFilial.map(d => {
+            // DETERMINAR COR DO STATUS:
+            let statusColor = '';
+            switch(d.status) {
+                case 'disponivel': statusColor = 'text-green-600'; break;
+                case 'em_uso': statusColor = 'text-orange-600'; break;
+                case 'manutencao': statusColor = 'text-red-600'; break;
+                default: statusColor = 'text-gray-600';
+            }
+            
+            return `
+                <tr class="${d.status === 'manutencao' ? 'opacity-60' : ''}">
+                    <td class="font-medium">${d.nome}</td>
+                    <td class="text-center">${d.capacidade_pallets}</td>
+                    <td class="text-center font-mono">${d.coddoca}</td>
+                    <td class="text-center">
+                        <span class="status-badge status-${d.status} ${statusColor}">${getStatusLabel(d.status)}</span>
+                    </td>
+                    <td>
+                        <div class="flex gap-1">
+                            <button class="btn btn-warning btn-small" onclick="showAddForm('doca', ${JSON.stringify(d).replace(/"/g, `'`)})">Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteItem('doca', '${d.id}')">Excluir</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="5" class="alert alert-error">Erro ao carregar docas: ${error.message}</td></tr>`;
+    }
+}
+
+async function renderLideresConfig() {
+    const tbody = document.getElementById('lideresConfigBody');
+    tbody.innerHTML = `<tr><td colspan="4" class="loading"><div class="spinner"></div>Carregando...</td></tr>`;
+    try {
+        const lideresFilial = await supabaseRequest('lideres');
+        if (!lideresFilial || lideresFilial.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Nenhum líder cadastrado.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = lideresFilial.map(l => `
+            <tr>
+                <td>${l.nome}</td><td>${l.codigo_funcionario}</td>
+                <td><span class="status-badge status-${l.ativo ? 'disponivel' : 'manutencao'}">${l.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                <td>
+                    <div class="flex gap-1">
+                        <button class="btn btn-warning btn-small" onclick="showAddForm('lider', ${JSON.stringify(l).replace(/"/g, `'`)})">Editar</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteItem('lider', '${l.id}')">Excluir</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="4" class="alert alert-error">Erro ao carregar líderes: ${error.message}</td></tr>`;
     }
 }
         async function updateVeiculoStatus(veiculoId, novoStatus) {
@@ -5315,38 +5494,7 @@ function getCurrentLocation() {
     }
 }
 
-async function savePontoInteresse() {
-    const isEdit = !!document.getElementById('edit_ponto_id');
-    const pontoId = isEdit ? document.getElementById('edit_ponto_id').value : null;
-    
-    const data = {
-        nome: document.getElementById('add_nome').value,
-        tipo: document.getElementById('add_tipo').value,
-        latitude: parseFloat(document.getElementById('add_latitude').value),
-        longitude: parseFloat(document.getElementById('add_longitude').value),
-        raio_deteccao: parseInt(document.getElementById('add_raio_deteccao').value),
-        cor: document.getElementById('add_cor').value,
-        ativo: document.getElementById('add_ativo') ? 
-            document.getElementById('add_ativo').value === 'true' : true
-    };
-    
-    try {
-        if (isEdit) {
-            await supabaseRequest(`pontos_interesse?id=eq.${pontoId}`, 'PATCH', data, false);
-            showNotification('Ponto de interesse atualizado!', 'success');
-        } else {
-            await supabaseRequest('pontos_interesse', 'POST', data, false);
-            showNotification('Ponto de interesse adicionado!', 'success');
-        }
-        
-        hideAddForm();
-        await loadPontosInteresse();
-        return true;
-    } catch (error) {
-        showAlert('addFormAlert', `Erro ao salvar: ${error.message}`, 'error');
-        return false;
-    }
-}
+
 
 async function addPontosInteresseToMap() {
     if (!mapInstance || !pontosInteresse) return;
@@ -5571,22 +5719,35 @@ async function renderLojasConfig() {
     const tbody = document.getElementById('lojasConfigBody');
     if (!tbody) return;
     
-    tbody.innerHTML = `<tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando lojas...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="loading"><div class="spinner"></div>Carregando lojas...</td></tr>`;
     
     try {
-        const lojasFilial = await supabaseRequest('lojas');
+        // Buscar todas as lojas da filial, ordenadas por ativo primeiro, depois código
+        const lojasFilial = await supabaseRequest('lojas?order=ativo.desc,codigo.asc,nome.asc');
+        
+        if (!lojasFilial || lojasFilial.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">Nenhuma loja cadastrada nesta filial.</td></tr>`;
+            return;
+        }
+
         tbody.innerHTML = lojasFilial.map(loja => {
             const coordenadas = (loja.latitude && loja.longitude) ? 
                 `${parseFloat(loja.latitude).toFixed(6)}, ${parseFloat(loja.longitude).toFixed(6)}` : 
                 'Não definidas';
             
+            const statusClass = loja.ativo ? 'text-green-600' : 'text-red-600';
+            const statusIcon = loja.ativo ? '✅' : '❌';
+            
             return `
-                <tr>
+                <tr class="${loja.ativo ? '' : 'opacity-60'}">
                     <td class="font-medium">${loja.codigo}</td>
                     <td>${loja.nome}</td>
                     <td>${loja.cidade}</td>
                     <td class="max-w-xs truncate" title="${loja.endereco_completo || 'Não informado'}">${loja.endereco_completo || 'Não informado'}</td>
                     <td class="text-xs font-mono">${coordenadas}</td>
+                    <td class="text-center">
+                        <span class="${statusClass} font-medium">${statusIcon} ${loja.ativo ? 'Ativa' : 'Inativa'}</span>
+                    </td>
                     <td>
                         <div class="flex gap-1">
                             <button class="btn btn-warning btn-small" onclick="editLoja('${loja.id}')">Editar</button>
@@ -5601,7 +5762,7 @@ async function renderLojasConfig() {
             `;
         }).join('');
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="6" class="alert alert-error">Erro ao carregar lojas: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="alert alert-error">Erro ao carregar lojas: ${error.message}</td></tr>`;
     }
 }
 
@@ -6100,6 +6261,99 @@ async function saveOrdemCarregamento() {
         // A mensagem de erro agora virá do supabaseRequest, que já é detalhada
         // Apenas para garantir, logamos o erro completo no console.
         console.error("Erro completo ao salvar ordem:", error);
+    }
+}
+async function deleteItem(type, id) {
+    const confirmed = await showYesNoModal(`Deseja realmente excluir este(a) ${type}? Esta ação não pode ser desfeita.`);
+    if (confirmed) {
+        try {
+            await supabaseRequest(`${type}s?id=eq.${id}`, 'DELETE', null, false);
+            showNotification(`${type} excluído!`, 'success');
+            await loadSelectData();
+            // Recarregar a view de configurações relevante
+            const activeSubTabEl = document.querySelector('#configuracoes .sub-tab.active');
+            if(activeSubTabEl) {
+                const activeSubTab = activeSubTabEl.getAttribute('onclick').match(/'([^']*)','([^']*)'/)[2];
+                showSubTab('configuracoes', activeSubTab);
+            }
+        } catch (error) {
+            showNotification(`Erro ao excluir ${type}: ${error.message}`, 'error');
+        }
+    }
+}
+async function renderMotoristasConfig() {
+    const tbody = document.getElementById('motoristasConfigBody');
+    tbody.innerHTML = `<tr><td colspan="4" class="loading"><div class="spinner"></div>Carregando...</td></tr>`;
+    try {
+        // ADICIONAR ORDENAÇÃO POR STATUS E NOME:
+        const motoristasFilial = await supabaseRequest('motoristas?order=status.asc,nome.asc');
+        
+        if (!motoristasFilial || motoristasFilial.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Nenhum motorista cadastrado.</td></tr>`;
+            return;
+        }
+        
+        tbody.innerHTML = motoristasFilial.map(m => {
+            // DETERMINAR COR DO STATUS:
+            let statusColor = '';
+            switch(m.status) {
+                case 'disponivel': statusColor = 'text-green-600'; break;
+                case 'em_viagem': statusColor = 'text-orange-600'; break;
+                case 'folga': statusColor = 'text-blue-600'; break;
+                default: statusColor = 'text-gray-600';
+            }
+            
+            return `
+                <tr class="${m.status === 'folga' ? 'opacity-75' : ''}">
+                    <td class="font-medium">${m.nome}</td>
+                    <td class="text-center font-mono">${m.PRODUTIVO || 'N/A'}</td>
+                    <td class="text-center">
+                        <span class="status-badge status-${m.status} ${statusColor}">${getStatusLabel(m.status)}</span>
+                    </td>
+                    <td>
+                        <div class="flex gap-1">
+                            <button class="btn btn-warning btn-small" onclick="showAddForm('motorista', ${JSON.stringify(m).replace(/"/g, `'`)})">Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteItem('motorista', '${m.id}')">Excluir</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="4" class="alert alert-error">Erro ao carregar motoristas: ${error.message}</td></tr>`;
+    }
+}
+async function renderLideresConfig() {
+    const tbody = document.getElementById('lideresConfigBody');
+    tbody.innerHTML = `<tr><td colspan="4" class="loading"><div class="spinner"></div>Carregando...</td></tr>`;
+    try {
+        // ADICIONAR ORDENAÇÃO POR ATIVO E NOME:
+        const lideresFilial = await supabaseRequest('lideres?order=ativo.desc,nome.asc');
+        
+        if (!lideresFilial || lideresFilial.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Nenhum líder cadastrado.</td></tr>`;
+            return;
+        }
+        
+        tbody.innerHTML = lideresFilial.map(l => `
+            <tr class="${!l.ativo ? 'opacity-60' : ''}">
+                <td class="font-medium">${l.nome}</td>
+                <td class="text-center font-mono">${l.codigo_funcionario}</td>
+                <td class="text-center">
+                    <span class="status-badge ${l.ativo ? 'status-disponivel text-green-600' : 'status-manutencao text-red-600'}">
+                        ${l.ativo ? '✅ Ativo' : '❌ Inativo'}
+                    </span>
+                </td>
+                <td>
+                    <div class="flex gap-1">
+                        <button class="btn btn-warning btn-small" onclick="showAddForm('lider', ${JSON.stringify(l).replace(/"/g, `'`)})">Editar</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteItem('lider', '${l.id}')">Excluir</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="4" class="alert alert-error">Erro ao carregar líderes: ${error.message}</td></tr>`;
     }
 }
         // Inicialização
