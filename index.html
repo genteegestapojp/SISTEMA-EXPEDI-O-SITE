@@ -7674,13 +7674,13 @@ async function imprimirIdentificacao(expeditionId, numeroCarga, liderNome, palle
                         flex-direction: column !important;
                         justify-content: center !important;
                         align-items: center !important;
-                        padding: 10mm !important;
+                        padding: 5mm !important; 
                         box-sizing: border-box !important;
                     }
                     
                     .etiqueta-quadro {
                         border: 3px solid #999 !important;
-                        padding: 30mm 25mm !important;
+                        padding: 20mm 15mm !important; 
                         background: white !important;
                         width: 100% !important;
                         height: 100% !important;
@@ -7694,7 +7694,7 @@ async function imprimirIdentificacao(expeditionId, numeroCarga, liderNome, palle
                     }
                     
                     .etiqueta-numero {
-                        font-size: 80px !important;
+                        font-size: 100px !important;
                         font-weight: 900 !important;
                         color: #000 !important;
                         margin: 0 !important;
@@ -7704,7 +7704,7 @@ async function imprimirIdentificacao(expeditionId, numeroCarga, liderNome, palle
                     }
                     
                     .etiqueta-info {
-                        font-size: 54px !important;
+                        font-size: 76px !important; 
                         font-weight: 700 !important;
                         color: #333 !important;
                         margin: 0 !important;
@@ -7723,7 +7723,7 @@ async function imprimirIdentificacao(expeditionId, numeroCarga, liderNome, palle
                     }
                     
                     .etiqueta-contador {
-                        font-size: 90px !important;
+                        font-size: 110px !important;
                         font-weight: 900 !important;
                         color: #000 !important;
                         border: 3px solid #999 !important;
@@ -7735,6 +7735,7 @@ async function imprimirIdentificacao(expeditionId, numeroCarga, liderNome, palle
                         background: #f0f0f0 !important;
                         letter-spacing: 4px !important;
                         box-shadow: inset 0 0 0 2px #ccc !important;
+                        margin-bottom: 25px !important;
                     }
                     
                     .etiqueta-lojas {
@@ -7749,14 +7750,13 @@ async function imprimirIdentificacao(expeditionId, numeroCarga, liderNome, palle
                         text-transform: uppercase !important;
                         letter-spacing: 2px !important;
                     }
-                    
-                    .etiqueta-divider {
+
+                    hr.etiqueta-divider {
+                        border: none !important;
+                        border-top: 2px solid #999 !important;
                         width: 90% !important;
-                        height: 2px !important;
-                        background: linear-gradient(to right, transparent, #ddd 20%, #999 50%, #ddd 80%, transparent) !important;
                         margin: 25px auto !important;
-                        border-radius: 1px !important;
-                        opacity: 0.7 !important;
+                        opacity: 1 !important;
                     }
                 }
                 
@@ -7783,13 +7783,13 @@ async function imprimirIdentificacao(expeditionId, numeroCarga, liderNome, palle
                         <div class="etiqueta-container">
                             <div class="etiqueta-quadro">
                                 <div class="etiqueta-numero">${lojaInfo}</div>
-                                <div class="etiqueta-divider"></div>
-                                <div class="etiqueta-data">${dataFormatada}</div>
-                                <div class="etiqueta-divider"></div>
+                                <hr class="etiqueta-divider">
+                                <div class="etiqueta-data">${loja.endereco_completo}</div>
+                                <hr class="etiqueta-divider">
                                 <div class="etiqueta-contador">${String(i).padStart(2, '0')}/${String(totalItensLoja).padStart(2, '0')}</div>
-                                <div class="etiqueta-divider"></div>
+                                <hr class="etiqueta-divider">
                                 <div class="etiqueta-lojas">${liderNome}</div>
-                                <div class="etiqueta-divider"></div>
+                                <hr class="etiqueta-divider">
                                 <div class="etiqueta-info">CD ${selectedFilial.nome} - ${selectedFilial.descricao}</div>
                             </div>
                         </div>
