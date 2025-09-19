@@ -379,6 +379,180 @@
     40% { transform: translateY(-4px); }
     60% { transform: translateY(-2px); }
 }
+/* Estilos para o modal de detalhes */
+#detalhesExpedicaoModal .modal-content {
+    background: white;
+    border-radius: 8px;
+}
+
+/* Estilos para a planilha de controle */
+.planilha-controle {
+    border: 2px solid #333;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    width: 100%;
+    margin: 10px 0;
+    background: white;
+}
+
+.planilha-header {
+    background-color: #4a90e2;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    padding: 10px;
+    border-bottom: 2px solid #333;
+    font-size: 16px;
+}
+
+.planilha-row {
+    display: flex;
+    align-items: center;
+}
+
+.planilha-cell {
+    border: 1px solid #666;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    font-weight: bold;
+    color: #333;
+    text-align: right;
+}
+
+.planilha-value {
+    border: 1px solid #666;
+    padding: 8px 12px;
+    background: white;
+    flex: 1;
+    color: #000;
+    font-weight: 500;
+}
+.horario-cell {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: center;
+    background: #d9d9d9;
+    font-weight: bold;
+}
+
+.horario-value {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: center;
+    background: white;
+}
+
+.loja-section {
+    margin-bottom: 20px;
+    border: 2px solid #000;
+    padding: 10px;
+}
+
+/* Estilos para impressão */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .modal-overlay {
+        position: static !important;
+        background: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .modal-content {
+        box-shadow: none !important;
+        border: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    /* Configurações da página */
+    @page {
+        size: A4;
+        margin: 1cm;
+    }
+    
+    /* Cada planilha deve ocupar exatamente uma página */
+    .planilha-controle {
+        page-break-inside: avoid;
+        page-break-after: always;
+        font-size: 12px;
+        width: 100%;
+        height: auto;
+        margin: 0 !important;
+        padding: 0;
+        border: 2px solid #333;
+        box-sizing: border-box;
+    }
+    
+    /* A última planilha não deve quebrar página depois */
+    .planilha-controle:last-child {
+        page-break-after: avoid;
+    }
+    
+    /* Remover quebras de página manuais na impressão */
+    div[style*="page-break-before: always"] {
+        page-break-before: always;
+        height: 0;
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* Otimizar espaçamentos para impressão */
+    .planilha-header {
+        padding: 8px !important;
+        font-size: 14px !important;
+        margin: 0 !important;
+    }
+    
+    .planilha-row {
+        margin-bottom: 4px !important;
+    }
+    
+    .planilha-cell, .planilha-value {
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+        line-height: 1.2;
+    }
+    
+    /* Ajustar grid para impressão */
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        margin: 10px 0 !important;
+    }
+    
+    /* Remover margens desnecessárias */
+    div[style*="margin-top: 20px"] {
+        margin-top: 10px !important;
+    }
+    
+    div[style*="margin-bottom: 30px"] {
+        margin-bottom: 0 !important;
+    }
+    
+    body * {
+        visibility: hidden;
+    }
+    
+    #detalhesExpedicaoModal, #detalhesExpedicaoModal * {
+        visibility: visible;
+    }
+    
+    #detalhesExpedicaoModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+}
 /* Estilos para o mapa da home */
 #homeMap {
     border: 2px solid rgba(0, 180, 216, 0.2);
@@ -431,6 +605,189 @@
 }
 #ordemLojasList .drag-handle {
     color: #9ca3af;
+}
+/* Estilos para impressão de identificação */
+.identificacao-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s ease;
+}
+
+.identificacao-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 180, 216, 0.15);
+}
+
+.print-identification {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 0;
+        padding: 0;
+    }
+    
+    * {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    html, body {
+        width: 297mm !important;
+        height: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    body * {
+        visibility: hidden !important;
+    }
+    
+    .print-identification,
+    .print-identification *,
+    .etiqueta-page,
+    .etiqueta-page *,
+    .etiqueta-container,
+    .etiqueta-container *,
+    .etiqueta-quadro,
+    .etiqueta-quadro * {
+        visibility: visible !important;
+    }
+    
+    .print-identification {
+        display: block !important;
+        position: relative !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        z-index: 9999 !important;
+    }
+    
+    .etiqueta-page {
+        width: 297mm !important;
+        height: 210mm !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        position: relative !important;
+        box-sizing: border-box !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        break-after: page !important;
+        break-inside: avoid !important;
+    }
+    
+    .etiqueta-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+    
+    .etiqueta-container {
+        text-align: center !important;
+        font-family: Arial, sans-serif !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        padding: 10mm !important;
+        box-sizing: border-box !important;
+    }
+    
+    .etiqueta-quadro {
+        border: 10px solid #000 !important;
+        padding: 30mm 25mm !important;
+        background: white !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 20px !important;
+        box-shadow: inset 0 0 0 5px #333 !important;
+        box-sizing: border-box !important;
+    }
+    
+    .etiqueta-numero {
+        font-size: 120px !important;
+        font-weight: 900 !important;
+        color: #000 !important;
+        margin: 0 !important;
+        line-height: 0.9 !important;
+        letter-spacing: 4px !important;
+        text-transform: uppercase !important;
+    }
+    
+    .etiqueta-info {
+        font-size: 48px !important;
+        font-weight: 700 !important;
+        color: #333 !important;
+        margin: 0 !important;
+        line-height: 1.1 !important;
+        letter-spacing: 3px !important;
+        text-transform: uppercase !important;
+    }
+    
+    .etiqueta-data {
+        font-size: 60px !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+        letter-spacing: 3px !important;
+    }
+    
+    .etiqueta-contador {
+        font-size: 90px !important;
+        font-weight: 900 !important;
+        color: #000 !important;
+        border: 8px solid #000 !important;
+        padding: 25px 50px !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+        display: inline-block !important;
+        border-radius: 15px !important;
+        background: #f0f0f0 !important;
+        letter-spacing: 4px !important;
+        box-shadow: inset 0 0 0 3px #666 !important;
+    }
+    
+    .etiqueta-lojas {
+        font-size: 42px !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
+        text-align: center !important;
+        max-width: 100% !important;
+        word-wrap: break-word !important;
+        text-transform: uppercase !important;
+        letter-spacing: 2px !important;
+    }
+    
+    .etiqueta-divider {
+        width: 90% !important;
+        height: 2px !important;
+        background: linear-gradient(to right, transparent, #ddd 20%, #999 50%, #ddd 80%, transparent) !important;
+        margin: 25px auto !important;
+        border-radius: 1px !important;
+        opacity: 0.7 !important;
+    }
 }
     </style>
 </head>
@@ -742,7 +1099,22 @@
             <div id="map" style="height: calc(100% - 60px); width: 100%; border-radius: 8px;"></div>
         </div>
     </div>
-
+<!-- Modal de Detalhes da Expedição -->
+<div id="detalhesExpedicaoModal" class="modal-overlay">
+    <div class="modal-content" style="width: 95vw; max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+        <div class="flex justify-between items-center mb-4 no-print">
+            <h3 class="text-xl font-semibold">Detalhes da Expedição</h3>
+            <div class="flex gap-2">
+                <button class="btn btn-primary btn-small" onclick="imprimirDetalhes()">🖨️ Imprimir</button>
+                <button class="btn btn-danger btn-small" onclick="closeDetalhesModal()">Fechar</button>
+            </div>
+        </div>
+        
+        <div id="detalhesContent" class="bg-white p-4">
+            <!-- Conteúdo será preenchido dinamicamente -->
+        </div>
+    </div>
+</div>
     <script>
         // Inicializa bibliotecas
         AOS.init();
@@ -848,7 +1220,8 @@ let homeMapTimer = null;
         }
 
         // NOVA: Função de navegação
-        function showView(viewId, element) {
+        function showView(viewId, element) 
+        {
             document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
 
@@ -880,6 +1253,7 @@ if (homeMapTimer) {
                 case 'acompanhamento': loadAcompanhamento(); break;
                 case 'historico': loadHistorico(); break;
                 case 'configuracoes': loadConfiguracoes(); break;
+                case 'operacao': loadOperacao(); break;
             }
             feather.replace(); // Redesenha os ícones
         }
@@ -974,48 +1348,68 @@ if (mapInstance) {
         async function loadAllTabData() {
             
             document.getElementById('operacao').innerHTML = `
-                <h1 class="text-3xl font-bold text-gray-800 mb-6">Lançamento de Expedição</h1>
-                <div class="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
-                    <p class="text-sm text-gray-500 mb-4">A data e hora da expedição serão registradas automaticamente no momento do lançamento.</p>
-                    <form id="expeditionForm">
-                      <div class="form-grid">
-                        <div class="form-group">
-                            <label for="lancar_lojaSelect">Loja:</label>
-                            <select id="lancar_lojaSelect" class="loja-select" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label for="lancar_docaSelect">Doca de Preparação:</label>
-                            <select id="lancar_docaSelect" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label for="lancar_palletsInput">Pallets:</label>
-                            <input type="number" id="lancar_palletsInput" class="pallets-input" min="0" required placeholder="0">
-                        </div>
-                        <div class="form-group">
-                            <label for="lancar_rolltrainersInput">RollTainers:</label>
-                            <input type="number" id="lancar_rolltrainersInput" class="rolltrainers-input" min="0" required placeholder="0">
-                        </div>
-                        <div class="form-group md:col-span-2">
-                            <label for="lancar_numerosCarga">Números de Carga (separados por vírgula):</label>
-                            <input type="text" id="lancar_numerosCarga" placeholder="Ex: CG001, CG002, CG003" class="w-full">
-                            <small class="text-gray-500">Deixe em branco se não houver números específicos</small>
-                        </div>
-                        <div class="form-group md:col-span-2">
-                             <label for="lancar_liderSelect">Líder Responsável:</label>
-                             <select id="lancar_liderSelect" required></select>
-                        </div>
-                        <div class="form-group md:col-span-2">
-                            <label for="lancar_observacoes">Observações:</label>
-                            <textarea id="lancar_observacoes" placeholder="Observações para esta carga específica..." class="w-full"></textarea>
-                        </div>
-                    </div>
-                    <div class="mt-6 text-center">
-                        <button type="submit" class="btn btn-primary w-full md:w-auto">Lançar Expedição</button>
-                    </div>
-                    </form>
-                    <div id="operacaoAlert" class="mt-4"></div>
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Operação</h1>
+    
+    <div class="sub-tabs">
+        <button class="sub-tab active" onclick="showSubTab('operacao', 'lancamento', this)">Lançamento</button>
+        <button class="sub-tab" onclick="showSubTab('operacao', 'identificacao', this)">Identificação</button>
+    </div>
+
+    <div id="lancamento" class="sub-tab-content active">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Lançamento de Expedição</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
+            <p class="text-sm text-gray-500 mb-4">A data e hora da expedição serão registradas automaticamente no momento do lançamento.</p>
+            <form id="expeditionForm">
+              <div class="form-grid">
+                <div class="form-group">
+                    <label for="lancar_lojaSelect">Loja:</label>
+                    <select id="lancar_lojaSelect" class="loja-select" required></select>
                 </div>
-            `;
+                <div class="form-group">
+                    <label for="lancar_docaSelect">Doca de Preparação:</label>
+                    <select id="lancar_docaSelect" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="lancar_palletsInput">Pallets:</label>
+                    <input type="number" id="lancar_palletsInput" class="pallets-input" min="0" required placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="lancar_rolltrainersInput">RollTainers:</label>
+                    <input type="number" id="lancar_rolltrainersInput" class="rolltrainers-input" min="0" required placeholder="0">
+                </div>
+                <div class="form-group md:col-span-2">
+                    <label for="lancar_numerosCarga">Números de Carga (separados por vírgula):</label>
+                    <input type="text" id="lancar_numerosCarga" placeholder="Ex: CG001, CG002, CG003" class="w-full">
+                    <small class="text-gray-500">Deixe em branco se não houver números específicos</small>
+                </div>
+                <div class="form-group md:col-span-2">
+                     <label for="lancar_liderSelect">Líder Responsável:</label>
+                     <select id="lancar_liderSelect" required></select>
+                </div>
+                <div class="form-group md:col-span-2">
+                    <label for="lancar_observacoes">Observações:</label>
+                    <textarea id="lancar_observacoes" placeholder="Observações para esta carga específica..." class="w-full"></textarea>
+                </div>
+            </div>
+            <div class="mt-6 text-center">
+                <button type="submit" class="btn btn-primary w-full md:w-auto">Lançar Expedição</button>
+            </div>
+            </form>
+            <div id="operacaoAlert" class="mt-4"></div>
+        </div>
+    </div>
+
+    <div id="identificacao" class="sub-tab-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Impressão de Identificação</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <p class="text-sm text-gray-500 mb-4">Expedições aguardando impressão de etiquetas de identificação</p>
+            <div id="expedicoesParaIdentificacao" class="loading">
+                <div class="spinner"></div>
+                Carregando expedições...
+            </div>
+        </div>
+    </div>
+`;
             
             document.getElementById('transporte').innerHTML = `
                 <h1 class="text-3xl font-bold text-gray-800 mb-6">Agrupamento e Alocação de Cargas</h1>
@@ -1146,20 +1540,24 @@ if (mapInstance) {
         </div>
 
         <div class="table-container bg-white rounded-lg shadow-md">
-            <table class="w-full" style="min-width: 1000px;">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Placa</th>
-                        <th>Motorista</th>
-                        <th>Lojas/Cargas</th>
-                        <th>Início Faturamento</th>
-                        <th>Fim Faturamento</th>
-                        <th>Tempo Faturamento</th>
-                        <th>Pallets</th>
-                        <th>RollTrainers</th>
-                    </tr>
-                </thead>
+<table class="w-full" style="min-width: 1100px;">
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Placa</th>
+            <th>Motorista</th>
+            <th>Lojas/Cargas</th>
+            <th>Início Faturamento</th>
+            <th>Fim Faturamento</th>
+            <th>Tempo Faturamento</th>
+            <th>Pallets</th>
+            <th>RollTrainers</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="historicoFaturamentoBody">
+        <tr><td colspan="10" class="loading"><div class="spinner"></div>Carregando histórico...</td></tr>
+    </tbody>
                 <tbody id="historicoFaturamentoBody">
                     <tr><td colspan="9" class="loading"><div class="spinner"></div>Carregando histórico...</td></tr>
                 </tbody>
@@ -3095,7 +3493,7 @@ function renderHistoricoFaturamentoTable(expeditions) {
     const tbody = document.getElementById('historicoFaturamentoBody');
     
     if (expeditions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-gray-500">Nenhum registro encontrado para os filtros selecionados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-gray-500">Nenhum registro encontrado para os filtros selecionados.</td></tr>';
         return;
     }
     
@@ -3129,6 +3527,9 @@ function renderHistoricoFaturamentoTable(expeditions) {
                 <td class="font-bold ${tempoColor}">${tempoFaturamento}</td>
                 <td class="text-center">${exp.total_pallets}</td>
                 <td class="text-center">${exp.total_rolltrainers}</td>
+                <td class="text-center">
+                    <button class="btn btn-primary btn-small" onclick="showDetalhesExpedicao('${exp.id}')">Detalhes</button>
+                </td>
             </tr>
         `;
     }).join('');
@@ -3191,6 +3592,10 @@ function clearHistoricoFaturamentoFilters() {
         renderAcessosConfig();
     } else if (subTabName === 'sistema') {
         updateSystemStatus();
+    }
+    } else if (tabName === 'operacao') {
+    if (subTabName === 'identificacao') {
+        loadIdentificacaoExpedicoes();
     }
 } else if (tabName === 'motoristas' && subTabName === 'relatorioMotoristas') {
         generateMotoristaReports();
@@ -6929,6 +7334,489 @@ async function renderAcessosConfig() {
         `).join('');
     } catch (error) {
         tbody.innerHTML = `<tr><td colspan="3" class="alert alert-error">Erro ao carregar acessos: ${error.message}</td></tr>`;
+    }
+}
+// Função para mostrar detalhes da expedição
+// Função para mostrar detalhes da expedição
+async function showDetalhesExpedicao(expeditionId) {
+    const modal = document.getElementById('detalhesExpedicaoModal');
+    const content = document.getElementById('detalhesContent');
+    
+    content.innerHTML = '<div class="loading"><div class="spinner"></div>Carregando detalhes...</div>';
+    modal.style.display = 'flex';
+    
+    try {
+        // Buscar dados completos da expedição
+        const expedition = await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'GET', null, false);
+        const items = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'GET', null, false);
+        
+        if (!expedition || expedition.length === 0) {
+            content.innerHTML = '<div class="alert alert-error">Expedição não encontrada.</div>';
+            return;
+        }
+        
+        const exp = expedition[0];
+        const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+        const motorista = motoristas.find(m => m.id === exp.motorista_id);
+        const lider = lideres.find(l => l.id === exp.lider_id);
+        
+        let planilhaHTML = '';
+        
+        // Gerar uma página para cada loja
+        if (items && items.length > 0) {
+            items.forEach((item, index) => {
+                const loja = lojas.find(l => l.id === item.loja_id);
+                
+                // Adicionar quebra de página antes de cada loja (exceto a primeira)
+                if (index > 0) {
+                    planilhaHTML += '<div style="page-break-before: always;"></div>';
+                }
+                
+                planilhaHTML += `
+    <div class="planilha-controle">
+        <!-- Cabeçalho da Loja -->
+        <div class="planilha-header" style="background: #4a90e2; color: white; font-size: 16px; padding: 10px;">
+            LOJA ${loja?.codigo || 'N/A'} - ${loja?.nome || 'N/A'}
+        </div>
+        
+        <!-- Informações da Expedição -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 10px;">
+            <div>
+                <div class="planilha-row" style="margin-bottom: 6px;">
+                    <div class="planilha-cell" style="width: 120px;">DATA:</div>
+                    <div class="planilha-value">${new Date(exp.data_hora).toLocaleDateString('pt-BR')}</div>
+                </div>
+                <div class="planilha-row" style="margin-bottom: 6px;">
+                    <div class="planilha-cell" style="width: 120px;">PLACA:</div>
+                    <div class="planilha-value">${veiculo?.placa || 'N/A'}</div>
+                </div>
+                <div class="planilha-row" style="margin-bottom: 6px;">
+                    <div class="planilha-cell" style="width: 120px;">MOTORISTA:</div>
+                    <div class="planilha-value">${motorista?.nome || 'N/A'}</div>
+                </div>
+                <div class="planilha-row" style="margin-bottom: 6px;">
+                    <div class="planilha-cell" style="width: 120px;">LÍDER:</div>
+                    <div class="planilha-value">${lider?.nome || 'N/A'}</div>
+                </div>
+            </div>
+            <div>
+                <div class="planilha-row" style="margin-bottom: 6px;">
+                    <div class="planilha-cell" style="width: 120px;">PALLETS:</div>
+                    <div class="planilha-value" style="font-size: 14px; font-weight: bold; color: #2d5aa0;">${item.pallets || 0}</div>
+                </div>
+                <div class="planilha-row" style="margin-bottom: 6px;">
+                    <div class="planilha-cell" style="width: 120px;">ROLLTRAINERS:</div>
+                    <div class="planilha-value" style="font-size: 14px; font-weight: bold; color: #2d5aa0;">${item.rolltrainers || 0}</div>
+                </div>
+                <div class="planilha-row" style="margin-bottom: 6px;">
+                    <div class="planilha-cell" style="width: 120px;">INÍCIO CARREG.:</div>
+                    <div class="planilha-value">${exp.data_chegada_veiculo ? new Date(exp.data_chegada_veiculo).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</div>
+                </div>
+                <div class="planilha-row" style="margin-bottom: 6px;">
+                    <div class="planilha-cell" style="width: 120px;">FIM CARREG.:</div>
+                    <div class="planilha-value">${exp.data_saida_veiculo ? new Date(exp.data_saida_veiculo).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Números de Carga -->
+        ${exp.numeros_carga && exp.numeros_carga.length > 0 ? `
+            <div style="margin: 10px;">
+                <div class="planilha-header" style="background: #f0f0f0; color: #333; padding: 6px; font-size: 12px;">
+                    NÚMEROS DE CARGA
+                </div>
+                <div class="planilha-value" style="padding: 8px; font-size: 12px; font-weight: bold;">
+                    ${exp.numeros_carga.join(', ')}
+                </div>
+            </div>
+        ` : ''}
+        
+        <!-- Horários de Entrega -->
+        ${item.data_inicio_descarga || item.data_fim_descarga ? `
+            <div style="margin: 10px;">
+                <div class="planilha-header" style="background: #e8f4f8; color: #333; padding: 6px; font-size: 12px;">
+                    HORÁRIOS DE ENTREGA
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
+                    <div class="planilha-cell" style="padding: 8px;">CHEGADA NA LOJA:</div>
+                    <div class="planilha-value" style="padding: 8px;">${item.data_inicio_descarga ? new Date(item.data_inicio_descarga).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</div>
+                    <div class="planilha-cell" style="padding: 8px;">SAÍDA DA LOJA:</div>
+                    <div class="planilha-value" style="padding: 8px;">${item.data_fim_descarga ? new Date(item.data_fim_descarga).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</div>
+                </div>
+            </div>
+        ` : ''}
+    </div>
+`;
+            });
+        } else {
+            // Se não houver itens, mostrar mensagem
+            planilhaHTML = `
+                <div class="planilha-controle">
+                    <div class="planilha-header">DETALHES DA EXPEDIÇÃO</div>
+                    <div class="alert alert-info">Nenhuma loja encontrada para esta expedição.</div>
+                </div>
+            `;
+        }
+        
+        content.innerHTML = planilhaHTML;
+        
+    } catch (error) {
+        console.error('Erro ao carregar detalhes:', error);
+        content.innerHTML = '<div class="alert alert-error">Erro ao carregar detalhes da expedição.</div>';
+    }
+}
+
+// Função para fechar modal de detalhes
+function closeDetalhesModal() {
+    document.getElementById('detalhesExpedicaoModal').style.display = 'none';
+}
+
+// Função para imprimir detalhes
+function imprimirDetalhes() {
+    window.print();
+}
+// --- FUNCIONALIDADES DA ABA OPERAÇÃO IDENTIFICAÇÃO ---
+async function loadOperacao() {
+    showSubTab('operacao', 'lancamento', document.querySelector('#operacao .sub-tab'));
+}
+
+async function loadIdentificacaoExpedicoes() {
+    const container = document.getElementById('expedicoesParaIdentificacao');
+    container.innerHTML = `<div class="loading"><div class="spinner"></div>Carregando expedições...</div>`;
+
+    try {
+        // Busca expedições que ainda não saíram para entrega
+        const expeditions = await supabaseRequest("expeditions?status=in.(aguardando_agrupamento,aguardando_veiculo,em_carregamento,carregado,aguardando_faturamento,faturamento_iniciado,faturado)&order=data_hora.desc");
+        const items = await supabaseRequest('expedition_items');
+
+        if (!expeditions || expeditions.length === 0) {
+            container.innerHTML = '<div class="alert alert-success">Nenhuma expedição aguardando identificação!</div>';
+            return;
+        }
+
+        const expeditionsWithItems = expeditions.map(exp => {
+            const expItems = items.filter(item => item.expedition_id === exp.id);
+            const lider = lideres.find(l => l.id === exp.lider_id);
+            const veiculo = veiculos.find(v => v.id === exp.veiculo_id);
+            const motorista = motoristas.find(m => m.id === exp.motorista_id);
+
+            return {
+                ...exp,
+                items: expItems,
+                lider_nome: lider?.nome || 'N/A',
+                veiculo_placa: veiculo?.placa || 'N/A',
+                motorista_nome: motorista?.nome || 'N/A',
+                total_pallets: expItems.reduce((sum, item) => sum + (item.pallets || 0), 0),
+                total_rolltrainers: expItems.reduce((sum, item) => sum + (item.rolltrainers || 0), 0)
+            };
+        });
+
+        // Garante que as lojas estão carregadas antes de renderizar
+if (lojas.length === 0) {
+    await loadSelectData();
+}
+renderIdentificacaoExpedicoes(expeditionsWithItems);
+
+    } catch (error) {
+        container.innerHTML = `<div class="alert alert-error">Erro ao carregar expedições: ${error.message}</div>`;
+    }
+}
+
+function renderIdentificacaoExpedicoes(expeditions) {
+    const container = document.getElementById('expedicoesParaIdentificacao');
+
+    container.innerHTML = expeditions.map(exp => {
+        const totalItens = exp.total_pallets + exp.total_rolltrainers;
+        const numeroCarga = exp.numeros_carga && exp.numeros_carga.length > 0 ? exp.numeros_carga[0] : 'N/A';
+        
+        const lojasInfo = exp.items.map(item => {
+            const loja = lojas.find(l => l.id === item.loja_id);
+            return loja ? `${loja.codigo} - ${loja.nome}` : 'N/A';
+        }).join(', ');
+
+        return `
+            <div class="identificacao-card">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Expedição ${exp.id}</h3>
+                        <p class="text-sm text-gray-500">${new Date(exp.data_hora).toLocaleString('pt-BR')}</p>
+                        <p class="text-sm text-gray-600 mt-2"><strong>Lojas:</strong> ${lojasInfo}</p>
+                        ${exp.numeros_carga && exp.numeros_carga.length > 0 ? `<p class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-1 inline-block">📦 ${exp.numeros_carga.join(', ')}</p>` : ''}
+                    </div>
+                    <span class="status-badge status-${exp.status}">${getStatusLabel(exp.status)}</span>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                    <div><strong>Líder:</strong> ${exp.lider_nome}</div>
+                    <div><strong>Veículo:</strong> ${exp.veiculo_placa}</div>
+                    <div><strong>Motorista:</strong> ${exp.motorista_nome}</div>
+                    <div><strong>Total Itens:</strong> ${totalItens}</div>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-blue-600">${exp.total_pallets}</div>
+                            <div class="text-xs text-gray-500">Pallets</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-orange-600">${exp.total_rolltrainers}</div>
+                            <div class="text-xs text-gray-500">RollTrainers</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button class="btn btn-primary" onclick="imprimirIdentificacao('${exp.id}', '${numeroCarga}', '${exp.lider_nome}', ${exp.total_pallets}, ${exp.total_rolltrainers})">
+                        🖨️ Imprimir Identificação (${totalItens} etiquetas)
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Substitua a função imprimirIdentificacao existente por esta versão corrigida:
+
+// Substitua a função imprimirIdentificacao existente por esta versão corrigida:
+
+// Substitua a função imprimirIdentificacao existente por esta versão corrigida:
+
+// Substitua a função imprimirIdentificacao existente por esta versão corrigida:
+
+// Substitua a função imprimirIdentificacao existente por esta versão corrigida:
+
+// Substitua a função imprimirIdentificacao existente por esta versão corrigida:
+
+async function imprimirIdentificacao(expeditionId, numeroCarga, liderNome, pallets, rolltrainers) {
+    try {
+        // Busca os itens da expedição e as informações das lojas
+        const items = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
+        
+        if (!items || items.length === 0) {
+            showNotification('Nenhum item encontrado para esta expedição.', 'error');
+            return;
+        }
+        
+        const hoje = new Date();
+        const dataFormatada = hoje.toLocaleDateString('pt-BR');
+        
+        // Remove qualquer div de impressão anterior
+        const existingPrintDiv = document.getElementById('printIdentificationDiv');
+        if (existingPrintDiv) {
+            existingPrintDiv.remove();
+        }
+
+        // Cria o container de impressão
+        const printDiv = document.createElement('div');
+        printDiv.id = 'printIdentificationDiv';
+        
+        let etiquetasHtml = `
+            <style>
+                @media print {
+                    * {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        box-sizing: border-box !important;
+                        -webkit-print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
+                    
+                    @page {
+                        size: A4 landscape;
+                        margin: 0;
+                    }
+                    
+                    body * {
+                        visibility: hidden !important;
+                    }
+                    
+                    #printIdentificationDiv,
+                    #printIdentificationDiv * {
+                        visibility: visible !important;
+                    }
+                    
+                    #printIdentificationDiv {
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        overflow: visible !important;
+                        z-index: 9999 !important;
+                    }
+                    
+                    .etiqueta-page {
+                        width: 297mm !important;
+                        height: 210mm !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
+                        position: relative !important;
+                        box-sizing: border-box !important;
+                        page-break-after: always !important;
+                        page-break-inside: avoid !important;
+                    }
+                    
+                    .etiqueta-page:last-child {
+                        page-break-after: auto !important;
+                    }
+                    
+                    .etiqueta-container {
+                        text-align: center !important;
+                        font-family: Arial, sans-serif !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        justify-content: center !important;
+                        align-items: center !important;
+                        padding: 10mm !important;
+                        box-sizing: border-box !important;
+                    }
+                    
+                    .etiqueta-quadro {
+                        border: 3px solid #999 !important;
+                        padding: 30mm 25mm !important;
+                        background: white !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        border-radius: 20px !important;
+                        box-shadow: inset 0 0 0 2px #ccc !important;
+                        box-sizing: border-box !important;
+                    }
+                    
+                    .etiqueta-numero {
+                        font-size: 80px !important;
+                        font-weight: 900 !important;
+                        color: #000 !important;
+                        margin: 0 !important;
+                        line-height: 0.9 !important;
+                        letter-spacing: 3px !important;
+                        text-transform: uppercase !important;
+                    }
+                    
+                    .etiqueta-info {
+                        font-size: 54px !important;
+                        font-weight: 700 !important;
+                        color: #333 !important;
+                        margin: 0 !important;
+                        line-height: 1.1 !important;
+                        letter-spacing: 3px !important;
+                        text-transform: uppercase !important;
+                    }
+                    
+                    .etiqueta-data {
+                        font-size: 60px !important;
+                        font-weight: 700 !important;
+                        color: #000 !important;
+                        margin: 0 !important;
+                        line-height: 1 !important;
+                        letter-spacing: 3px !important;
+                    }
+                    
+                    .etiqueta-contador {
+                        font-size: 90px !important;
+                        font-weight: 900 !important;
+                        color: #000 !important;
+                        border: 3px solid #999 !important;
+                        padding: 25px 50px !important;
+                        margin: 0 !important;
+                        line-height: 1 !important;
+                        display: inline-block !important;
+                        border-radius: 15px !important;
+                        background: #f0f0f0 !important;
+                        letter-spacing: 4px !important;
+                        box-shadow: inset 0 0 0 2px #ccc !important;
+                    }
+                    
+                    .etiqueta-lojas {
+                        font-size: 42px !important;
+                        font-weight: 700 !important;
+                        color: #000 !important;
+                        margin: 0 !important;
+                        line-height: 1.2 !important;
+                        text-align: center !important;
+                        max-width: 100% !important;
+                        word-wrap: break-word !important;
+                        text-transform: uppercase !important;
+                        letter-spacing: 2px !important;
+                    }
+                    
+                    .etiqueta-divider {
+                        width: 90% !important;
+                        height: 2px !important;
+                        background: linear-gradient(to right, transparent, #ddd 20%, #999 50%, #ddd 80%, transparent) !important;
+                        margin: 25px auto !important;
+                        border-radius: 1px !important;
+                        opacity: 0.7 !important;
+                    }
+                }
+                
+                @media screen {
+                    #printIdentificationDiv {
+                        display: none;
+                    }
+                }
+            </style>
+        `;
+        
+        // Para cada loja da expedição, gerar suas etiquetas separadamente
+        for (const item of items) {
+            const loja = lojas.find(l => l.id === item.loja_id);
+            if (!loja) continue;
+            
+            const lojaInfo = `${loja.codigo} - ${loja.nome}`;
+            const totalItensLoja = (item.pallets || 0) + (item.rolltrainers || 0);
+            
+            // Criar etiquetas para esta loja específica
+            for (let i = 1; i <= totalItensLoja; i++) {
+                etiquetasHtml += `
+                    <div class="etiqueta-page">
+                        <div class="etiqueta-container">
+                            <div class="etiqueta-quadro">
+                                <div class="etiqueta-numero">${lojaInfo}</div>
+                                <div class="etiqueta-divider"></div>
+                                <div class="etiqueta-data">${dataFormatada}</div>
+                                <div class="etiqueta-divider"></div>
+                                <div class="etiqueta-contador">${String(i).padStart(2, '0')}/${String(totalItensLoja).padStart(2, '0')}</div>
+                                <div class="etiqueta-divider"></div>
+                                <div class="etiqueta-lojas">${liderNome}</div>
+                                <div class="etiqueta-divider"></div>
+                                <div class="etiqueta-info">CD ${selectedFilial.nome} - ${selectedFilial.descricao}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        printDiv.innerHTML = etiquetasHtml;
+        document.body.appendChild(printDiv);
+        
+        showNotification('Preparando impressão das etiquetas...', 'info');
+        
+        // Imprime
+        setTimeout(() => {
+            window.print();
+            // Remove o div após a impressão
+            setTimeout(() => {
+                if (document.getElementById('printIdentificationDiv')) {
+                    document.getElementById('printIdentificationDiv').remove();
+                }
+            }, 2000);
+        }, 500);
+        
+    } catch (error) {
+        console.error('Erro ao buscar dados para impressão:', error);
+        showNotification('Erro ao carregar dados para impressão: ' + error.message, 'error');
     }
 }
         // Inicialização
