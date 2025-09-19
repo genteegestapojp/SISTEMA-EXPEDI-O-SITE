@@ -4861,11 +4861,13 @@ ${proximityInfo}
                             else if (item.status_descarga === 'em_descarga') iconStatus = '🚚';
                             else iconStatus = '⏳';
                             
-                            return `<div class="flex items-center text-sm ${item.status_descarga === 'descarregado' ? 'text-green-600' : item.status_descarga === 'em_descarga' ? 'text-orange-600' : 'text-gray-600'}">
-                                <span class="mr-2">${iconStatus}</span>
-                                <span>${index + 1}. ${loja?.nome || 'N/A'}</span>
-                                ${item.data_fim_descarga ? `<span class="ml-auto text-xs">${new Date(item.data_fim_descarga).toLocaleTimeString('pt-BR')}</span>` : ''}
-                            </div>`;
+                            // ...
+return `<div class="flex items-center text-sm ...">
+    <span class="mr-2">${iconStatus}</span>
+    <span>${index + 1}. ${loja?.codigo || 'N/A'} - ${loja?.nome || 'N/A'}</span>
+    ${item.data_fim_descarga ? `<span class="ml-auto text-xs">${new Date(item.data_fim_descarga).toLocaleTimeString('pt-BR')}</span>` : ''}
+</div>`;
+// ...
                         }).join('')}
                     </div>
                 </div>
