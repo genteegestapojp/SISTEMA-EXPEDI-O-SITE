@@ -1041,6 +1041,28 @@
             </div>
         </div>
     </div>
+    <!-- Modal de Autenticação para Edição -->
+<div id="authEditModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px;">
+        <h3 class="text-xl font-semibold mb-4">Autenticação Necessária</h3>
+        <p class="text-gray-600 mb-4">Para editar expedições, é necessário inserir suas credenciais:</p>
+        <form id="authEditForm">
+            <div class="form-group">
+                <label for="authEditUser">Usuário:</label>
+                <input type="text" id="authEditUser" required class="w-full">
+            </div>
+            <div class="form-group">
+                <label for="authEditPassword">Senha:</label>
+                <input type="password" id="authEditPassword" required class="w-full">
+            </div>
+            <div class="flex gap-4 mt-6">
+                <button type="submit" class="btn btn-primary flex-1">Autenticar</button>
+                <button type="button" class="btn btn-danger flex-1" onclick="closeAuthEditModal()">Cancelar</button>
+            </div>
+        </form>
+        <div id="authEditAlert" class="mt-4"></div>
+    </div>
+</div>
     <div id="editExpeditionModal" class="modal-overlay">
          <div class="modal-content">
             <h3 class="text-xl font-semibold mb-4" id="editModalTitle">Editar Expedição</h3>
@@ -2060,11 +2082,16 @@ if (mapInstance) {
 `;
 
 
-            // Adicionar event listeners aos formulários
-            document.getElementById('expeditionForm').addEventListener('submit', (e) => { e.preventDefault(); lancarCarga(); });
-            document.getElementById('editExpeditionForm').addEventListener('submit', (e) => { e.preventDefault(); saveEditedExpedition(); });
-            document.getElementById('passwordForm').addEventListener('submit', (e) => { e.preventDefault(); checkPassword(); });
-            document.getElementById('addForm').addEventListener('submit', (e) => { e.preventDefault(); handleSave(); });
+// Adicionar event listeners aos formulários
+document.getElementById('expeditionForm').addEventListener('submit', (e) => { e.preventDefault(); lancarCarga(); });
+document.getElementById('editExpeditionForm').addEventListener('submit', (e) => { e.preventDefault(); saveEditedExpedition(); });
+document.getElementById('passwordForm').addEventListener('submit', (e) => { e.preventDefault(); checkPassword(); });
+document.getElementById('addForm').addEventListener('submit', (e) => { e.preventDefault(); handleSave(); });
+// Event listener para o formulário de autenticação de edição
+document.getElementById('authEditForm').addEventListener('submit', (e) => { 
+    e.preventDefault(); 
+    checkAuthForEdit(); 
+});
 
             // Carregar dados para os selects
             await loadSelectData();
@@ -5181,33 +5208,142 @@ renderEntregasChart(entregasFort, entregasComper);
             }
         }
 
-        // --- FUNÇÕES DOS MODAIS DE AÇÃO ---
-        async function openEditModal(expeditionId) {
-            const expedition = allExpeditions.find(e => e.id === expeditionId);
-            if (!expedition) {
-                showNotification('Expedição não encontrada', 'error');
-                return;
-            }
-            
-            document.getElementById('editExpeditionId').value = expeditionId;
-            const statusSelect = document.getElementById('editStatus');
-            statusSelect.innerHTML = '';
-            
-            // Gerar lista de todos os status possíveis
-            const allStatus = ['pendente', 'aguardando_agrupamento', 'aguardando_doca', 'aguardando_veiculo', 'em_carregamento', 'carregado', 'aguardando_faturamento', 'faturamento_iniciado', 'faturado', 'saiu_para_entrega', 'entregue', 'cancelado'];
-            allStatus.forEach(status => {
-                 statusSelect.innerHTML += `<option value="${status}" ${expedition.status === status ? 'selected' : ''}>${getStatusLabel(status)}</option>`;
-            });
+// Função para mostrar modal de autenticação para edição - MODIFICADA
+function showAuthEditModal(expeditionId) {
+    // Armazena o ID no próprio formulário como um campo hidden
+    document.getElementById('authEditModal').style.display = 'flex';
+    document.getElementById('authEditUser').value = '';
+    document.getElementById('authEditPassword').value = '';
+    document.getElementById('authEditAlert').innerHTML = '';
+    
+    // ADICIONA UM CAMPO HIDDEN COM O ID DA EXPEDIÇÃO
+    let hiddenIdField = document.getElementById('authEditExpeditionId');
+    if (!hiddenIdField) {
+        hiddenIdField = document.createElement('input');
+        hiddenIdField.type = 'hidden';
+        hiddenIdField.id = 'authEditExpeditionId';
+        document.getElementById('authEditForm').appendChild(hiddenIdField);
+    }
+    hiddenIdField.value = expeditionId;
+    
+    document.getElementById('authEditUser').focus();
+}
 
-            document.getElementById('editObservacoes').value = expedition.observacoes || '';
+// Função para fechar modal de autenticação
+function closeAuthEditModal() {
+    document.getElementById('authEditModal').style.display = 'none';
+}
 
-            const lojasContainer = document.getElementById('editLojasContainer');
-            lojasContainer.innerHTML = '<h4 class="font-semibold text-gray-700">Lojas e Quantidades</h4>';
-            editLojaLineCounter = 0;
-            expedition.items.forEach(item => addEditLojaLine(item));
-            
-            document.getElementById('editExpeditionModal').style.display = 'flex';
+// Função para verificar autenticação para edição - SIMPLIFICADA
+async function checkAuthForEdit() {
+    const nome = document.getElementById('authEditUser').value.trim();
+    const senha = document.getElementById('authEditPassword').value;
+    const expeditionId = document.getElementById('authEditExpeditionId').value;
+
+    if (!nome || !senha) {
+        showAlert('authEditAlert', 'Usuário e senha são obrigatórios.', 'error');
+        return;
+    }
+
+    if (!expeditionId) {
+        showAlert('authEditAlert', 'Erro: ID da expedição não encontrado.', 'error');
+        return;
+    }
+
+    try {
+        const endpoint = `acessos?select=nome,tipo_acesso&nome=eq.${nome}&senha=eq.${senha}`;
+        const result = await supabaseRequest(endpoint, 'GET', null, false);
+
+        if (!result || result.length === 0) {
+            showAlert('authEditAlert', 'Usuário ou senha incorretos.', 'error');
+            document.getElementById('authEditPassword').value = '';
+            return;
         }
+
+        const user = result[0];
+        
+        // Verifica se o usuário tem permissão (ALL ou filial específica)
+        if (user.tipo_acesso !== 'ALL' && user.tipo_acesso !== selectedFilial.nome) {
+            showAlert('authEditAlert', 'Você não tem permissão para editar nesta filial.', 'error');
+            return;
+        }
+
+        // Autenticação bem-sucedida
+        closeAuthEditModal();
+        showNotification(`Acesso autorizado para ${user.nome}!`, 'success');
+        
+        // Abre o modal de edição diretamente
+        openEditModalDirectly(expeditionId);
+
+    } catch (error) {
+        showAlert('authEditAlert', 'Erro ao verificar credenciais. Tente novamente.', 'error');
+        console.error('Erro na autenticação:', error);
+    }
+}
+
+      // Função principal que verifica autenticação antes de permitir edição
+async function openEditModal(expeditionId) {
+    // Verifica se já está autenticado (reutiliza autenticação das configurações)
+    if (currentUser && (currentUser.tipo_acesso === 'ALL' || currentUser.tipo_acesso === selectedFilial.nome)) {
+        // Já autenticado, abre diretamente
+        openEditModalDirectly(expeditionId);
+    } else {
+        // Não autenticado, pede credenciais - PASSA O ID DIRETAMENTE
+        showAuthEditModal(expeditionId);
+    }
+}
+// Função que abre o modal de edição sem verificação
+async function openEditModalDirectly(expeditionId) {
+    // Primeiro, garante que temos os dados carregados
+    if (!allExpeditions || allExpeditions.length === 0) {
+        showNotification('Carregando dados...', 'info');
+        await loadAcompanhamento();
+    }
+    
+    let expedition = allExpeditions ? allExpeditions.find(e => e.id === expeditionId) : null;
+    
+    if (!expedition) {
+        // Tenta buscar diretamente do banco
+        try {
+            const expeditions = await supabaseRequest(`expeditions?id=eq.${expeditionId}`);
+            const items = await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`);
+            
+            if (expeditions && expeditions.length > 0) {
+                expedition = expeditions[0];
+                expedition.items = items || [];
+            }
+        } catch (error) {
+            console.error('Erro ao buscar expedição:', error);
+        }
+    }
+    
+    if (!expedition) {
+        showNotification('Expedição não encontrada', 'error');
+        return;
+    }
+    
+    document.getElementById('editExpeditionId').value = expeditionId;
+    const statusSelect = document.getElementById('editStatus');
+    statusSelect.innerHTML = '';
+    
+    // Gerar lista de todos os status possíveis
+    const allStatus = ['pendente', 'aguardando_agrupamento', 'aguardando_doca', 'aguardando_veiculo', 'em_carregamento', 'carregado', 'aguardando_faturamento', 'faturamento_iniciado', 'faturado', 'saiu_para_entrega', 'entregue', 'cancelado'];
+    allStatus.forEach(status => {
+         statusSelect.innerHTML += `<option value="${status}" ${expedition.status === status ? 'selected' : ''}>${getStatusLabel(status)}</option>`;
+    });
+
+    document.getElementById('editObservacoes').value = expedition.observacoes || '';
+
+    const lojasContainer = document.getElementById('editLojasContainer');
+    lojasContainer.innerHTML = '<h4 class="font-semibold text-gray-700">Lojas e Quantidades</h4>';
+    editLojaLineCounter = 0;
+    
+    if (expedition.items && expedition.items.length > 0) {
+        expedition.items.forEach(item => addEditLojaLine(item));
+    }
+    
+    document.getElementById('editExpeditionModal').style.display = 'flex';
+}
 
         function closeEditModal() {
             document.getElementById('editExpeditionModal').style.display = 'none';
@@ -5311,10 +5447,16 @@ renderEntregasChart(entregasFort, entregasComper);
        // CÓDIGO CORRIGIDO
 
 async function deleteExpedition(expeditionId) {
+    // Verifica autenticação antes de permitir exclusão
+    if (!currentUser || (currentUser.tipo_acesso !== 'ALL' && currentUser.tipo_acesso !== selectedFilial.nome)) {
+        showNotification('É necessário autenticação para excluir expedições. Faça login nas configurações primeiro.', 'error');
+        return;
+    }
+
     const confirmed = await showYesNoModal('Deseja realmente excluir esta expedição? Esta ação não pode ser desfeita e liberará os recursos alocados.');
     if (confirmed) {
         try {
-            // Primeiro, busca todos os dados da expedição que será deletada
+            // ... resto da função permanece igual
             const expeditionToDel = allExpeditions.find(e => e.id === expeditionId);
             if (!expeditionToDel) {
                 showNotification('Erro: Expedição não encontrada para exclusão.', 'error');
@@ -5323,39 +5465,30 @@ async function deleteExpedition(expeditionId) {
 
             const updatePromises = [];
 
-            // 1. Prepara a liberação da Doca (se houver)
             if (expeditionToDel.doca_id) {
                 updatePromises.push(
                     supabaseRequest(`docas?id=eq.${expeditionToDel.doca_id}`, 'PATCH', { status: 'disponivel' })
                 );
             }
 
-            // 2. Prepara a liberação do Veículo (se houver)
             if (expeditionToDel.veiculo_id) {
                 updatePromises.push(
                     supabaseRequest(`veiculos?id=eq.${expeditionToDel.veiculo_id}`, 'PATCH', { status: 'disponivel' }, false)
                 );
             }
 
-            // 3. Prepara a liberação do Motorista (se houver)
             if (expeditionToDel.motorista_id) {
                 updatePromises.push(
                     supabaseRequest(`motoristas?id=eq.${expeditionToDel.motorista_id}`, 'PATCH', { status: 'disponivel' }, false)
                 );
             }
             
-            // Executa todas as atualizações de status em paralelo
             await Promise.all(updatePromises);
-
-            // 4. Exclui os itens da expedição (cargas das lojas)
             await supabaseRequest(`expedition_items?expedition_id=eq.${expeditionId}`, 'DELETE', null, false);
-
-            // 5. Exclui a expedição principal
             await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'DELETE', null, false);
             
             showNotification('Expedição excluída e recursos liberados com sucesso!', 'success');
             
-            // Recarrega os dados para atualizar a tela
             await loadSelectData();
             loadAcompanhamento();
 
