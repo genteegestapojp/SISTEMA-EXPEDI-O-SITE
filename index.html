@@ -5236,10 +5236,75 @@ renderEntregasChart(entregasFort, entregasComper);
         }
 
         async function saveEditedExpedition() {
-            // Lógica para salvar edições
-             showNotification('Funcionalidade de salvar edição em implementação.', 'info');
-             closeEditModal();
+  const expeditionId = document.getElementById('editExpeditionId').value;
+  const newStatus = document.getElementById('editStatus').value;
+  const newObservacoes = document.getElementById('editObservacoes').value;
+
+  // 1. Coletar os novos dados dos itens da expedição (lojas)
+  const newItemsData = Array.from(document.querySelectorAll('#editLojasContainer .grid')).map(row => ({
+    loja_id: row.querySelector('.edit-loja-select').value,
+    pallets: parseInt(row.querySelector('.edit-pallets-input').value) || 0,
+    rolltrainers: 0 // Assuming rolltrainers are not editable from this screen
+  }));
+
+  try {
+    // Encontra a expedição original
+    const originalExpedition = allExpeditions.find(e => e.id === expeditionId);
+    if (!originalExpedition) {
+      throw new Error('Expedição original não encontrada.');
+    }
+
+    // 2. Atualizar os dados da expedição principal
+    const expeditionUpdatePayload = {
+      status: newStatus,
+      observacoes: newObservacoes
+    };
+    await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdatePayload, false);
+
+    // 3. Gerenciar os itens (lojas) da expedição
+    const originalItems = originalExpedition.items;
+
+    // Itens a serem removidos (se existiam antes e não estão mais na nova lista)
+    const itemsToRemove = originalItems.filter(originalItem =>
+      !newItemsData.some(newItem => newItem.loja_id === originalItem.loja_id)
+    );
+    for (const item of itemsToRemove) {
+      await supabaseRequest(`expedition_items?id=eq.${item.id}`, 'DELETE', null, false);
+    }
+
+    // Itens a serem adicionados ou atualizados
+    for (const newItem of newItemsData) {
+      const existingItem = originalItems.find(originalItem => originalItem.loja_id === newItem.loja_id);
+      if (existingItem) {
+        // Se já existe, atualiza
+        if (existingItem.pallets !== newItem.pallets) {
+          await supabaseRequest(`expedition_items?id=eq.${existingItem.id}`, 'PATCH', {
+            pallets: newItem.pallets
+          }, false);
         }
+      } else {
+        // Se não existe, adiciona
+        const payload = {
+          expedition_id: expeditionId,
+          loja_id: newItem.loja_id,
+          pallets: newItem.pallets,
+          rolltrainers: newItem.rolltrainers,
+          status_descarga: 'pendente'
+        };
+        await supabaseRequest('expedition_items', 'POST', payload, false);
+      }
+    }
+
+    showNotification('Expedição atualizada com sucesso!', 'success');
+    closeEditModal();
+
+    // Recarrega os dados para refletir as mudanças
+    loadAcompanhamento();
+  } catch (error) {
+    console.error('Erro ao salvar edição:', error);
+    showAlert('editFormAlert', `Erro ao salvar edição: ${error.message}`, 'error');
+  }
+}
         
        // CÓDIGO CORRIGIDO
 
