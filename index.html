@@ -1069,12 +1069,36 @@
             <form id="editExpeditionForm">
                 <input type="hidden" id="editExpeditionId">
                 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="editStatus">Status:</label>
-                        <select id="editStatus" class="w-full"></select>
-                    </div>
-                </div>
+<div class="form-grid">
+    <div class="form-group">
+        <label for="editVeiculo">Veículo:</label>
+        <select id="editVeiculo" class="w-full">
+            <option value="">Selecione o veículo</option>
+            <!-- Será preenchido dinamicamente -->
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="editMotorista">Motorista:</label>
+        <select id="editMotorista" class="w-full">
+            <option value="">Selecione o motorista</option>
+            <!-- Será preenchido dinamicamente -->
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="editDoca">Doca:</label>
+        <select id="editDoca" class="w-full">
+            <option value="">Selecione a doca</option>
+            <!-- Será preenchido dinamicamente -->
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="editLider">Líder:</label>
+        <select id="editLider" class="w-full">
+            <option value="">Selecione o líder</option>
+            <!-- Será preenchido dinamicamente -->
+        </select>
+    </div>
+</div>
 
                 <div id="editLojasContainer" class="my-4 space-y-4">
                     <h4 class="font-semibold text-gray-700">Lojas e Quantidades</h4>
@@ -4381,11 +4405,19 @@ populateRastreioFilters();
                 if (ocupacaoPerc > 100) barColor = 'progress-red';
                 
                 const tempos = {
+                    
                     alocar: exp.data_alocacao_veiculo ? minutesToHHMM((new Date(exp.data_alocacao_veiculo) - new Date(exp.data_hora)) / 60000) : '-',
                     chegada: exp.data_chegada_veiculo ? minutesToHHMM((new Date(exp.data_chegada_veiculo) - new Date(exp.data_hora)) / 60000) : '-',
                     carreg: (exp.data_chegada_veiculo && exp.data_saida_veiculo) ? minutesToHHMM((new Date(exp.data_saida_veiculo) - new Date(exp.data_chegada_veiculo)) / 60000) : '-'
                 };
-
+// Verificar se pode editar/excluir
+const canEdit = exp.status !== 'saiu_para_entrega' && exp.status !== 'entregue';
+const editButton = canEdit ? 
+    `<button class="btn btn-warning btn-small" onclick="openEditModal('${exp.id}')">Editar</button>` :
+    `<button class="btn btn-secondary btn-small" disabled title="Não pode editar após saída para entrega">Editar</button>`;
+const deleteButton = canEdit ?
+    `<button class="btn btn-danger btn-small" onclick="deleteExpedition('${exp.id}')">Excluir</button>` :
+    `<button class="btn btn-secondary btn-small" disabled title="Não pode excluir após saída para entrega">Excluir</button>`;
                 return `
                     <tr class="hover:bg-gray-50 text-sm">
                         <td>${new Date(exp.data_hora).toLocaleString('pt-BR')}</td>
@@ -4408,12 +4440,12 @@ populateRastreioFilters();
                             <div>Cheg: ${tempos.chegada}</div>
                             <div>Carr: ${tempos.carreg}</div>
                         </td>
-                        <td>
-                            <div class="flex gap-2">
-                                <button class="btn btn-warning btn-small" onclick="openEditModal('${exp.id}')">Editar</button>
-                                <button class="btn btn-danger btn-small" onclick="deleteExpedition('${exp.id}')">Excluir</button>
-                            </div>
-                        </td>
+                      <td>
+    <div class="flex gap-2">
+        ${editButton}
+        ${deleteButton}
+    </div>
+</td>
                     </tr>
                 `;
             }).join('');
@@ -5321,17 +5353,23 @@ async function openEditModalDirectly(expeditionId) {
         showNotification('Expedição não encontrada', 'error');
         return;
     }
+
+    // Verificar se a expedição pode ser editada
+    if (expedition.status === 'saiu_para_entrega' || expedition.status === 'entregue') {
+        showNotification('Esta expedição não pode mais ser editada pois já saiu para entrega.', 'error');
+        return;
+    }
     
     document.getElementById('editExpeditionId').value = expeditionId;
-    const statusSelect = document.getElementById('editStatus');
-    statusSelect.innerHTML = '';
     
-    // Gerar lista de todos os status possíveis
-    const allStatus = ['pendente', 'aguardando_agrupamento', 'aguardando_doca', 'aguardando_veiculo', 'em_carregamento', 'carregado', 'aguardando_faturamento', 'faturamento_iniciado', 'faturado', 'saiu_para_entrega', 'entregue', 'cancelado'];
-    allStatus.forEach(status => {
-         statusSelect.innerHTML += `<option value="${status}" ${expedition.status === status ? 'selected' : ''}>${getStatusLabel(status)}</option>`;
-    });
-
+    // Preencher selects com opções
+    populateEditSelects();
+    
+    // Preencher campos editáveis (removendo status)
+    document.getElementById('editMotorista').value = expedition.motorista_id || '';
+    document.getElementById('editVeiculo').value = expedition.veiculo_id || '';
+    document.getElementById('editDoca').value = expedition.doca_id || '';
+    document.getElementById('editLider').value = expedition.lider_id || '';
     document.getElementById('editObservacoes').value = expedition.observacoes || '';
 
     const lojasContainer = document.getElementById('editLojasContainer');
@@ -5343,6 +5381,36 @@ async function openEditModalDirectly(expeditionId) {
     }
     
     document.getElementById('editExpeditionModal').style.display = 'flex';
+}
+// Nova função para popular os selects do modal de edição
+function populateEditSelects() {
+    // Veículos
+    const veiculoSelect = document.getElementById('editVeiculo');
+    veiculoSelect.innerHTML = '<option value="">Selecione o veículo</option>';
+    veiculos.forEach(v => {
+        veiculoSelect.innerHTML += `<option value="${v.id}">${v.placa} - ${v.modelo} (Cap: ${v.capacidade_pallets}P)</option>`;
+    });
+
+    // Motoristas
+    const motoristaSelect = document.getElementById('editMotorista');
+    motoristaSelect.innerHTML = '<option value="">Selecione o motorista</option>';
+    motoristas.forEach(m => {
+        motoristaSelect.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+    });
+
+    // Docas
+    const docaSelect = document.getElementById('editDoca');
+    docaSelect.innerHTML = '<option value="">Selecione a doca</option>';
+    docas.forEach(d => {
+        docaSelect.innerHTML += `<option value="${d.id}">${d.nome}</option>`;
+    });
+
+    // Líderes
+    const liderSelect = document.getElementById('editLider');
+    liderSelect.innerHTML = '<option value="">Selecione o líder</option>';
+    lideres.forEach(l => {
+        liderSelect.innerHTML += `<option value="${l.id}">${l.nome}</option>`;
+    });
 }
 
         function closeEditModal() {
@@ -5375,14 +5443,17 @@ async function openEditModalDirectly(expeditionId) {
 
         async function saveEditedExpedition() {
   const expeditionId = document.getElementById('editExpeditionId').value;
-  const newStatus = document.getElementById('editStatus').value;
+  const newVeiculo = document.getElementById('editVeiculo').value;
+  const newMotorista = document.getElementById('editMotorista').value;
+  const newDoca = document.getElementById('editDoca').value;
+  const newLider = document.getElementById('editLider').value;
   const newObservacoes = document.getElementById('editObservacoes').value;
 
   // 1. Coletar os novos dados dos itens da expedição (lojas)
   const newItemsData = Array.from(document.querySelectorAll('#editLojasContainer .grid')).map(row => ({
     loja_id: row.querySelector('.edit-loja-select').value,
     pallets: parseInt(row.querySelector('.edit-pallets-input').value) || 0,
-    rolltrainers: 0 // Assuming rolltrainers are not editable from this screen
+    rolltrainers: 0 // Assumindo que rolltrainers não são editáveis nesta tela
   }));
 
   try {
@@ -5392,14 +5463,65 @@ async function openEditModalDirectly(expeditionId) {
       throw new Error('Expedição original não encontrada.');
     }
 
-    // 2. Atualizar os dados da expedição principal
-    const expeditionUpdatePayload = {
-      status: newStatus,
-      observacoes: newObservacoes
-    };
-    await supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdatePayload, false);
+    // Verificar se pode editar
+    if (originalExpedition.status === 'saiu_para_entrega' || originalExpedition.status === 'entregue') {
+      throw new Error('Esta expedição não pode mais ser editada pois já saiu para entrega.');
+    }
 
-    // 3. Gerenciar os itens (lojas) da expedição
+    const updatePromises = [];
+
+    // 2. Liberar recursos antigos se houve mudança
+    if (originalExpedition.motorista_id && originalExpedition.motorista_id !== newMotorista) {
+      updatePromises.push(
+        supabaseRequest(`motoristas?id=eq.${originalExpedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, false)
+      );
+    }
+
+    if (originalExpedition.veiculo_id && originalExpedition.veiculo_id !== newVeiculo) {
+      updatePromises.push(
+        supabaseRequest(`veiculos?id=eq.${originalExpedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, false)
+      );
+    }
+
+    if (originalExpedition.doca_id && originalExpedition.doca_id !== newDoca) {
+      updatePromises.push(
+        supabaseRequest(`docas?id=eq.${originalExpedition.doca_id}`, 'PATCH', { status: 'disponivel' }, false)
+      );
+    }
+
+    // 3. Alocar novos recursos se foram selecionados
+    if (newMotorista && newMotorista !== originalExpedition.motorista_id) {
+      updatePromises.push(
+        supabaseRequest(`motoristas?id=eq.${newMotorista}`, 'PATCH', { status: 'em_viagem' }, false)
+      );
+    }
+
+    if (newVeiculo && newVeiculo !== originalExpedition.veiculo_id) {
+      updatePromises.push(
+        supabaseRequest(`veiculos?id=eq.${newVeiculo}`, 'PATCH', { status: 'em_uso' }, false)
+      );
+    }
+
+    if (newDoca && newDoca !== originalExpedition.doca_id) {
+      updatePromises.push(
+        supabaseRequest(`docas?id=eq.${newDoca}`, 'PATCH', { status: 'em_uso' }, false)
+      );
+    }
+
+    // 4. Atualizar os dados da expedição principal
+    const expeditionUpdatePayload = {
+      veiculo_id: newVeiculo || null,
+      motorista_id: newMotorista || null,
+      doca_id: newDoca || null,
+      lider_id: newLider || null,
+      observacoes: newObservacoes || null
+    };
+    
+    updatePromises.push(
+      supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdatePayload, false)
+    );
+
+    // 5. Gerenciar os itens (lojas) da expedição
     const originalItems = originalExpedition.items;
 
     // Itens a serem removidos (se existiam antes e não estão mais na nova lista)
@@ -5407,7 +5529,9 @@ async function openEditModalDirectly(expeditionId) {
       !newItemsData.some(newItem => newItem.loja_id === originalItem.loja_id)
     );
     for (const item of itemsToRemove) {
-      await supabaseRequest(`expedition_items?id=eq.${item.id}`, 'DELETE', null, false);
+      updatePromises.push(
+        supabaseRequest(`expedition_items?id=eq.${item.id}`, 'DELETE', null, false)
+      );
     }
 
     // Itens a serem adicionados ou atualizados
@@ -5416,9 +5540,11 @@ async function openEditModalDirectly(expeditionId) {
       if (existingItem) {
         // Se já existe, atualiza
         if (existingItem.pallets !== newItem.pallets) {
-          await supabaseRequest(`expedition_items?id=eq.${existingItem.id}`, 'PATCH', {
-            pallets: newItem.pallets
-          }, false);
+          updatePromises.push(
+            supabaseRequest(`expedition_items?id=eq.${existingItem.id}`, 'PATCH', {
+              pallets: newItem.pallets
+            }, false)
+          );
         }
       } else {
         // Se não existe, adiciona
@@ -5429,14 +5555,20 @@ async function openEditModalDirectly(expeditionId) {
           rolltrainers: newItem.rolltrainers,
           status_descarga: 'pendente'
         };
-        await supabaseRequest('expedition_items', 'POST', payload, false);
+        updatePromises.push(
+          supabaseRequest('expedition_items', 'POST', payload, false)
+        );
       }
     }
+
+    // Executar todas as atualizações
+    await Promise.all(updatePromises);
 
     showNotification('Expedição atualizada com sucesso!', 'success');
     closeEditModal();
 
     // Recarrega os dados para refletir as mudanças
+    await loadSelectData();
     loadAcompanhamento();
   } catch (error) {
     console.error('Erro ao salvar edição:', error);
@@ -5452,16 +5584,22 @@ async function deleteExpedition(expeditionId) {
         showNotification('É necessário autenticação para excluir expedições. Faça login nas configurações primeiro.', 'error');
         return;
     }
+const expeditionToDel = allExpeditions.find(e => e.id === expeditionId);
+if (!expeditionToDel) {
+    showNotification('Erro: Expedição não encontrada para exclusão.', 'error');
+    return;
+}
 
+// Verificar se a expedição pode ser excluída
+if (expeditionToDel.status === 'saiu_para_entrega' || expeditionToDel.status === 'entregue') {
+    showNotification('Esta expedição não pode ser excluída pois já saiu para entrega.', 'error');
+    return;
+}
     const confirmed = await showYesNoModal('Deseja realmente excluir esta expedição? Esta ação não pode ser desfeita e liberará os recursos alocados.');
     if (confirmed) {
         try {
             // ... resto da função permanece igual
-            const expeditionToDel = allExpeditions.find(e => e.id === expeditionId);
-            if (!expeditionToDel) {
-                showNotification('Erro: Expedição não encontrada para exclusão.', 'error');
-                return;
-            }
+           
 
             const updatePromises = [];
 
