@@ -5418,162 +5418,178 @@ function populateEditSelects() {
         }
 
         function addEditLojaLine(item = null) {
-            editLojaLineCounter++;
-            const container = document.getElementById('editLojasContainer');
-            const newLine = document.createElement('div');
-            newLine.className = 'grid grid-cols-1 md:grid-cols-4 gap-4 items-end';
-            newLine.dataset.editIndex = editLojaLineCounter;
-            
-            newLine.innerHTML = `
-                <div class="form-group md:col-span-2"><label>Loja:</label><select class="edit-loja-select w-full">${lojas.map(l => `<option value="${l.id}">${l.codigo} - ${l.nome}</option>`).join('')}</select></div>
-                <div class="form-group"><label>Pallets:</label><input type="number" class="edit-pallets-input w-full" min="0"></div>
-                <div><button type="button" class="btn btn-danger btn-small w-full" onclick="removeEditLojaLine(${editLojaLineCounter})">Remover</button></div>
-            `;
-            container.appendChild(newLine);
-            
-            if(item) {
-                newLine.querySelector('.edit-loja-select').value = item.loja_id;
-                newLine.querySelector('.edit-pallets-input').value = item.pallets;
-            }
-        }
+    editLojaLineCounter++;
+    const container = document.getElementById('editLojasContainer');
+    const newLine = document.createElement('div');
+    newLine.className = 'grid grid-cols-1 md:grid-cols-5 gap-4 items-end';
+    newLine.dataset.editIndex = editLojaLineCounter;
+    
+    newLine.innerHTML = `
+        <div class="form-group md:col-span-2">
+            <label>Loja:</label>
+            <select class="edit-loja-select w-full">
+                ${lojas.map(l => `<option value="${l.id}">${l.codigo} - ${l.nome}</option>`).join('')}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Pallets:</label>
+            <input type="number" class="edit-pallets-input w-full" min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+            <label>RollTrainers:</label>
+            <input type="number" class="edit-rolltrainers-input w-full" min="0" placeholder="0">
+        </div>
+        <div>
+            <button type="button" class="btn btn-danger btn-small w-full" onclick="removeEditLojaLine(${editLojaLineCounter})">Remover</button>
+        </div>
+    `;
+    container.appendChild(newLine);
+    
+    if(item) {
+        newLine.querySelector('.edit-loja-select').value = item.loja_id;
+        newLine.querySelector('.edit-pallets-input').value = item.pallets || 0;
+        newLine.querySelector('.edit-rolltrainers-input').value = item.rolltrainers || 0;
+    }
+}
         
         function removeEditLojaLine(index) {
             document.querySelector(`[data-edit-index="${index}"]`)?.remove();
         }
 
         async function saveEditedExpedition() {
-  const expeditionId = document.getElementById('editExpeditionId').value;
-  const newVeiculo = document.getElementById('editVeiculo').value;
-  const newMotorista = document.getElementById('editMotorista').value;
-  const newDoca = document.getElementById('editDoca').value;
-  const newLider = document.getElementById('editLider').value;
-  const newObservacoes = document.getElementById('editObservacoes').value;
+    const expeditionId = document.getElementById('editExpeditionId').value;
+    const newVeiculo = document.getElementById('editVeiculo').value;
+    const newMotorista = document.getElementById('editMotorista').value;
+    const newDoca = document.getElementById('editDoca').value;
+    const newLider = document.getElementById('editLider').value;
+    const newObservacoes = document.getElementById('editObservacoes').value;
 
-  // 1. Coletar os novos dados dos itens da expedição (lojas)
-  const newItemsData = Array.from(document.querySelectorAll('#editLojasContainer .grid')).map(row => ({
-    loja_id: row.querySelector('.edit-loja-select').value,
-    pallets: parseInt(row.querySelector('.edit-pallets-input').value) || 0,
-    rolltrainers: 0 // Assumindo que rolltrainers não são editáveis nesta tela
-  }));
+    // 1. Coletar os novos dados dos itens da expedição (lojas) - MODIFICADO PARA INCLUIR ROLLTRAINERS
+    const newItemsData = Array.from(document.querySelectorAll('#editLojasContainer .grid')).map(row => ({
+        loja_id: row.querySelector('.edit-loja-select').value,
+        pallets: parseInt(row.querySelector('.edit-pallets-input').value) || 0,
+        rolltrainers: parseInt(row.querySelector('.edit-rolltrainers-input').value) || 0
+    }));
 
-  try {
-    // Encontra a expedição original
-    const originalExpedition = allExpeditions.find(e => e.id === expeditionId);
-    if (!originalExpedition) {
-      throw new Error('Expedição original não encontrada.');
-    }
-
-    // Verificar se pode editar
-    if (originalExpedition.status === 'saiu_para_entrega' || originalExpedition.status === 'entregue') {
-      throw new Error('Esta expedição não pode mais ser editada pois já saiu para entrega.');
-    }
-
-    const updatePromises = [];
-
-    // 2. Liberar recursos antigos se houve mudança
-    if (originalExpedition.motorista_id && originalExpedition.motorista_id !== newMotorista) {
-      updatePromises.push(
-        supabaseRequest(`motoristas?id=eq.${originalExpedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, false)
-      );
-    }
-
-    if (originalExpedition.veiculo_id && originalExpedition.veiculo_id !== newVeiculo) {
-      updatePromises.push(
-        supabaseRequest(`veiculos?id=eq.${originalExpedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, false)
-      );
-    }
-
-    if (originalExpedition.doca_id && originalExpedition.doca_id !== newDoca) {
-      updatePromises.push(
-        supabaseRequest(`docas?id=eq.${originalExpedition.doca_id}`, 'PATCH', { status: 'disponivel' }, false)
-      );
-    }
-
-    // 3. Alocar novos recursos se foram selecionados
-    if (newMotorista && newMotorista !== originalExpedition.motorista_id) {
-      updatePromises.push(
-        supabaseRequest(`motoristas?id=eq.${newMotorista}`, 'PATCH', { status: 'em_viagem' }, false)
-      );
-    }
-
-    if (newVeiculo && newVeiculo !== originalExpedition.veiculo_id) {
-      updatePromises.push(
-        supabaseRequest(`veiculos?id=eq.${newVeiculo}`, 'PATCH', { status: 'em_uso' }, false)
-      );
-    }
-
-    if (newDoca && newDoca !== originalExpedition.doca_id) {
-      updatePromises.push(
-        supabaseRequest(`docas?id=eq.${newDoca}`, 'PATCH', { status: 'em_uso' }, false)
-      );
-    }
-
-    // 4. Atualizar os dados da expedição principal
-    const expeditionUpdatePayload = {
-      veiculo_id: newVeiculo || null,
-      motorista_id: newMotorista || null,
-      doca_id: newDoca || null,
-      lider_id: newLider || null,
-      observacoes: newObservacoes || null
-    };
-    
-    updatePromises.push(
-      supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdatePayload, false)
-    );
-
-    // 5. Gerenciar os itens (lojas) da expedição
-    const originalItems = originalExpedition.items;
-
-    // Itens a serem removidos (se existiam antes e não estão mais na nova lista)
-    const itemsToRemove = originalItems.filter(originalItem =>
-      !newItemsData.some(newItem => newItem.loja_id === originalItem.loja_id)
-    );
-    for (const item of itemsToRemove) {
-      updatePromises.push(
-        supabaseRequest(`expedition_items?id=eq.${item.id}`, 'DELETE', null, false)
-      );
-    }
-
-    // Itens a serem adicionados ou atualizados
-    for (const newItem of newItemsData) {
-      const existingItem = originalItems.find(originalItem => originalItem.loja_id === newItem.loja_id);
-      if (existingItem) {
-        // Se já existe, atualiza
-        if (existingItem.pallets !== newItem.pallets) {
-          updatePromises.push(
-            supabaseRequest(`expedition_items?id=eq.${existingItem.id}`, 'PATCH', {
-              pallets: newItem.pallets
-            }, false)
-          );
+    try {
+        // Encontra a expedição original
+        const originalExpedition = allExpeditions.find(e => e.id === expeditionId);
+        if (!originalExpedition) {
+            throw new Error('Expedição original não encontrada.');
         }
-      } else {
-        // Se não existe, adiciona
-        const payload = {
-          expedition_id: expeditionId,
-          loja_id: newItem.loja_id,
-          pallets: newItem.pallets,
-          rolltrainers: newItem.rolltrainers,
-          status_descarga: 'pendente'
+
+        // Verificar se pode editar
+        if (originalExpedition.status === 'saiu_para_entrega' || originalExpedition.status === 'entregue') {
+            throw new Error('Esta expedição não pode mais ser editada pois já saiu para entrega.');
+        }
+
+        const updatePromises = [];
+
+        // 2. Liberar recursos antigos se houve mudança
+        if (originalExpedition.motorista_id && originalExpedition.motorista_id !== newMotorista) {
+            updatePromises.push(
+                supabaseRequest(`motoristas?id=eq.${originalExpedition.motorista_id}`, 'PATCH', { status: 'disponivel' }, false)
+            );
+        }
+
+        if (originalExpedition.veiculo_id && originalExpedition.veiculo_id !== newVeiculo) {
+            updatePromises.push(
+                supabaseRequest(`veiculos?id=eq.${originalExpedition.veiculo_id}`, 'PATCH', { status: 'disponivel' }, false)
+            );
+        }
+
+        if (originalExpedition.doca_id && originalExpedition.doca_id !== newDoca) {
+            updatePromises.push(
+                supabaseRequest(`docas?id=eq.${originalExpedition.doca_id}`, 'PATCH', { status: 'disponivel' }, false)
+            );
+        }
+
+        // 3. Alocar novos recursos se foram selecionados
+        if (newMotorista && newMotorista !== originalExpedition.motorista_id) {
+            updatePromises.push(
+                supabaseRequest(`motoristas?id=eq.${newMotorista}`, 'PATCH', { status: 'em_viagem' }, false)
+            );
+        }
+
+        if (newVeiculo && newVeiculo !== originalExpedition.veiculo_id) {
+            updatePromises.push(
+                supabaseRequest(`veiculos?id=eq.${newVeiculo}`, 'PATCH', { status: 'em_uso' }, false)
+            );
+        }
+
+        if (newDoca && newDoca !== originalExpedition.doca_id) {
+            updatePromises.push(
+                supabaseRequest(`docas?id=eq.${newDoca}`, 'PATCH', { status: 'em_uso' }, false)
+            );
+        }
+
+        // 4. Atualizar os dados da expedição principal
+        const expeditionUpdatePayload = {
+            veiculo_id: newVeiculo || null,
+            motorista_id: newMotorista || null,
+            doca_id: newDoca || null,
+            lider_id: newLider || null,
+            observacoes: newObservacoes || null
         };
+        
         updatePromises.push(
-          supabaseRequest('expedition_items', 'POST', payload, false)
+            supabaseRequest(`expeditions?id=eq.${expeditionId}`, 'PATCH', expeditionUpdatePayload, false)
         );
-      }
+
+        // 5. Gerenciar os itens (lojas) da expedição
+        const originalItems = originalExpedition.items;
+
+        // Itens a serem removidos (se existiam antes e não estão mais na nova lista)
+        const itemsToRemove = originalItems.filter(originalItem =>
+            !newItemsData.some(newItem => newItem.loja_id === originalItem.loja_id)
+        );
+        for (const item of itemsToRemove) {
+            updatePromises.push(
+                supabaseRequest(`expedition_items?id=eq.${item.id}`, 'DELETE', null, false)
+            );
+        }
+
+        // Itens a serem adicionados ou atualizados
+        for (const newItem of newItemsData) {
+            const existingItem = originalItems.find(originalItem => originalItem.loja_id === newItem.loja_id);
+            if (existingItem) {
+                // Se já existe, atualiza (AGORA INCLUI ROLLTRAINERS)
+                if (existingItem.pallets !== newItem.pallets || existingItem.rolltrainers !== newItem.rolltrainers) {
+                    updatePromises.push(
+                        supabaseRequest(`expedition_items?id=eq.${existingItem.id}`, 'PATCH', {
+                            pallets: newItem.pallets,
+                            rolltrainers: newItem.rolltrainers
+                        }, false)
+                    );
+                }
+            } else {
+                // Se não existe, adiciona
+                const payload = {
+                    expedition_id: expeditionId,
+                    loja_id: newItem.loja_id,
+                    pallets: newItem.pallets,
+                    rolltrainers: newItem.rolltrainers,
+                    status_descarga: 'pendente'
+                };
+                updatePromises.push(
+                    supabaseRequest('expedition_items', 'POST', payload, false)
+                );
+            }
+        }
+
+        // Executar todas as atualizações
+        await Promise.all(updatePromises);
+
+        showNotification('Expedição atualizada com sucesso!', 'success');
+        closeEditModal();
+
+        // Recarrega os dados para refletir as mudanças
+        await loadSelectData();
+        loadAcompanhamento();
+    } catch (error) {
+        console.error('Erro ao salvar edição:', error);
+        showAlert('editFormAlert', `Erro ao salvar edição: ${error.message}`, 'error');
     }
-
-    // Executar todas as atualizações
-    await Promise.all(updatePromises);
-
-    showNotification('Expedição atualizada com sucesso!', 'success');
-    closeEditModal();
-
-    // Recarrega os dados para refletir as mudanças
-    await loadSelectData();
-    loadAcompanhamento();
-  } catch (error) {
-    console.error('Erro ao salvar edição:', error);
-    showAlert('editFormAlert', `Erro ao salvar edição: ${error.message}`, 'error');
-  }
 }
         
        // CÓDIGO CORRIGIDO
