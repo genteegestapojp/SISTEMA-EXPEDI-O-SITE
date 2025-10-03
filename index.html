@@ -1194,7 +1194,7 @@ let pontosInteresse = []; // Pontos fixos no mapa
 let homeMapInstance = null;
 let homeMapTimer = null;
         // Função de requisição ao Supabase (do sistema original, adaptada)
-        async function supabaseRequest(endpoint, method = 'GET', data = null, includeFilialFilter = true) {
+       async function supabaseRequest(endpoint, method = 'GET', data = null, includeFilialFilter = true) {
             let url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
             if (includeFilialFilter && selectedFilial && method === 'GET') {
                 const separator = url.includes('?') ? '&' : '?';
@@ -1203,13 +1203,11 @@ let homeMapTimer = null;
             const options = { method, headers: { ...headers } };
             
             if (data && (method === 'POST' || method === 'PATCH')) {
-                if (includeFilialFilter && selectedFilial) {
-                   if (Array.isArray(data)) {
-    data = data.map(item => ({ ...item, nome_filial: selectedFilial.nome })); // Mudar 'filial' para 'nome_filial'
-} else {
-    data = { ...data, nome_filial: selectedFilial.nome }; // Mudar 'filial' para 'nome_filial'
-}
-                }
+                // CORREÇÃO: Removida a lógica que injetava 'filial' no corpo da requisição POST/PATCH.
+                // Isso resolve o conflito de nomenclatura 'nome_filial' que o trigger está gerando
+                // no banco de dados para as tabelas docas e expedition_items, permitindo que o 
+                // trigger do Supabase insira o valor corretamente no campo 'filial' sem conflitos.
+                
                 options.body = JSON.stringify(data);
                 if (method !== 'DELETE') {
                     options.headers.Prefer = 'return=representation';
@@ -1226,7 +1224,6 @@ let homeMapTimer = null;
                 throw error;
             }
         }
-
         // NOVO: Função de notificação aprimorada
         function showNotification(message, type = 'info', timeout = 4000) {
             const container = document.getElementById('notificationContainer');
