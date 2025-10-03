@@ -1204,11 +1204,11 @@ let homeMapTimer = null;
             
             if (data && (method === 'POST' || method === 'PATCH')) {
                 if (includeFilialFilter && selectedFilial) {
-                    if (Array.isArray(data)) {
-                        data = data.map(item => ({ ...item, filial: selectedFilial.nome }));
-                    } else {
-                        data = { ...data, filial: selectedFilial.nome };
-                    }
+                   if (Array.isArray(data)) {
+    data = data.map(item => ({ ...item, nome_filial: selectedFilial.nome })); // Mudar 'filial' para 'nome_filial'
+} else {
+    data = { ...data, nome_filial: selectedFilial.nome }; // Mudar 'filial' para 'nome_filial'
+}
                 }
                 options.body = JSON.stringify(data);
                 if (method !== 'DELETE') {
