@@ -3052,8 +3052,7 @@ async function loadHomeMapDataForFullscreen() {
     }
 }
 
-        // --- FUNCIONALIDADES DA ABA OPERAÇÃO ---
-        async function lancarCarga() {
+      async function lancarCarga() {
             const lojaId = document.getElementById('lancar_lojaSelect').value;
             const docaId = document.getElementById('lancar_docaSelect').value;
             const pallets = parseInt(document.getElementById('lancar_palletsInput').value);
@@ -3087,12 +3086,14 @@ async function loadHomeMapDataForFullscreen() {
                     numeros_carga: numerosCarga.length > 0 ? numerosCarga : null
                 };
                 
+                // Primeiro, insere a Expedição na tabela 'expeditions'
                 const expeditionResponse = await supabaseRequest('expeditions', 'POST', expeditionData);
                 if (!expeditionResponse || expeditionResponse.length === 0) {
                     throw new Error("A criação da expedição falhou e não retornou um ID.");
                 }
                 const newExpeditionId = expeditionResponse[0].id;
 
+                // Em seguida, insere os Itens na tabela 'expedition_items'
                 const itemData = { expedition_id: newExpeditionId, loja_id: lojaId, pallets: pallets || 0, rolltrainers: rolltrainers || 0, status_descarga: 'pendente' };
                 await supabaseRequest('expedition_items', 'POST', itemData);
 
@@ -7517,7 +7518,7 @@ function closeOrdemCarregamentoModal() {
     document.getElementById('ordemLojasList').innerHTML = '';
 }
 
-// SUBSTITUA A FUNÇÃO ANTIGA POR ESTA
+// Localização: Linha ~6443 do index.html
 async function saveOrdemCarregamento() {
     const expeditionId = document.getElementById('ordemExpeditionId').value;
     const orderedItems = document.querySelectorAll('#ordemLojasList li');
@@ -7550,9 +7551,15 @@ async function saveOrdemCarregamento() {
         
         closeOrdemCarregamentoModal();
 
-        // Recarrega os dados
+        // Recarrega os dados (GARANTINDO QUE A EXPEDIÇÃO APAREÇA)
         loadTransportList();
         await loadSelectData(); 
+        
+        // RECEM ADICIONADO: Recarrega a lista de acompanhamento (ACOMPANHAMENTO)
+        loadAcompanhamento(); 
+        // RECEM ADICIONADO: Recarrega a lista de identificação (OPERAÇÃO)
+        loadIdentificacaoExpedicoes(); 
+        
     } catch (error) {
         // A mensagem de erro agora virá do supabaseRequest, que já é detalhada
         // Apenas para garantir, logamos o erro completo no console.
